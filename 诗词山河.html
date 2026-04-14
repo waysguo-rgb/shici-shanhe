@@ -576,6 +576,119 @@ async function buildTerrain(){
   return terrainRef;
 }
 
+// ═══════════════════════════════════════
+// 沿河流路径在地形上刻蚀河谷
+// ═══════════════════════════════════════
+function carveRivers(){
+  if(!terrainRef)return;
+  const geo=terrainRef.geometry;
+  const pos=geo.attributes.position;
+  const cols=geo.attributes.color;
+
+  // 顶点索引查找函数
+  const vertIdx=(gx,gz)=>{
+    if(gx<0||gx>SGWT||gz<0||gz>SGHT)return -1;
+    return gz*(SGWT+1)+gx;
+  };
+
+  // 水色（深河谷中心）
+  const bankR=[0.78,0.65,0.42],bankG=[0.50,0.58,0.42],valleyC=[0.20,0.35,0.38];
+
+  // 每个顶点被修改时的最深下沉量（避免多条河流叠加过度）
+  const depressed=new Float32Array(pos.count);
+  const nearestDist=new Float32Array(pos.count).fill(999);
+
+  RIVERS.forEach(r=>{
+    const ctrl=r.c.map(([lo,la])=>{
+      const[x,z]=ll2s(lo,la);
+      return new THREE.Vector3(x,0,z);
+    });
+    const curve=new THREE.CatmullRomCurve3(ctrl,false,'catmullrom',0.5);
+    const pts=curve.getPoints(300);
+    // 河道刻蚀参数（根据河宽调整）
+    const carveRadius=Math.max(0.8,r.w*3.5); // 河谷影响半径
+    const bankRadius=carveRadius*1.8;         // 河岸过渡半径
+    const maxDepth=0.30+r.w*0.25;             // 最大下沉深度
+    const radInGridX=Math.ceil(bankRadius/PW*SGWT)+1;
+    const radInGridZ=Math.ceil(bankRadius/PH*SGHT)+1;
+
+    pts.forEach(rp=>{
+      const fgx=(rp.x+PW/2)/PW*SGWT;
+      const fgz=(rp.z+PH/2)/PH*SGHT;
+      const cgx=Math.round(fgx);
+      const cgz=Math.round(fgz);
+      for(let dz=-radInGridZ;dz<=radInGridZ;dz++){
+        for(let dx=-radInGridX;dx<=radInGridX;dx++){
+          const gx=cgx+dx,gz=cgz+dz;
+          const idx=vertIdx(gx,gz);
+          if(idx<0)continue;
+          const vx=pos.getX(idx);
+          const vz=pos.getZ(idx);
+          const ddx=vx-rp.x,ddz=vz-rp.z;
+          const d=Math.sqrt(ddx*ddx+ddz*ddz);
+          if(d>=bankRadius)continue;
+          // 记录到最近河流的距离
+          if(d<nearestDist[idx])nearestDist[idx]=d;
+          // 山谷下沉：carveRadius 内全深，bankRadius 外沿渐变
+          if(d<carveRadius){
+            const t=1-d/carveRadius;
+            const smooth=t*t*(3-2*t);
+            const depth=maxDepth*smooth;
+            if(depth>depressed[idx]){
+              depressed[idx]=depth;
+            }
+          }
+        }
+      }
+    });
+  });
+
+  // 应用下沉 + 染色
+  for(let i=0;i<pos.count;i++){
+    if(depressed[i]<=0&&nearestDist[i]>=999)continue;
+    const y=pos.getY(i);
+    if(depressed[i]>0){
+      pos.setY(i,y-depressed[i]);
+    }
+    // 河谷附近的地面染色：混入沙岸/水色
+    const dist=nearestDist[i];
+    const bankRad=2.0; // 沙岸过渡范围
+    if(dist<bankRad&&cols){
+      // 距离越近颜色越青，越远过渡到原色
+      const t=1-Math.min(1,dist/bankRad);
+      // 距离很近时 (河床)：青水色
+      // 中等距离 (河岸)：沙黄色
+      // 远一点 (近河地)：原色
+      let mixR,mixG,mixB,blend;
+      if(dist<0.6){
+        // 河床附近 - 深青
+        mixR=valleyC[0];mixG=valleyC[1];mixB=valleyC[2];
+        blend=0.85;
+      }else if(dist<1.2){
+        // 河岸 - 沙土
+        mixR=bankR[0];mixG=bankR[1];mixB=bankR[2];
+        blend=0.50*(1-(dist-0.6)/0.6);
+      }else{
+        // 近岸 - 淡青绿
+        mixR=bankG[0];mixG=bankG[1];mixB=bankG[2];
+        blend=0.30*(1-(dist-1.2)/0.8);
+      }
+      const r=cols.getX(i);
+      const g=cols.getY(i);
+      const b=cols.getZ(i);
+      cols.setXYZ(i,
+        r*(1-blend)+mixR*blend,
+        g*(1-blend)+mixG*blend,
+        b*(1-blend)+mixB*blend
+      );
+    }
+  }
+
+  pos.needsUpdate=true;
+  if(cols)cols.needsUpdate=true;
+  geo.computeVertexNormals();
+}
+
 // ★ 从已渲染的地形网格直接采样精确高度 ★
 function buildHMap(){
   if(!terrainRef)return;
@@ -908,42 +1021,41 @@ function mkRiver(coords,width,riverName){
   // 河宽
   const rw=width*1.15;
   const hw=rw/2;
-  // 每个点大范围采样地形最高点（河带范围内），确保不被穿透
+  // 河谷已被刻蚀，采样河心（MIN）让河流贴合谷底
   const heights=[];
   for(let i=0;i<cpts.length;i++){
     const p=cpts[i];
-    // 先算该点的局部切线→法线
     let tx=0,tz=0;
     if(i>0){tx+=p.x-cpts[i-1].x;tz+=p.z-cpts[i-1].z}
     if(i<cpts.length-1){tx+=cpts[i+1].x-p.x;tz+=cpts[i+1].z-p.z}
     const len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
     const nx=-tz,nz=tx;
-    // 在河带宽度范围内采样 7 个点取最大高度
-    let maxH=-999;
-    for(let k=-3;k<=3;k++){
-      const off=k/3*(hw+0.1);
+    // 在河心附近取最低点（谷底）
+    let minH=999;
+    for(let k=-2;k<=2;k++){
+      const off=k/2*(hw+0.05);
       const sx=p.x+nx*off;
       const sz=p.z+nz*off;
-      // 前后各 0.08 单位也采样
-      for(let d=-1;d<=1;d++){
-        const dx=sx+tx*d*0.08;
-        const dz=sz+tz*d*0.08;
-        const ys=hAt(dx,dz);
-        if(ys>maxH)maxH=ys;
-      }
+      const ys=hAt(sx,sz);
+      if(ys<minH)minH=ys;
     }
-    heights.push(maxH);
+    heights.push(minH);
   }
-  // 沿河平滑高度（大窗口移动平均）
+  // 沿河平滑（让水面看起来连续不跳变）
   const smH=new Array(cpts.length);
-  const WIN=6;
+  const WIN=8;
   for(let i=0;i<cpts.length;i++){
     let s=0,n=0;
     for(let k=-WIN;k<=WIN;k++){
       const j=i+k;if(j<0||j>=cpts.length)continue;
       const w=WIN+1-Math.abs(k);s+=heights[j]*w;n+=w;
     }
-    smH[i]=s/n+0.05;
+    // 轻微抬升（仅为了避免 z-fighting，肉眼几乎看不到）
+    smH[i]=s/n+0.015;
+  }
+  // 保证水面单调下降（从源头到入海），避免河流出现反向上坡
+  for(let i=1;i<smH.length;i++){
+    if(smH[i]>smH[i-1])smH[i]=smH[i-1];
   }
   // 应用高度
   cpts.forEach((p,i)=>{p.y=smH[i]});
@@ -1181,7 +1293,9 @@ function closePo(){po.classList.remove('vis');lbls.forEach(e=>e.classList.remove
 async function init(){
   try{hd=await Promise.race([loadDEM(),new Promise(r=>setTimeout(()=>r(null),12000))])}catch(e){hd=null}
   scene.add(await buildTerrain());
-  // ★ 构建精确高度图（从已渲染地形网格读取）★
+  // ★ 在地形上刻蚀河谷，让河流嵌入而非浮于表面 ★
+  carveRivers();
+  // ★ 构建精确高度图（从已刻蚀的地形网格读取）★
   buildHMap();
   // 海面由地形自身处理（海域按水色着色），不再单独添加
   prog.style.width='80%';
