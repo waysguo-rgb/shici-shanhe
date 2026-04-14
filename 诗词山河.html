@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>诗词山河</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;touch-action:none}
+body{font-family:'Noto Serif SC',serif;background:radial-gradient(ellipse at center,#b09060 0%,#5c4828 90%);color:#f0e0b8}
+#cv{position:fixed;inset:0;z-index:0;background:transparent}
+#ui{position:fixed;inset:0;z-index:10;pointer-events:none}
+#hdr{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:30;pointer-events:none}
+#hdr-in{background:rgba(240,220,170,0.82);backdrop-filter:blur(6px);padding:11px 38px;border-radius:2px;border:1px solid rgba(120,80,35,0.55);text-align:center;box-shadow:0 4px 22px rgba(60,35,10,0.5),inset 0 0 22px rgba(180,130,60,0.25)}
+#hdr h1{font-family:'Ma Shan Zheng',cursive;font-size:36px;color:#2a1a08;letter-spacing:8px;text-shadow:0 1px 1px rgba(255,240,200,0.9),0 0 8px rgba(255,220,150,0.4)}
+#hdr p{font-size:11px;font-weight:600;color:#5a3a15;letter-spacing:3px}
+#labels{position:absolute;inset:0;z-index:15;pointer-events:none}
+.lb{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto;transition:opacity .3s;will-change:transform}
+.loc-n{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;text-orientation:upright;font-size:21px;color:#2a1208;letter-spacing:4px;padding:3px 2px;font-weight:700;text-shadow:0 0 7px rgba(252,238,205,1),0 0 3px rgba(252,238,205,1),0 0 2px rgba(252,238,205,1),0 1px 2px rgba(255,245,220,0.95);transition:all .3s}
+.lb:hover .loc-n{color:#8a1a08;text-shadow:0 0 10px rgba(255,240,200,1),0 0 5px rgba(255,240,200,1),0 0 3px rgba(255,240,200,1)}
+.loc-dot{display:none}
+.lb.on .loc-n{font-size:24px;color:#a82010;text-shadow:0 0 12px rgba(255,245,210,1),0 0 6px rgba(255,245,210,1),0 0 3px rgba(255,245,210,1),0 1px 2px rgba(255,245,220,0.95)}
+#rlbls{position:absolute;inset:0;z-index:13;pointer-events:none}
+.rlb{position:absolute;font-family:'Ma Shan Zheng',cursive;font-size:21px;color:#0e2a48;letter-spacing:6px;text-shadow:0 0 8px rgba(255,248,215,1),0 0 5px rgba(255,248,215,1),0 0 3px rgba(255,248,215,1),0 1px 2px rgba(255,245,220,0.95);writing-mode:vertical-rl;text-orientation:upright;font-weight:700;transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap}
+.pf{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:5px;margin-bottom:8px;pointer-events:none}
+.pf-t{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:15px;color:rgba(30,18,8,0.92);letter-spacing:2px;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,242,210,0.98),0 0 7px rgba(255,230,180,0.8);animation:incense 7s ease-in-out infinite;font-weight:700}
+.pf-a{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:10px;color:rgba(70,40,15,0.88);letter-spacing:1px;margin-top:4px;text-shadow:0 0 3px rgba(255,242,210,1),0 1px 1px rgba(255,240,200,0.95)}
+.pf-l{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:14px;color:rgba(30,18,8,0.88);letter-spacing:2px;line-height:1.5;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,240,200,0.98);opacity:0;animation:smokeIn 2.5s ease-out forwards,incense 9s ease-in-out infinite;font-weight:700}
+@keyframes incense{0%,100%{transform:translateY(0)}30%{transform:translateY(-2px) translateX(.5px)}60%{transform:translateY(-3px) translateX(-.5px)}90%{transform:translateY(-1px)}}
+@keyframes smokeIn{from{opacity:0;transform:translateY(8px);filter:blur(3px)}to{opacity:.55;transform:translateY(0);filter:blur(0)}}
+#po{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
+#po.vis{display:flex}
+#po-bg{position:absolute;inset:0;background:rgba(40,20,5,0.50);backdrop-filter:blur(4px);cursor:pointer}
+#po-wrap{position:relative;display:flex;align-items:center;max-width:86vw;height:50vh;animation:unfurl .95s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:right center}
+@keyframes unfurl{
+  0%{max-width:50px;opacity:.3}
+  25%{opacity:.85}
+  100%{max-width:86vw;opacity:1}
+}
+/* 卷轴轴柄：紫檀木 + 铜箍 */
+.roller{width:34px;height:calc(100% + 52px);flex-shrink:0;position:relative;z-index:5}
+.roller-wood{position:absolute;left:6px;right:6px;top:14px;bottom:14px;background:
+  linear-gradient(90deg,#1a0a02 0%,#3a1a06 18%,#5a2a0c 38%,#6a3a14 50%,#5a2a0c 62%,#3a1a06 82%,#1a0a02 100%),
+  repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 3px);
+background-blend-mode:multiply;border-radius:2px;box-shadow:inset 0 0 6px rgba(0,0,0,0.6),0 0 14px rgba(0,0,0,0.5)}
+.roller-cap{position:absolute;left:0;right:0;height:20px;background:
+  radial-gradient(ellipse at 50% 35%,#fae090 0%,#e8c070 25%,#b48540 55%,#704820 85%,#3a1f08 100%);
+  border-radius:4px;box-shadow:0 3px 8px rgba(0,0,0,0.55),inset 0 -2px 3px rgba(0,0,0,0.3),inset 0 2px 2px rgba(255,245,200,0.5)}
+.roller-cap.top{top:0}
+.roller-cap.bot{bottom:0}
+#po-box{position:relative;background:
+  linear-gradient(180deg,rgba(160,120,60,0.25) 0%,rgba(240,220,165,0.82) 8%,rgba(228,200,140,0.78) 50%,rgba(240,220,165,0.82) 92%,rgba(160,120,60,0.25) 100%),
+  radial-gradient(ellipse at 50% 50%,rgba(255,240,190,0.15),transparent 70%);
+backdrop-filter:blur(6px);border:none;padding:30px 60px;flex:1;height:100%;min-width:0;overflow-x:auto;overflow-y:hidden;box-shadow:0 6px 40px rgba(40,20,5,0.6),inset 0 0 90px rgba(100,55,15,0.28),inset 0 3px 0 rgba(80,40,10,0.35),inset 0 -3px 0 rgba(80,40,10,0.35);clip-path:inset(0 0 0 0);animation:clipReveal .9s cubic-bezier(.22,.08,.28,1) forwards}
+@keyframes clipReveal{
+  0%{clip-path:inset(0 0 0 100%)}
+  100%{clip-path:inset(0 0 0 0)}
+}
+#po-box::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  repeating-linear-gradient(90deg,transparent 0,transparent 40px,rgba(100,60,20,0.04) 40px,rgba(100,60,20,0.04) 42px),
+  radial-gradient(circle at 50% 50%,transparent 55%,rgba(80,40,10,0.20) 100%);
+mix-blend-mode:multiply}
+#po-x{position:absolute;top:10px;right:14px;font-size:28px;color:#5a3010;cursor:pointer;background:none;border:none;font-family:'Noto Serif SC';transition:all .3s;z-index:20;line-height:1}
+#po-x:hover{color:#8a1a08;transform:scale(1.1)}
+#po-speak{position:absolute;top:12px;left:14px;width:38px;height:38px;cursor:pointer;background:transparent;border:none;z-index:20;padding:0;transition:transform .3s}
+#po-speak svg{width:100%;height:100%;display:block}
+#po-speak:hover{transform:scale(1.1)}
+#po-speak.speaking{animation:speakPulse 1.2s infinite}
+@keyframes speakPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(180,60,20,0))}50%{transform:scale(1.08);filter:drop-shadow(0 0 8px rgba(180,60,20,0.6))}}
+#po-c{display:flex;flex-direction:row-reverse;align-items:stretch;justify-content:flex-start;gap:42px;height:100%;padding:6px 30px 6px 10px;position:relative;z-index:2}
+.ph{display:flex;flex-direction:column;align-items:center;gap:12px;margin:0;padding:0 14px;border:none;min-width:70px}
+.ps{width:36px;height:36px;border:2px solid #8a2818;color:#8a2818;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 10px rgba(138,40,24,0.35),inset 0 0 10px rgba(255,245,220,0.4);flex-shrink:0;background:rgba(255,245,220,0.35);border-radius:3px;font-family:'Ma Shan Zheng',cursive}
+.pln{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:50px;color:#2a1408;letter-spacing:8px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 14px rgba(255,220,150,0.5);line-height:1;font-weight:700}
+.pms{display:flex;flex-direction:row-reverse;align-items:stretch;gap:38px;flex:1;min-height:100%}
+.pe{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:22px;padding:0;min-height:100%}
+.pm{display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;padding-top:6px}
+.pt{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:36px;color:#2a1408;letter-spacing:6px;line-height:1.1;font-weight:700;text-shadow:0 1px 2px rgba(255,240,200,0.8)}
+.pa{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:15px;color:#5a3a15;letter-spacing:2px;margin-top:6px}
+.pl{display:flex;flex-direction:row-reverse;gap:22px;flex-wrap:nowrap;padding-right:6px}
+.pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:30px;color:#2a1408;letter-spacing:7px;line-height:1.5;opacity:0;animation:li .7s ease forwards;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);white-space:nowrap}
+@keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes li{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#ld{position:fixed;inset:0;z-index:1000;background:radial-gradient(ellipse at center,#b89060 0%,#503820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .8s}
+#ld.off{opacity:0;pointer-events:none}
+#ld p{font-family:'Ma Shan Zheng',cursive;color:#2a1408;font-size:22px;letter-spacing:6px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 10px rgba(255,220,150,0.5)}
+#ld .bar{width:220px;height:3px;background:rgba(60,35,10,0.3);border-radius:2px;overflow:hidden}
+#ld .fill{height:100%;background:#5a2e10;border-radius:2px;transition:width .3s}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#4a5553;border-radius:2px}
+@media(max-width:768px){
+#hdr h1{font-size:22px;letter-spacing:4px}
+#hdr p{font-size:9px}
+#hdr-in{padding:6px 18px}
+.loc-n{font-size:14px;letter-spacing:3px}
+.pf-t{font-size:11px}.pf-l{font-size:10px}
+#po-wrap{height:60vh;max-width:94vw}
+#po-box{padding:20px 30px}
+.pln{font-size:32px;letter-spacing:5px}
+.pt{font-size:24px;letter-spacing:4px}
+.pv{font-size:22px;letter-spacing:5px}
+.pms{gap:20px}
+.pe{gap:14px}
+.pl{gap:14px}
+#po-c{gap:18px;padding:6px 20px}
+.roller{width:24px}
+.roller-cap{height:14px}
+}
+</style>
+</head>
+<body>
+<div id="cv"></div>
+<div id="ui"><div id="hdr"><div id="hdr-in"><h1>诗词山河</h1><p id="sub"></p></div></div><div id="rlbls"></div><div id="labels"></div></div>
+<div id="po"><div id="po-bg"></div><div id="po-wrap"><div class="roller"><div class="roller-cap top"></div><div class="roller-wood"></div><div class="roller-cap bot"></div></div><div id="po-box"><button id="po-speak" title="诵读"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="bg1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f8e8b8"/><stop offset="60%" stop-color="#c8935a"/><stop offset="100%" stop-color="#6a3a14"/></radialGradient><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a1408"/><stop offset="100%" stop-color="#1a0600"/></linearGradient></defs><circle cx="32" cy="32" r="29" fill="url(#bg1)" stroke="#6a3a14" stroke-width="2"/><text x="32" y="44" font-family="'Ma Shan Zheng','Long Cang',cursive" font-size="32" fill="url(#bg2)" text-anchor="middle" font-weight="700">听</text></svg></button><button id="po-x">&times;</button><div id="po-c"></div></div><div class="roller"><div class="roller-cap top"></div><div class="roller-wood"></div><div class="roller-cap bot"></div></div></div></div>
+<div id="ld"><p>正在生成三维山河…</p><div class="bar"><div class="fill" id="prog"></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ═══════════════════════════════════════
+// 诗词数据 [地名, 经度, 纬度, 图标, 诗词]
+// ═══════════════════════════════════════
+const R=[
+['长安',108.94,34.26,'🏯',[['春望','杜甫','唐',['国破山河在','城春草木深','感时花溅泪','恨别鸟惊心','烽火连三月','家书抵万金','白头搔更短','浑欲不胜簪']],['清平调','李白','唐',['云想衣裳花想容','春风拂槛露华浓','若非群玉山头见','会向瑶台月下逢']],['九月九日忆山东兄弟','王维','唐',['独在异乡为异客','每逢佳节倍思亲','遥知兄弟登高处','遍插茱萸少一人']],['长恨歌','白居易','唐',['汉皇重色思倾国','御宇多年求不得','回眸一笑百媚生','六宫粉黛无颜色']],['和张仆射塞下曲','卢纶','唐',['月黑雁飞高','单于夜遁逃','欲将轻骑逐','大雪满弓刀']],['乐游原','李商隐','唐',['向晚意不适','驱车登古原','夕阳无限好','只是近黄昏']]]],
+['渭城',108.72,34.33,'🌾',[['送元二使安西','王维','唐',['渭城朝雨浥轻尘','客舍青青柳色新','劝君更尽一杯酒','西出阳关无故人']],['观猎','王维','唐',['风劲角弓鸣','将军猎渭城','草枯鹰眼疾','雪尽马蹄轻']]]],
+['终南山',108.95,33.95,'⛰️',[['终南山','王维','唐',['太乙近天都','连山接海隅','白云回望合','青霭入看无']],['终南别业','王维','唐',['中岁颇好道','晚家南山陲','行到水穷处','坐看云起时']],['鹿柴','王维','唐',['空山不见人','但闻人语响','返景入深林','复照青苔上']]]],
+['华山',110.09,34.47,'🗻',[['华山','寇准','宋',['只有天在上','更无山与齐','举头红日近','回首白云低']],['登华山','金章宗','金',['昔年曾上五云梯','此日重来路欲迷','回首三天人已远','顶头还有玉绳低']]]],
+['蓝关',109.32,34.15,'🐴',[['左迁至蓝关示侄孙湘','韩愈','唐',['一封朝奏九重天','夕贬潮州路八千','云横秦岭家何在','雪拥蓝关马不前']],['蓝桥驿见元九诗','白居易','唐',['蓝桥春雪君归日','秦岭秋风我去时','每到驿亭先下马','循墙绕柱觅君诗']]]],
+['秦州',105.72,34.58,'🌙',[['月夜忆舍弟','杜甫','唐',['戍鼓断人行','边秋一雁声','露从今夜白','月是故乡明']],['月夜','杜甫','唐',['今夜鄜州月','闺中只独看','遥怜小儿女','未解忆长安']]]],
+['汉中',107.03,33.07,'⚔️',[['蜀道难','李白','唐',['噫吁嚱','危乎高哉','蜀道之难','难于上青天']],['书愤','陆游','宋',['早岁那知世事艰','中原北望气如山','楼船夜雪瓜洲渡','铁马秋风大散关']]]],
+['潼关',110.25,34.52,'🏰',[['山坡羊·潼关怀古','张养浩','元',['峰峦如聚','波涛如怒','山河表里潼关路','宫阙万间都做了土','兴百姓苦','亡百姓苦']],['潼关','谭嗣同','清',['终古高云簇此城','秋风吹散马蹄声','河流大野犹嫌束','山入潼关不解平']],['潼关吏','杜甫','唐',['士卒何草草','筑城潼关道','大城铁不如','小城万丈馀']]]],
+['洛阳',112.45,34.62,'🌸',[['春夜洛城闻笛','李白','唐',['谁家玉笛暗飞声','散入春风满洛城','此夜曲中闻折柳','何人不起故园情']],['秋思','张籍','唐',['洛阳城里见秋风','欲作家书意万重','复恐匆匆说不尽','行人临发又开封']],['赠汪伦','李白','唐',['李白乘舟将欲行','忽闻岸上踏歌声','桃花潭水深千尺','不及汪伦送我情']],['洛阳女儿行','王维','唐',['洛阳女儿对门居','才可容颜十五馀','良人玉勒乘骢马','侍女金盘脍鲤鱼']]]],
+['鹳雀楼',110.45,34.87,'🏗️',[['登鹳雀楼','王之涣','唐',['白日依山尽','黄河入海流','欲穷千里目','更上一层楼']],['同崔邠登鹳雀楼','李益','唐',['鹳雀楼西百尺樯','汀洲云树共茫茫','汉家箫鼓空流水','魏国山河半夕阳']],['登鹳雀楼','畅当','唐',['迥临飞鸟上','高出世尘间','天势围平野','河流入断山']]]],
+['汴京',114.35,34.80,'🎭',[['雨霖铃','柳永','宋',['寒蝉凄切','对长亭晚','骤雨初歇','都门帐饮无绪','留恋处','兰舟催发']],['如梦令','李清照','宋',['常记溪亭日暮','沉醉不知归路','兴尽晚回舟','误入藕花深处','争渡争渡','惊起一滩鸥鹭']],['元日','王安石','宋',['爆竹声中一岁除','春风送暖入屠苏','千门万户曈曈日','总把新桃换旧符']],['清明上河','张择端','宋',['汴水东流无限春','隋家宫阙已成尘','行人莫上长堤望','风起杨花愁杀人']]]],
+['许昌',113.85,34.03,'🍷',[['短歌行','曹操','汉',['对酒当歌','人生几何','譬如朝露','去日苦多','何以解忧','唯有杜康']],['观沧海','曹操','汉',['东临碣石','以观沧海','水何澹澹','山岛竦峙']],['龟虽寿','曹操','汉',['老骥伏枥','志在千里','烈士暮年','壮心不已']]]],
+['太原',112.55,37.87,'🏔️',[['太原早秋','李白','唐',['岁落众芳歇','时当大火流','霜威出塞早','云色渡河秋']],['晋祠','李白','唐',['晋祠流水如碧玉','百尺清潭写翠娥']]]],
+['延州',109.49,36.60,'🌅',[['渔家傲·秋思','范仲淹','宋',['塞下秋来风景异','衡阳雁去无留意','四面边声连角起','千嶂里','长烟落日孤城闭']],['使至塞上','王维','唐',['大漠孤烟直','长河落日圆']],['出塞','王之涣','唐',['黄沙直上白云间','一片孤城万仞山']]]],
+['幽州',116.40,39.90,'🏛️',[['登幽州台歌','陈子昂','唐',['前不见古人','后不见来者','念天地之悠悠','独怆然而涕下']],['己亥杂诗','龚自珍','清',['浩荡离愁白日斜','吟鞭东指即天涯','落红不是无情物','化作春泥更护花']],['夜上受降城闻笛','李益','唐',['回乐峰前沙似雪','受降城外月如霜','不知何处吹芦管','一夜征人尽望乡']]]],
+['凉州',102.64,37.93,'🏜️',[['凉州词','王之涣','唐',['黄河远上白云间','一片孤城万仞山','羌笛何须怨杨柳','春风不度玉门关']],['凉州词','王翰','唐',['葡萄美酒夜光杯','欲饮琵琶马上催','醉卧沙场君莫笑','古来征战几人回']],['从军行','王昌龄','唐',['青海长云暗雪山','孤城遥望玉门关','黄沙百战穿金甲','不破楼兰终不还']]]],
+['阳关',94.05,39.75,'🌄',[['关山月','李白','唐',['明月出天山','苍茫云海间','长风几万里','吹度玉门关']],['塞下曲','李白','唐',['五月天山雪','无花只有寒','笛中闻折柳','春色未曾看']]]],
+['泰山',117.13,36.25,'⛰️',[['望岳','杜甫','唐',['岱宗夫如何','齐鲁青未了','造化钟神秀','阴阳割昏晓','荡胸生曾云','决眦入归鸟','会当凌绝顶','一览众山小']],['泰山吟','谢道韫','晋',['峨峨东岳高','秀极冲青天','岩中间虚宇','寂寞幽以玄']],['登泰山','张岱','明',['泰山如龙起','势压齐鲁青','日观东海日','瑶池西母庭']]]],
+['密州',119.41,35.99,'🏹',[['江城子·密州出猎','苏轼','宋',['老夫聊发少年狂','左牵黄','右擎苍','锦帽貂裘','千骑卷平冈']],['水调歌头','苏轼','宋',['明月几时有','把酒问青天','不知天上宫阙','今夕是何年']],['江城子·乙卯正月二十日夜记梦','苏轼','宋',['十年生死两茫茫','不思量','自难忘','千里孤坟','无处话凄凉']]]],
+['彭城',117.18,34.26,'🏠',[['永遇乐','苏轼','宋',['明月如霜','好风如水','清景无限']],['浪淘沙','刘禹锡','唐',['汴水东流虎眼文','清淮晓色鸭头春']]]],
+['金陵',118.80,32.06,'🏯',[['乌衣巷','刘禹锡','唐',['朱雀桥边野草花','乌衣巷口夕阳斜','旧时王谢堂前燕','飞入寻常百姓家']],['泊秦淮','杜牧','唐',['烟笼寒水月笼沙','夜泊秦淮近酒家','商女不知亡国恨','隔江犹唱后庭花']],['虞美人','李煜','五代',['春花秋月何时了','往事知多少','小楼昨夜又东风','故国不堪回首月明中']],['登金陵凤凰台','李白','唐',['凤凰台上凤凰游','凤去台空江自流','吴宫花草埋幽径','晋代衣冠成古丘']],['桂枝香·金陵怀古','王安石','宋',['登临送目','正故国晚秋','天气初肃','千里澄江似练','翠峰如簇']]]],
+['扬州',119.42,32.39,'🌉',[['寄扬州韩绰判官','杜牧','唐',['青山隐隐水迢迢','秋尽江南草未凋','二十四桥明月夜','玉人何处教吹箫']],['扬州慢','姜夔','宋',['淮左名都','竹西佳处','过春风十里','尽荠麦青青']],['遣怀','杜牧','唐',['落魄江湖载酒行','楚腰纤细掌中轻','十年一觉扬州梦','赢得青楼薄幸名']]]],
+['镇江',119.45,32.20,'⚓',[['京口北固亭怀古','辛弃疾','宋',['千古江山','英雄无觅孙仲谋处','风流总被雨打风吹去']],['泊船瓜洲','王安石','宋',['京口瓜洲一水间','钟山只隔数重山','春风又绿江南岸','明月何时照我还']],['南乡子·登京口北固亭有怀','辛弃疾','宋',['何处望神州','满眼风光北固楼','千古兴亡多少事','悠悠','不尽长江滚滚流']]]],
+['苏州',120.62,31.30,'🛶',[['枫桥夜泊','张继','唐',['月落乌啼霜满天','江枫渔火对愁眠','姑苏城外寒山寺','夜半钟声到客船']],['忆江南','白居易','唐',['江南好','风景旧曾谙','日出江花红胜火','春来江水绿如蓝']],['横塘','范成大','宋',['南浦春来绿一川','石桥朱塔两依然','年年送客横塘路','细雨垂杨系画船']],['题破山寺后禅院','常建','唐',['清晨入古寺','初日照高林','曲径通幽处','禅房花木深']]]],
+['杭州',120.15,30.25,'🌊',[['饮湖上初晴后雨','苏轼','宋',['水光潋滟晴方好','山色空蒙雨亦奇','欲把西湖比西子','淡妆浓抹总相宜']],['钱塘湖春行','白居易','唐',['孤山寺北贾亭西','水面初平云脚低','几处早莺争暖树','谁家新燕啄春泥']],['题临安邸','林升','宋',['山外青山楼外楼','西湖歌舞几时休','暖风熏得游人醉','直把杭州作汴州']],['望海潮','柳永','宋',['东南形胜','三吴都会','钱塘自古繁华','烟柳画桥','参差十万人家']],['晓出净慈寺送林子方','杨万里','宋',['毕竟西湖六月中','风光不与四时同','接天莲叶无穷碧','映日荷花别样红']],['苏堤春晓','杨周','明',['柳暗花明春正好','重重帘幕香风度','长堤十里柳条新']]]],
+['越州',120.58,30.00,'🏮',[['游山西村','陆游','宋',['莫笑农家腊酒浑','丰年留客足鸡豚','山重水复疑无路','柳暗花明又一村']],['示儿','陆游','宋',['死去元知万事空','但悲不见九州同','王师北定中原日','家祭无忘告乃翁']],['钗头凤·红酥手','陆游','宋',['红酥手','黄縢酒','满城春色宫墙柳','东风恶','欢情薄','一怀愁绪','几年离索']]]],
+['滁州',118.32,32.30,'🍶',[['醉翁亭记','欧阳修','宋',['醉翁之意不在酒','在乎山水之间也']],['丰乐亭游春','欧阳修','宋',['红树青山日欲斜','长郊草色绿无涯','游人不管春将老','来往亭前踏落花']]]],
+['宣城',118.76,30.95,'🏔️',[['独坐敬亭山','李白','唐',['众鸟高飞尽','孤云独去闲','相看两不厌','只有敬亭山']],['秋登宣城谢朓北楼','李白','唐',['江城如画里','山晓望晴空','两水夹明镜','双桥落彩虹']]]],
+['池州',117.49,30.66,'🌧️',[['清明','杜牧','唐',['清明时节雨纷纷','路上行人欲断魂','借问酒家何处有','牧童遥指杏花村']],['九日齐山登高','杜牧','唐',['江涵秋影雁初飞','与客携壶上翠微','尘世难逢开口笑','菊花须插满头归']]]],
+['合肥',117.28,31.86,'🌿',[['淡黄柳','姜夔','宋',['空城晓角','吹入垂杨陌']],['送魏二','王昌龄','唐',['醉别江楼橘柚香','江风引雨入舟凉']]]],
+['庐山',115.98,29.56,'🌈',[['望庐山瀑布','李白','唐',['日照香炉生紫烟','遥看瀑布挂前川','飞流直下三千尺','疑是银河落九天']],['题西林壁','苏轼','宋',['横看成岭侧成峰','远近高低各不同','不识庐山真面目','只缘身在此山中']],['饮酒','陶渊明','晋',['结庐在人境','而无车马喧','采菊东篱下','悠然见南山']],['庐山谣','李白','唐',['五岳寻仙不辞远','一生好入名山游','庐山秀出南斗傍','屏风九叠云锦张']]]],
+['浔阳',115.97,29.71,'🎵',[['琵琶行','白居易','唐',['浔阳江头夜送客','枫叶荻花秋瑟瑟','醉不成欢惨将别','别时茫茫江浸月']],['暮江吟','白居易','唐',['一道残阳铺水中','半江瑟瑟半江红','可怜九月初三夜','露似真珠月似弓']],['赋得古原草送别','白居易','唐',['离离原上草','一岁一枯荣','野火烧不尽','春风吹又生']]]],
+['黄鹤楼',114.30,30.55,'🏯',[['黄鹤楼','崔颢','唐',['昔人已乘黄鹤去','此地空余黄鹤楼','黄鹤一去不复返','白云千载空悠悠','晴川历历汉阳树','芳草萋萋鹦鹉洲']],['黄鹤楼送孟浩然之广陵','李白','唐',['故人西辞黄鹤楼','烟花三月下扬州','孤帆远影碧空尽','唯见长江天际流']],['菩萨蛮·黄鹤楼','毛泽东','现代',['茫茫九派流中国','沉沉一线穿南北','烟雨莽苍苍','龟蛇锁大江']]]],
+['黄州',114.87,30.45,'🌊',[['念奴娇·赤壁怀古','苏轼','宋',['大江东去','浪淘尽','千古风流人物','故垒西边','人道是','三国周郎赤壁']],['定风波','苏轼','宋',['莫听穿林打叶声','何妨吟啸且徐行','竹杖芒鞋轻胜马','一蓑烟雨任平生']],['卜算子·黄州定慧院寓居作','苏轼','宋',['缺月挂疏桐','漏断人初静','谁见幽人独往来','缥缈孤鸿影']]]],
+['荆门',112.20,31.04,'⛵',[['渡荆门送别','李白','唐',['渡远荆门外','来从楚国游','山随平野尽','江入大荒流']],['秋登兰山寄张五','孟浩然','唐',['北山白云里','隐者自怡悦','相望试登高','心随雁飞灭']]]],
+['襄阳',112.14,32.04,'🌺',[['春晓','孟浩然','唐',['春眠不觉晓','处处闻啼鸟','夜来风雨声','花落知多少']],['过故人庄','孟浩然','唐',['故人具鸡黍','邀我至田家','绿树村边合','青山郭外斜']],['临洞庭湖赠张丞相','孟浩然','唐',['八月湖水平','涵虚混太清','气蒸云梦泽','波撼岳阳城']]]],
+['岳阳',113.13,29.36,'🏛️',[['登岳阳楼','杜甫','唐',['昔闻洞庭水','今上岳阳楼','吴楚东南坼','乾坤日夜浮']],['望洞庭','刘禹锡','唐',['湖光秋月两相和','潭面无风镜未磨','遥望洞庭山水翠','白银盘里一青螺']],['岳阳楼记','范仲淹','宋',['先天下之忧而忧','后天下之乐而乐','衔远山','吞长江','浩浩汤汤','横无际涯']]]],
+['潭州',112.97,28.23,'🌼',[['江南逢李龟年','杜甫','唐',['正是江南好风景','落花时节又逢君']],['沁园春·长沙','毛泽东','现代',['独立寒秋','湘江北去','橘子洲头','看万山红遍','层林尽染','漫江碧透','百舸争流']],['题岳麓寺','张栻','宋',['岳麓嵯峨第几峰','直栽寒月浸中流','茅檐长卷江湖梦','石榻闲眠岁月秋']]]],
+['永州',111.62,26.42,'🎣',[['江雪','柳宗元','唐',['千山鸟飞绝','万径人踪灭','孤舟蓑笠翁','独钓寒江雪']],['渔翁','柳宗元','唐',['渔翁夜傍西岩宿','晓汲清湘燃楚竹','烟销日出不见人','欸乃一声山水绿']],['小石潭记','柳宗元','唐',['潭中鱼可百许头','皆若空游无所依','日光下澈','影布石上']],['溪居','柳宗元','唐',['久为簪组累','幸此南夷谪','闲依农圃邻','偶似山林客']]]],
+['郴州',113.01,25.77,'🌫️',[['踏莎行·郴州旅舍','秦观','宋',['雾失楼台','月迷津渡','桃源望断无寻处','杜鹃声里斜阳暮']],['鹊桥仙','秦观','宋',['两情若是久长时','又岂在朝朝暮暮']]]],
+['南昌',115.89,28.68,'🏯',[['滕王阁诗','王勃','唐',['滕王高阁临江渚','佩玉鸣鸾罢歌舞']],['滕王阁序','王勃','唐',['落霞与孤鹜齐飞','秋水共长天一色']],['登快阁','黄庭坚','宋',['痴儿了却公家事','快阁东西倚晚晴','落木千山天远大','澄江一道月分明']]]],
+['赣州',114.93,25.83,'💎',[['过零丁洋','文天祥','宋',['辛苦遭逢起一经','干戈寥落四周星','山河破碎风飘絮','身世浮沉雨打萍','人生自古谁无死','留取丹心照汗青']],['正气歌','文天祥','宋',['天地有正气','杂然赋流形','下则为河岳','上则为日星']]]],
+['吉州',114.99,27.11,'🎆',[['青玉案·元夕','辛弃疾','宋',['东风夜放花千树','更吹落','星如雨','宝马雕车香满路','一夜鱼龙舞']],['破阵子','辛弃疾','宋',['醉里挑灯看剑','梦回吹角连营']],['菩萨蛮·书江西造口壁','辛弃疾','宋',['郁孤台下清江水','中间多少行人泪','西北望长安','可怜无数山']]]],
+['桂林',110.30,25.27,'🏞️',[['独秀峰','袁枚','清',['桂林山水奇八九','独秀峰尤冠其首']],['送桂州严大夫','韩愈','唐',['苍苍森八桂','兹地在湘南','江作青罗带','山如碧玉簪']]]],
+['柳州',109.43,24.33,'🌴',[['登柳州城楼','柳宗元','唐',['城上高楼接大荒','海天愁思正茫茫','惊风乱飐芙蓉水','密雨斜侵薜荔墙']],['酬曹侍御过象县见寄','柳宗元','唐',['破额山前碧玉流','骚人遥驻木兰舟','春风无限潇湘意','欲采蘋花不自由']]]],
+['泉州',118.68,24.87,'⛵',[['秋日登清源山','陈允平','宋',['秋风吹客上危楼','万壑千岩入望秋']],['咏泉州刺桐花','王毂','唐',['南国清和烟雨辰','刺桐夹道花开新']]]],
+['福州',119.30,26.08,'🌅',[['乌山','赵汝愚','宋',['六合乾坤澄霁色','万家烟火夕阳天']],['福州','陈轩','宋',['城里三山古越州','楼台相望跨虹流']]]],
+['建州',118.30,27.05,'📖',[['春日','朱熹','宋',['胜日寻芳泗水滨','无边光景一时新','等闲识得东风面','万紫千红总是春']],['观书有感','朱熹','宋',['半亩方塘一鉴开','天光云影共徘徊','问渠那得清如许','为有源头活水来']]]],
+['成都',104.06,30.57,'🌿',[['春夜喜雨','杜甫','唐',['好雨知时节','当春乃发生','随风潜入夜','润物细无声','花重锦官城']],['蜀相','杜甫','唐',['丞相祠堂何处寻','锦官城外柏森森','出师未捷身先死','长使英雄泪满襟']],['绝句','杜甫','唐',['两个黄鹂鸣翠柳','一行白鹭上青天','窗含西岭千秋雪','门泊东吴万里船']],['江畔独步寻花','杜甫','唐',['黄四娘家花满蹊','千朵万朵压枝低','留连戏蝶时时舞','自在娇莺恰恰啼']],['茅屋为秋风所破歌','杜甫','唐',['八月秋高风怒号','卷我屋上三重茅','茅飞渡江洒江郊','安得广厦千万间','大庇天下寒士俱欢颜']]]],
+['剑门',105.53,32.29,'🗡️',[['剑门道中遇微雨','陆游','宋',['衣上征尘杂酒痕','远游无处不消魂','此身合是诗人未','细雨骑驴入剑门']],['剑阁赋','李白','唐',['咸阳之南','直望五千里','见云峰之崔嵬','倚剑长太息']]]],
+['阆中',105.97,31.58,'🎏',[['阆山歌','杜甫','唐',['阆州城东灵山白','阆州城北玉台碧','松浮欲尽不尽云','江动将崩未崩石']],['阆水歌','杜甫','唐',['嘉陵江色何所似','石黛碧玉相因依','正怜日破浪花出','更复春从沙际归']]]],
+['白帝城',109.56,31.04,'☁️',[['早发白帝城','李白','唐',['朝辞白帝彩云间','千里江陵一日还','两岸猿声啼不住','轻舟已过万重山']],['登高','杜甫','唐',['风急天高猿啸哀','渚清沙白鸟飞回','无边落木萧萧下','不尽长江滚滚来']],['八阵图','杜甫','唐',['功盖三分国','名成八阵图','江流石不转','遗恨失吞吴']]]],
+['峨眉山',103.48,29.60,'🌙',[['峨眉山月歌','李白','唐',['峨眉山月半轮秋','影入平羌江水流','夜发清溪向三峡','思君不见下渝州']],['登峨眉山','李白','唐',['蜀国多仙山','峨眉邈难匹','周流试登览','绝怪安可悉']]]],
+['梓州',105.07,31.26,'📜',[['闻官军收河南河北','杜甫','唐',['剑外忽传收蓟北','初闻涕泪满衣裳','却看妻子愁何在','漫卷诗书喜欲狂','白日放歌须纵酒','青春作伴好还乡','即从巴峡穿巫峡','便下襄阳向洛阳']],['春日忆李白','杜甫','唐',['白也诗无敌','飘然思不群','清新庾开府','俊逸鲍参军']]]],
+['巴山',107.50,31.80,'🌧️',[['夜雨寄北','李商隐','唐',['君问归期未有期','巴山夜雨涨秋池','何当共剪西窗烛','却话巴山夜雨时']],['锦瑟','李商隐','唐',['锦瑟无端五十弦','一弦一柱思华年','庄生晓梦迷蝴蝶','望帝春心托杜鹃']]]],
+['天姥山',121.00,29.20,'🌌',[['梦游天姥吟留别','李白','唐',['天姥连天向天横','势拔五岳掩赤城','天台四万八千丈','对此欲倒东南倾','安能摧眉折腰事权贵','使我不得开心颜']],['天台晓望','李白','唐',['天台邻四明','华顶高百越','门标赤城霞','楼栖沧岛月']]]],
+['荆州',112.24,30.33,'🚢',[['荆州歌','李白','唐',['白帝城边足风波','瞿塘五月谁敢过']],['秋兴八首','杜甫','唐',['玉露凋伤枫树林','巫山巫峡气萧森','江间波浪兼天涌','塞上风云接地阴']]]],
+['玉门关',93.86,40.35,'🏜️',[['出塞','王昌龄','唐',['秦时明月汉时关','万里长征人未还','但使龙城飞将在','不教胡马度阴山']],['古从军行','李颀','唐',['白日登山望烽火','黄昏饮马傍交河','行人刁斗风沙暗','公主琵琶幽怨多']]]],
+['大散关',106.73,34.03,'⚔️',[['书愤','陆游','宋',['楼船夜雪瓜洲渡','铁马秋风大散关']],['秋夜将晓出篱门迎凉有感','陆游','宋',['三万里河东入海','五千仞岳上摩天','遗民泪尽胡尘里','南望王师又一年']]]],
+['邯郸',114.49,36.61,'✉️',[['逢入京使','岑参','唐',['故园东望路漫漫','双袖龙钟泪不干','马上相逢无纸笔','凭君传语报平安']],['邯郸冬至夜思家','白居易','唐',['邯郸驿里逢冬至','抱膝灯前影伴身','想得家中夜深坐','还应说着远行人']]]]
+];
+
+const L=R.map(([n,lo,la,icon,ps])=>({n,lo,la,icon,ps:ps.map(([t,a,d,l])=>({t,a,d,l}))}));
+const TP=L.reduce((s,l)=>s+l.ps.length,0);
+document.getElementById('sub').textContent='跨越三千年 · '+L.length+'处河山 · '+TP+'首诗词';
+
+// ═══════════════════════════════════════
+// 设备检测 & 质量配置
+// ═══════════════════════════════════════
+const MOB=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)||window.innerWidth<768;
+const SGWT=MOB?200:480, SGHT=MOB?150:340;
+const SEA_SEG=MOB?32:48;
+const CLOUD_N=MOB?2:3;
+const RIVER_PTS=MOB?160:380;
+
+// ═══════════════════════════════════════
+// DEM 加载
+// ═══════════════════════════════════════
+const Z=5,TS=256,TX0=22,TX1=27,TY0=10,TY1=15,TC=TX1-TX0+1,TR_=TY1-TY0+1,MW=TC*TS,MH=TR_*TS;
+let hd=null;const prog=document.getElementById('prog');
+function loadTile(tx,ty){return new Promise(res=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>res({img,tx,ty});img.onerror=()=>res(null);img.src=`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${Z}/${tx}/${ty}.png`})}
+async function loadDEM(){const j=[];for(let ty=TY0;ty<=TY1;ty++)for(let tx=TX0;tx<=TX1;tx++)j.push(loadTile(tx,ty));let d=0;const r=await Promise.all(j.map(p=>p.then(r=>{d++;prog.style.width=(d/j.length*40)+'%';return r})));const ok=r.filter(Boolean);if(!ok.length)return null;const c=document.createElement('canvas');c.width=MW;c.height=MH;const cx=c.getContext('2d');ok.forEach(({img,tx,ty})=>cx.drawImage(img,(tx-TX0)*TS,(ty-TY0)*TS));return cx.getImageData(0,0,MW,MH)}
+function ll2px(lo,la){const px=((lo+180)/360*Math.pow(2,Z)-TX0)*TS;const lr=la*Math.PI/180;const py=((1-Math.log(Math.tan(lr)+1/Math.cos(lr))/Math.PI)/2*Math.pow(2,Z)-TY0)*TS;return[px,py]}
+function sampleDEM(lo,la){if(!hd)return null;const[px,py]=ll2px(lo,la);const x0=Math.floor(px),y0=Math.floor(py);if(x0<0||x0>=MW-1||y0<0||y0>=MH-1)return null;const fx=px-x0,fy=py-y0;const s=(x,y)=>{const i=(y*MW+x)*4;return(hd.data[i]*256+hd.data[i+1]+hd.data[i+2]/256)-32768};return s(x0,y0)*(1-fx)*(1-fy)+s(x0+1,y0)*fx*(1-fy)+s(x0,y0+1)*(1-fx)*fy+s(x0+1,y0+1)*fx*fy}
+
+// ═══════════════════════════════════════
+// 程序化地形 + 地形辅助函数
+// ═══════════════════════════════════════
+function fade(t){return t*t*t*(t*(t*6-15)+10)}
+function hash2(x,y){let n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)}
+function n2d(x,y){const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,u=fade(fx),v=fade(fy);return(hash2(ix,iy)*(1-u)+hash2(ix+1,iy)*u)*(1-v)+(hash2(ix,iy+1)*(1-u)+hash2(ix+1,iy+1)*u)*v-0.5}
+function fbm(x,y,o){let v=0,a=1,f=1,t=0;for(let i=0;i<(o||4);i++){v+=n2d(x*f,y*f)*a;t+=a;a*=.5;f*=2}return v/t}
+function gauss(x,c,s){return Math.exp(-.5*((x-c)/s)**2)}
+function smoothstep(a,b,x){const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)}
+function ridge(lo,la,x0,y0,x1,y1,w,h){const dx=x1-x0,dy=y1-y0,l2=dx*dx+dy*dy;if(!l2)return h*gauss(lo,x0,w)*gauss(la,y0,w);const t=Math.max(0,Math.min(1,((lo-x0)*dx+(la-y0)*dy)/l2));const d=Math.sqrt((lo-(x0+t*dx))**2+(la-(y0+t*dy))**2);return h*Math.exp(-.5*(d/w)**2)}
+// 中国大陆边界 (源自真实GeoJSON数据，~215点)
+const BD_MAIN=[[117.334,23.247],[116.894,23.379],[116.543,22.852],[114.609,22.368],[113.994,22.5],[113.818,22.192],[114.434,22.017],[113.994,21.797],[113.555,22.017],[112.412,21.445],[110.742,21.357],[110.742,20.918],[110.478,20.874],[110.654,20.259],[110.391,20.127],[109.863,20.127],[109.6,20.918],[109.775,21.401],[109.16,21.357],[109.248,20.874],[109.072,21.533],[107.402,21.621],[106.699,22.017],[106.699,22.895],[105.908,22.939],[105.293,23.379],[103.975,22.544],[103.359,22.808],[103.096,22.456],[102.481,22.764],[102.305,22.412],[101.777,22.5],[101.777,21.138],[101.25,21.182],[101.162,21.753],[100.107,21.489],[99.932,22.061],[99.228,22.148],[99.492,23.071],[98.877,23.203],[98.877,24.126],[97.559,23.906],[97.822,25.269],[98.701,25.884],[98.701,27.51],[98.35,27.51],[98.174,28.125],[97.559,28.52],[97.031,27.73],[95.713,28.257],[94.219,27.554],[93.867,27.026],[92.109,26.851],[92.022,27.466],[91.582,27.554],[91.406,28.037],[91.055,27.861],[89.648,28.169],[89.033,27.202],[88.682,28.125],[87.715,27.817],[86.748,28.125],[86.045,27.905],[82.09,30.322],[81.387,30.366],[81.211,30.015],[78.75,31.333],[78.398,32.52],[78.75,32.695],[78.926,32.344],[79.277,32.563],[78.662,33.662],[78.662,34.102],[79.014,34.321],[78.223,34.717],[78.047,35.508],[76.201,35.815],[75.85,36.694],[74.531,37.09],[75.147,37.441],[74.883,37.573],[74.883,38.452],[73.828,38.584],[73.477,39.375],[74.795,40.518],[76.377,40.386],[76.904,41.001],[77.607,41.001],[80.156,42.056],[80.244,42.847],[80.772,43.198],[80.42,44.605],[79.981,44.956],[81.738,45.395],[82.529,45.22],[82.266,45.659],[83.057,47.241],[84.902,46.89],[85.518,47.065],[85.518,48.12],[86.572,48.56],[86.836,49.131],[87.803,49.175],[87.978,48.603],[88.682,48.164],[90.352,47.681],[91.055,46.582],[91.055,46.011],[90.703,45.747],[90.879,45.22],[93.516,44.956],[95.361,44.297],[96.416,42.715],[100.811,42.671],[105.029,41.572],[107.402,42.451],[109.424,42.451],[111.973,43.682],[111.445,44.385],[111.973,45.088],[113.643,44.736],[114.522,45.395],[115.664,45.44],[116.543,46.274],[117.422,46.582],[119.971,46.714],[118.477,47.988],[115.928,47.681],[115.488,48.164],[115.84,48.252],[116.719,49.834],[117.773,49.526],[119.268,50.098],[119.531,50.889],[120.762,52.119],[120.674,52.515],[120.059,52.734],[120.85,53.262],[123.662,53.569],[125.596,53.086],[126.562,52.163],[127.793,49.614],[129.463,49.438],[130.693,48.867],[130.518,48.648],[131.045,47.681],[132.539,47.725],[133.066,48.12],[135.088,48.428],[134.56,47.988],[134.736,47.681],[134.209,47.285],[133.945,46.274],[133.066,45.132],[131.924,45.352],[131.045,44.868],[131.309,43.33],[131.133,42.935],[130.43,42.715],[130.606,42.451],[129.902,43.023],[129.727,42.495],[128.935,42.012],[128.057,42.012],[128.32,41.572],[128.144,41.352],[126.914,41.792],[124.102,39.683],[123.398,39.683],[123.135,39.023],[121.113,38.672],[120.938,38.98],[121.377,39.199],[121.201,39.551],[122.08,40.386],[121.728,40.825],[121.201,40.825],[118.916,39.067],[117.861,39.111],[117.598,38.628],[118.125,38.145],[118.916,38.145],[119.356,37.661],[119.004,37.353],[119.356,37.134],[119.707,37.134],[120.938,38.452],[121.201,37.661],[122.695,37.353],[122.432,36.782],[121.113,36.606],[121.377,36.255],[119.707,35.464],[119.971,34.98],[119.356,34.849],[120.322,34.365],[121.025,32.651],[121.904,31.992],[121.992,30.806],[122.695,30.894],[122.959,30.146],[122.168,29.531],[122.344,28.872],[121.992,28.872],[121.992,28.433],[121.465,28.213],[121.113,27.422],[120.674,27.334],[120.938,27.026],[120.234,26.851],[120.498,26.367],[119.795,25.928],[119.971,25.4],[117.158,23.555],[117.334,23.247]];
+const BD_HAINAN=[[108.633,19.38],[109.072,19.644],[109.248,19.951],[109.6,20.039],[110.391,20.127],[110.654,20.259],[111.094,19.951],[111.269,19.995],[110.654,19.16],[110.566,18.677],[110.215,18.589],[110.039,18.369],[109.863,18.369],[109.688,18.105],[108.984,18.281],[108.633,18.457],[108.633,19.38]];
+const BD_TAIWAN=[[121.553,25.312],[121.992,25.005],[121.816,24.741],[121.904,24.565],[121.641,24.038],[121.377,23.115],[121.025,22.676],[120.762,21.929],[120.674,22.324],[120.234,22.588],[120.059,23.071],[120.147,23.686],[121.025,25.049],[121.553,25.312]];
+const BD_LIST=[BD_MAIN,BD_HAINAN,BD_TAIWAN];
+const BD=BD_MAIN;
+function pip(px,py,po){let i2=false;for(let i=0,j=po.length-1;i<po.length;j=i++){const[xi,yi]=po[i],[xj,yj]=po[j];if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)i2=!i2}return i2}
+function inLand(lo,la){for(let i=0;i<BD_LIST.length;i++)if(pip(lo,la,BD_LIST[i]))return true;return false}
+function dBd(lo,la){let m=999;for(let p=0;p<BD_LIST.length;p++){const po=BD_LIST[p];for(let i=0;i<po.length;i++){const j=(i+1)%po.length;const[ax,ay]=po[i],[bx,by]=po[j];const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<1e-9){const d=Math.sqrt((lo-ax)**2+(la-ay)**2);if(d<m)m=d;continue}const t=Math.max(0,Math.min(1,((lo-ax)*dx+(la-ay)*dy)/l2));const d=Math.sqrt((lo-(ax+t*dx))**2+(la-(ay+t*dy))**2);if(d<m)m=d}}return m}
+
+function procH(lo,la){
+  if(!inLand(lo,la))return-50-dBd(lo,la)*80;
+  let h=50;const cd=Math.min(1,dBd(lo,la)/3);
+  // 山脉与高原
+  h+=ridge(lo,la,78,28,95,28,1.5,8000);h+=ridge(lo,la,74,36,100,36,2.5,5500);
+  h+=ridge(lo,la,75,42,95,43,2.5,4500);h+=ridge(lo,la,94,38,103,37,2,4200);
+  h+=ridge(lo,la,104,34,113,34,1.2,2800);h+=ridge(lo,la,113,35,115,40,1.2,2200);
+  h+=ridge(lo,la,108,25,116,25.5,1.5,1600);h+=ridge(lo,la,116,24.5,118.5,28,1.3,1400);
+  h+=ridge(lo,la,109,30,110.5,32,1.5,2200);h+=ridge(lo,la,126,41,129,44,2,2200);
+  h+=ridge(lo,la,119,44,126,50,2,1500);h+=ridge(lo,la,107,41,114,42,1.5,1800);
+  h+=ridge(lo,la,96,24,100,32,2,4800);h+=ridge(lo,la,88,33,95,33,2,5200);
+  h+=ridge(lo,la,80,31,88,31,2,5800);h+=ridge(lo,la,103,32,104.5,34,1,3200);
+  h+=ridge(lo,la,96,34,101,34,2,4200);h+=ridge(lo,la,108,28,111,30,1.5,1500);
+  h+=ridge(lo,la,85,47,92,49,2,2500);h+=ridge(lo,la,105.8,38,106.5,40,.8,2800);
+  // 高原盆地
+  h+=4200*gauss(lo,88,12)*gauss(la,33,6);
+  h+=1800*gauss(lo,104,5)*gauss(la,25,4);
+  h+=1000*gauss(lo,112,10)*gauss(la,43,4);
+  h+=1300*gauss(lo,108,5)*gauss(la,37,3);
+  h-=2200*gauss(lo,105,3)*gauss(la,30.5,2.5);
+  h-=3000*gauss(lo,83,6)*gauss(la,39,3);
+  h-=2200*gauss(lo,86,5)*gauss(la,45,2.5);
+  h-=800*gauss(lo,116,4)*gauss(la,36,4);
+  h-=600*gauss(lo,117,5)*gauss(la,31,2);
+  h-=900*gauss(lo,125,4)*gauss(la,45,4);
+  // 平原压平（华北平原、长江中下游平原、东北平原）
+  const plain=Math.max(
+    gauss(lo,115,6)*gauss(la,35,4),   // 华北平原
+    gauss(lo,117,5)*gauss(la,31,3),    // 长江中下游平原
+    gauss(lo,125,5)*gauss(la,45,4)     // 东北平原
+  );
+  if(plain>0.1) h=h*(1-plain*0.8)+50*plain*0.8;
+  // 噪声：仅在高海拔地区添加
+  const nf=smoothstep(200,800,h);
+  h+=fbm(lo*.3,la*.3,4)*500*cd*nf;
+  h+=fbm(lo*.8+50,la*.8+50,3)*200*nf;
+  h*=cd;
+  return Math.max(1,h);
+}
+
+function getH(lo,la){
+  if(!inLand(lo,la)){
+    return -200-dBd(lo,la)*100;
+  }
+  const d=sampleDEM(lo,la);
+  if(d!==null&&isFinite(d)){
+    if(d<5)return -50;
+    const nf=smoothstep(200,800,d);
+    return d+n2d(lo*2.5,la*2.5)*50*nf*Math.min(1,Math.max(0,(d-100)/2000))+n2d(lo*8,la*8)*30*nf;
+  }
+  const p=procH(lo,la);return isFinite(p)?p:0;
+}
+
+// ★ 关键修改：分段缩放使平原保持平坦 ★
+function scaleH(m){
+  if(!isFinite(m))return -0.6;
+  if(m<=0)return Math.max(-2,m*0.005-0.3);
+  if(m<300)return m*0.0005;  // 平原：300m→0.15单位（几乎为零）
+  if(m<600){const t=smoothstep(300,600,m);return 0.15*(1-t)+(0.15+Math.pow((600-200)/8800,.55)*8.5*((600-300)/8800))*t;}
+  return Math.pow(m/9000,.55)*10;
+}
+
+const CL=105,CA=34,SX=1.6,SY=1.8;
+function ll2s(lo,la){return[(lo-CL)*SX,-(la-CA)*SY]}
+function s2ll(x,z){return[x/SX+CL,-z/SY+CA]}
+
+// ═══════════════════════════════════════
+// 配色（含积雪沙漠秋色黄土）
+// ═══════════════════════════════════════
+// 山水画配色：暖米平原 / 赭褐山岭 / 墨黑高峰 / 江南淡绿 / 青绿水岸
+function tColor(h,lo,la){
+  // 海洋/境外按 BD 边界判定 - 淡翠水色
+  if(!inLand(lo,la)||h<5){return[.42,.55,.42]}
+  // 墨绿山水层叠色阶
+  const S=[
+    [-5,  .50,.58,.38],  // 滩涂淡翠
+    [10,  .48,.58,.30],  // 滨水草绿
+    [60,  .44,.54,.28],  // 平原浅绿
+    [200, .36,.48,.24],  // 低岗绿
+    [400, .30,.42,.22],  // 丘陵青绿
+    [700, .24,.36,.18],  // 低山深绿
+    [1100,.20,.32,.16],  // 中山墨绿
+    [1500,.16,.28,.14],  // 山地墨绿
+    [2000,.13,.24,.13],  // 高山墨绿
+    [2400,.11,.22,.11],  // 险山深墨绿
+    [2800,.10,.20,.10],  // 险山深墨绿
+    [3400,.09,.19,.10],  // 极山墨
+    [4000,.09,.18,.11],  // 高原墨
+    [4600,.10,.19,.12],  // 高原墨
+    [5200,.14,.22,.15],  // 高原渐亮
+    [5800,.28,.34,.26],  // 雪线前
+    [6500,.60,.66,.58],  // 高雪带青
+    [7500,.88,.90,.85]   // 极峰雪
+  ];
+  let r,g,b;
+  if(h<=S[0][0]){[,r,g,b]=S[0]}
+  else if(h>=S[S.length-1][0]){[,r,g,b]=S[S.length-1]}
+  else{for(let i=0;i<S.length-1;i++){if(h>=S[i][0]&&h<S[i+1][0]){const t=(h-S[i][0])/(S[i+1][0]-S[i][0]);const u=t*t*(3-2*t);r=S[i][1]+(S[i+1][1]-S[i][1])*u;g=S[i][2]+(S[i+1][2]-S[i][2])*u;b=S[i][3]+(S[i+1][3]-S[i][3])*u;break}}}
+  if(r===undefined){r=.6;g=.4;b=.25}
+
+  // —— 沙漠/戈壁/黄土：偏明赭黄 ——
+  const desert=Math.max(0,
+    gauss(lo,83,7)*gauss(la,39,4)*.95+
+    gauss(lo,102,6)*gauss(la,40,3)*.65+
+    gauss(lo,86,6)*gauss(la,45,3)*.50+
+    gauss(lo,108,4)*gauss(la,38,3)*.55
+  );
+  if(desert>.06&&h>-5&&h<4000){
+    const k=Math.min(.75,desert);
+    r=r*(1-k)+.82*k;g=g*(1-k)+.68*k;b=b*(1-k)+.38*k;
+  }
+
+  // —— 江南/岭南绢绿：淡翠 ——
+  const veg=Math.max(0,
+    gauss(lo,113,8)*gauss(la,26,6)*1.0+
+    gauss(lo,109,6)*gauss(la,30,4)*.85+
+    gauss(lo,118,5)*gauss(la,28,4)*.95+
+    gauss(lo,128,5)*gauss(la,46,5)*.75+
+    gauss(lo,101,4)*gauss(la,25,4)*.95+
+    gauss(lo,116,4)*gauss(la,32,4)*.75
+  );
+  if(veg>.05&&h>10&&h<1500){
+    const v=Math.min(.60,veg)*(1-smoothstep(1000,1600,h));
+    r=r*(1-v*.30)+.55*v*.30;
+    g=g*(1-v*.10)+.62*v*.10;
+    b=b*(1-v*.30)+.36*v*.30;
+  }
+
+  // —— 树木点苔 ——
+  if(h>30&&h<2800){
+    const tree=n2d(lo*8,la*8)+n2d(lo*16+17,la*16+17)*.5;
+    const treeMask=smoothstep(40,300,h)*(1-smoothstep(2000,2800,h));
+    const tStr=Math.max(0,tree)*.08*treeMask;
+    r-=tStr*.45;g-=tStr*.35;b-=tStr*.55;
+  }
+
+  // —— 山脊皴法：脊线压暗 ——
+  const ridgeNoise=Math.abs(n2d(lo*2,la*2))*Math.abs(n2d(lo*4+33,la*4+33));
+  if(h>400){
+    const inkStrength=Math.min(1,(h-400)/1200)*ridgeNoise*2.0;
+    r-=inkStrength*.16;g-=inkStrength*.14;b-=inkStrength*.10;
+  }
+
+  // —— 山脊层次：高处脊线更深更黑 ——
+  if(h>800){
+    const layerNoise=Math.abs(n2d(lo*3,la*3))*Math.abs(n2d(lo*6+19,la*6+19));
+    const layer=smoothstep(800,3000,h)*layerNoise*1.8;
+    r-=layer*.10;g-=layer*.13;b-=layer*.08;
+  }
+  // —— 高峰冷光反射（极淡蓝灰） ——
+  if(h>2500){
+    const peak=smoothstep(2500,4500,h);
+    const peakNoise=(n2d(lo*5,la*5)*.5+.5);
+    const coolWash=peak*peakNoise*.20;
+    r=r*(1-coolWash)+.28*coolWash;
+    g=g*(1-coolWash)+.34*coolWash;
+    b=b*(1-coolWash)+.32*coolWash;
+  }
+
+  // —— 山脚晕染 ——
+  if(h>100&&h<2200){
+    const wash=n2d(lo*0.8,la*0.8)*0.5+0.5;
+    const washStr=wash*0.06*smoothstep(100,800,h);
+    r-=washStr;g-=washStr*0.95;b-=washStr*0.85;
+  }
+
+  // —— 阴阳坡向 ——
+  const slope=n2d(lo*3.5,la*3.5)*.05;
+  r+=slope*1.1;g+=slope;b+=slope*.75;
+
+  // —— 绢本颗粒 ——
+  const grain=n2d(lo*12,la*12)*.022+n2d(lo*28+99,la*28+99)*.012;
+  return[
+    Math.max(0,Math.min(1,r+grain)),
+    Math.max(0,Math.min(1,g+grain*.85)),
+    Math.max(0,Math.min(1,b+grain*.65))
+  ];
+}
+
+// ═══════════════════════════════════════
+// Three.js 场景
+// ═══════════════════════════════════════
+const THREE=window.THREE;
+const container=document.getElementById('cv');
+let W=window.innerWidth,H=window.innerHeight;
+const scene=window._scene=new THREE.Scene();
+
+// 千里江山图 · 宣纸绢本底色
+(function(){
+  const c=document.createElement('canvas');c.width=1024;c.height=1024;const cx=c.getContext('2d');
+  // 老绢本底色
+  const gr=cx.createRadialGradient(512,512,100,512,512,760);
+  gr.addColorStop(0,'#b8a068');
+  gr.addColorStop(.35,'#a89058');
+  gr.addColorStop(.65,'#8c7040');
+  gr.addColorStop(1,'#5c4828');
+  cx.fillStyle=gr;cx.fillRect(0,0,1024,1024);
+  // 茶渍水印
+  for(let i=0;i<80;i++){
+    const x=Math.random()*1024,y=Math.random()*1024,rad=Math.random()*220+50;
+    const rg=cx.createRadialGradient(x,y,0,x,y,rad);
+    const op=.05+Math.random()*.10;
+    rg.addColorStop(0,`rgba(80,50,20,${op})`);
+    rg.addColorStop(.55,`rgba(110,80,40,${op*.6})`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=rg;cx.fillRect(0,0,1024,1024);
+  }
+  // 宣纸颗粒
+  for(let i=0;i<12000;i++){
+    const x=Math.random()*1024,y=Math.random()*1024;
+    cx.fillStyle=`rgba(${100+Math.random()*60|0},${75+Math.random()*50|0},${35+Math.random()*40|0},${Math.random()*.14})`;
+    cx.fillRect(x,y,Math.random()*2.5+0.5,Math.random()*2.5+0.5);
+  }
+  // 水平绢纹
+  cx.globalAlpha=0.08;
+  for(let y=0;y<1024;y+=2){
+    cx.fillStyle=`rgba(${50+Math.random()*30|0},${35+Math.random()*20|0},${15+Math.random()*15|0},.5)`;
+    cx.fillRect(0,y,1024,1);
+  }
+  cx.globalAlpha=1;
+  // 垂直绢纹
+  cx.globalAlpha=0.04;
+  for(let x=0;x<1024;x+=3){
+    cx.fillStyle='rgba(40,25,10,.4)';
+    cx.fillRect(x,0,1,1024);
+  }
+  cx.globalAlpha=1;
+  // 边缘焦褐
+  const eg=cx.createRadialGradient(512,512,300,512,512,720);
+  eg.addColorStop(0,'rgba(0,0,0,0)');
+  eg.addColorStop(1,'rgba(45,25,5,0.55)');
+  cx.fillStyle=eg;cx.fillRect(0,0,1024,1024);
+  scene.background=new THREE.CanvasTexture(c);
+})();
+
+scene.fog=new THREE.FogExp2(0x8c7040,0.0012);
+const camera=window._cam=new THREE.PerspectiveCamera(42,W/H,0.1,600);
+camera.position.set(8,110,40);
+const renderer=window._renderer=new THREE.WebGLRenderer({antialias:!MOB,preserveDrawingBuffer:true});
+renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,MOB?1.5:2));
+renderer.setClearColor(0x8c7040,1);
+container.appendChild(renderer.domElement);
+
+// ★ 修改：扩大控制范围，所有位置都可拖到视觉中心 ★
+const controls=window._ctl=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.06;
+controls.maxPolarAngle=Math.PI/2-.02;
+controls.minDistance=1.5;controls.maxDistance=220;
+controls.target.set(8,0,0);
+controls.screenSpacePanning=true;
+
+// 古画光照 - 暖柔主光 + 冷反光
+scene.add(new THREE.AmbientLight(0xfff0c8,0.78));
+const dl=new THREE.DirectionalLight(0xffeac0,0.88);dl.position.set(-30,70,25);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0x88a8c8,0.25);dl2.position.set(40,40,-30);scene.add(dl2);
+scene.add(new THREE.HemisphereLight(0xfff4d0,0x403020,0.40));
+
+// ═══════════════════════════════════════
+// 河流数据
+// ═══════════════════════════════════════
+const RIVERS=[
+  // 长江
+  {n:'长江',c:[[97,33.5],[99,33],[100,30.5],[101.5,29.5],[103,28.8],[104.5,29.2],[106,30],[107.5,30.5],[109,31],[110,30.5],[111,30],[112,30.2],[113,29.8],[114,30.5],[115,29.8],[116,30.5],[117,31],[118,31.5],[119,32],[120,31.7],[121.5,31.4]],w:.45,lblAt:14},
+  // 黄河
+  {n:'黄河',c:[[96,35],[97,35.3],[99,35.5],[100.5,36],[102,37],[103.5,37.5],[105,37.5],[106.5,38],[107.5,39],[108,40.5],[109,40.6],[110,40],[110.5,38],[111,36],[112,35],[113.5,35],[114,35.3],[115,35.7],[116,36.5],[117,37.2],[118,37.6],[119,37.5]],w:.40,lblAt:7},
+  // 珠江
+  {n:'珠江',c:[[103,24.5],[104.5,24],[106,23.5],[108,23],[110,22.7],[112,23],[113,23],[113.5,22.5]],w:.30,lblAt:5},
+  // 淮河
+  {n:'淮河',c:[[113,33.2],[114,33],[115,33],[116,33.1],[117,33.2],[118,33.4],[119,33.5],[119.8,33.5]],w:.22,lblAt:4},
+  // 渭河
+  {n:'渭河',c:[[105,34.5],[106,34.4],[107,34.3],[108,34.4],[109,34.4],[109.7,34.5],[110.3,34.6]],w:.18,lblAt:3},
+  // 汉江
+  {n:'汉江',c:[[107,33.5],[108.5,33],[110,32.5],[111,32],[112,31.5],[113,30.8],[114,30.5]],w:.22,lblAt:3},
+  // 湘江
+  {n:'湘江',c:[[111,25],[111.3,26],[112,27],[112.5,28],[113,28.8],[112.8,29.3]],w:.18,lblAt:3},
+  // 赣江
+  {n:'赣江',c:[[114.5,25.7],[115,26.5],[115.4,27.5],[115.6,28.4],[116,29.2]],w:.18,lblAt:3},
+];
+
+// ═══════════════════════════════════════
+// 平滑地形构建 + 高度图
+// ═══════════════════════════════════════
+const PW=130,PH=90;
+let terrainRef=null,hMap=null;
+
+async function buildTerrain(){
+  const geo=new THREE.PlaneGeometry(PW,PH,SGWT,SGHT);
+  geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position;const total=pos.count;
+  // 第一遍：设置高度
+  for(let i=0;i<total;i++){
+    const sx=pos.getX(i),sz=pos.getZ(i);
+    const[lo,la]=s2ll(sx,sz);
+    const hm=getH(lo,la);
+    const inL=inLand(lo,la);
+    const sy=inL?scaleH(hm):0;
+    pos.setY(i,isFinite(sy)?sy:0);
+  }
+  geo.computeVertexNormals();
+  // 第二遍：烘焙着色（将Lambert光照烘焙到顶点色）
+  const cols=[];
+  const BGC=[.60,.48,.22];
+  const nor=geo.attributes.normal;
+  // 主光方向（世界空间）
+  const lx=-30,ly=70,lz=25;
+  const ll=Math.hypot(lx,ly,lz);
+  const ldx=lx/ll,ldy=ly/ll,ldz=lz/ll;
+  // 副光
+  const l2x=40,l2y=40,l2z=-30;
+  const l2l=Math.hypot(l2x,l2y,l2z);
+  const l2dx=l2x/l2l,l2dy=l2y/l2l,l2dz=l2z/l2l;
+  for(let s=0;s<total;s+=3000){
+    const end=Math.min(s+3000,total);
+    for(let i=s;i<end;i++){
+      const sx=pos.getX(i),sz=pos.getZ(i);
+      const[lo,la]=s2ll(sx,sz);
+      const hm=getH(lo,la);
+      const inL=inLand(lo,la);
+      const[r,g,b]=tColor(isFinite(hm)?hm:0,lo,la);
+      let fr=r,fg=g,fb=b;
+      if(!inL){
+        const dist=dBd(lo,la);
+        const t=Math.min(1,Math.max(0,dist/2.5));
+        const u=t*t*(3-2*t);
+        fr=r*(1-u)+BGC[0]*u;
+        fg=g*(1-u)+BGC[1]*u;
+        fb=b*(1-u)+BGC[2]*u;
+      }
+      // 烘焙光照（陆地）
+      if(inL){
+        const nx=nor.getX(i),ny=nor.getY(i),nz=nor.getZ(i);
+        const nd1=Math.max(0,nx*ldx+ny*ldy+nz*ldz);
+        const nd2=Math.max(0,nx*l2dx+ny*l2dy+nz*l2dz);
+        const amb=0.65;
+        const dir1=0.55*nd1;
+        const dir2=0.18*nd2;
+        const shade=amb+dir1+dir2;
+        fr=Math.min(1,fr*shade);
+        fg=Math.min(1,fg*shade);
+        fb=Math.min(1,fb*shade*0.98);
+      }
+      cols.push(fr,fg,fb);
+    }
+    prog.style.width=(40+30*end/total)+'%';
+    await new Promise(r=>setTimeout(r,0));
+  }
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  terrainRef=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true}));
+  return terrainRef;
+}
+
+// ★ 从已渲染的地形网格直接采样精确高度 ★
+function buildHMap(){
+  if(!terrainRef)return;
+  const pos=terrainRef.geometry.attributes.position;
+  hMap=[];
+  for(let j=0;j<=SGHT;j++){
+    hMap[j]=new Float32Array(SGWT+1);
+    for(let i=0;i<=SGWT;i++) hMap[j][i]=pos.getY(j*(SGWT+1)+i);
+  }
+}
+function hAt(x,z){
+  if(!hMap)return 0;
+  const gx=(x+PW/2)/PW*SGWT,gz=(z+PH/2)/PH*SGHT;
+  const ix=Math.floor(gx),iz=Math.floor(gz);
+  if(ix<0||ix>=SGWT||iz<0||iz>=SGHT)return 0;
+  const fx=gx-ix,fz=gz-iz;
+  return hMap[iz][ix]*(1-fx)*(1-fz)+hMap[iz][ix+1]*fx*(1-fz)+hMap[iz+1][ix]*(1-fx)*fz+hMap[iz+1][ix+1]*fx*fz;
+}
+
+// ═══════════════════════════════════════
+// 海面 + 波浪 + 海岸浪花
+// ═══════════════════════════════════════
+let seaMesh,seaBaseY,seaCoastal,seaBaseCol;
+
+function buildSea(){
+  // 用椭圆软边海面，让边缘渐变融入宣纸背景
+  const geo=new THREE.PlaneGeometry(200,160,SEA_SEG,SEA_SEG);
+  geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position;
+  seaBaseY=new Float32Array(pos.count);
+  const cols=[];
+  const cx=8,cz=0; // 椭圆中心（地图中心）
+  const rx=85,rz=65;  // 椭圆半径
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i),z=pos.getZ(i);
+    seaBaseY[i]=-0.04;
+    pos.setY(i,-0.04);
+    // 椭圆归一化距离
+    const d=Math.sqrt(((x-cx)/rx)**2+((z-cz)/rz)**2);
+    // 软边：靠中心浓，靠边透明
+    const alpha=Math.max(0,Math.min(1,1.4-d));
+    const fade=Math.pow(alpha,1.5);
+    // 柔和的青绿水面
+    const noise=n2d(x*.15,z*.15)*.04+n2d(x*.4+50,z*.4+50)*.02;
+    const r=0.42+noise*.3;
+    const g=0.55+noise*.3;
+    const b=0.38+noise*.3;
+    cols.push(r,g,b,fade);
+  }
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,4));
+  const mat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:1.0,depthWrite:false});
+  seaMesh=new THREE.Mesh(geo,mat);
+  seaMesh.renderOrder=-1;
+  return seaMesh;
+}
+
+// ═══════════════════════════════════════
+// 宽河流 + 独立材质 + 正确方向
+// ═══════════════════════════════════════
+function mkWaterTex(){
+  const W=1024,H=256;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const cx=c.getContext('2d');
+  // 横截面渐变：左岸沙滩 → 浅水 → 深水 → 浅水 → 右岸沙滩
+  const bg=cx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,    'rgba(180,150,100,0.95)'); // 左岸沙色
+  bg.addColorStop(0.06, 'rgba(200,172,120,0.92)');
+  bg.addColorStop(0.12, 'rgba(160,190,160,0.88)'); // 浅滩淡翠
+  bg.addColorStop(0.22, 'rgba(80,150,145,0.96)');  // 中浅
+  bg.addColorStop(0.38, 'rgba(35,95,100,1)');      // 深水
+  bg.addColorStop(0.50, 'rgba(18,65,78,1)');       // 最深
+  bg.addColorStop(0.62, 'rgba(35,95,100,1)');
+  bg.addColorStop(0.78, 'rgba(80,150,145,0.96)');
+  bg.addColorStop(0.88, 'rgba(160,190,160,0.88)');
+  bg.addColorStop(0.94, 'rgba(200,172,120,0.92)');
+  bg.addColorStop(1,    'rgba(180,150,100,0.95)');
+  cx.fillStyle=bg;cx.fillRect(0,0,W,H);
+
+  // 细横向流线（深浅变化）
+  cx.globalAlpha=0.55;
+  for(let i=0;i<180;i++){
+    const yy=H*0.15+Math.random()*H*0.70;
+    const len=60+Math.random()*260;
+    const xx=Math.random()*W;
+    const isDark=Math.random()<0.4;
+    const grad=cx.createLinearGradient(xx,0,xx+len,0);
+    if(isDark){
+      grad.addColorStop(0,'rgba(10,40,55,0)');
+      grad.addColorStop(0.5,'rgba(10,40,55,0.65)');
+      grad.addColorStop(1,'rgba(10,40,55,0)');
+    }else{
+      grad.addColorStop(0,'rgba(170,225,220,0)');
+      grad.addColorStop(0.5,'rgba(170,225,220,0.55)');
+      grad.addColorStop(1,'rgba(170,225,220,0)');
+    }
+    cx.fillStyle=grad;cx.fillRect(xx,yy-0.5,len,1);
+  }
+  cx.globalAlpha=1;
+
+  // 细微涡流（深色斑块）
+  cx.globalAlpha=0.35;
+  for(let i=0;i<30;i++){
+    const xx=Math.random()*W;
+    const yy=H*0.30+Math.random()*H*0.40;
+    const rr=20+Math.random()*40;
+    const g=cx.createRadialGradient(xx,yy,0,xx,yy,rr);
+    g.addColorStop(0,'rgba(8,35,50,0.4)');
+    g.addColorStop(1,'rgba(8,35,50,0)');
+    cx.fillStyle=g;
+    cx.beginPath();cx.ellipse(xx,yy,rr,rr*0.4,0,0,6.28);cx.fill();
+  }
+  cx.globalAlpha=1;
+
+  // 沙滩纹理点
+  cx.globalAlpha=0.45;
+  for(let i=0;i<200;i++){
+    // 上岸
+    const xx=Math.random()*W;
+    const yy=Math.random()*H*0.10;
+    cx.fillStyle=`rgba(${140+Math.random()*40|0},${110+Math.random()*30|0},${70+Math.random()*30|0},${Math.random()*0.7})`;
+    cx.fillRect(xx,yy,Math.random()*1.5+0.5,Math.random()*1+0.5);
+    // 下岸
+    const yy2=H*0.90+Math.random()*H*0.10;
+    cx.fillStyle=`rgba(${140+Math.random()*40|0},${110+Math.random()*30|0},${70+Math.random()*30|0},${Math.random()*0.7})`;
+    cx.fillRect(xx,yy2,Math.random()*1.5+0.5,Math.random()*1+0.5);
+  }
+  cx.globalAlpha=1;
+
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;
+  t.repeat.set(4,1);
+  t.minFilter=THREE.LinearFilter;
+  t.magFilter=THREE.LinearFilter;
+  return t;
+}
+
+const riverMeshes=[];
+
+// ═══════════════════════════════════════
+// 装饰浪花纹理（青金宋韵）
+// ═══════════════════════════════════════
+function mkDecorativeWaveTex(){
+  const W=512,H=256;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const cx=c.getContext('2d');
+  cx.clearRect(0,0,W,H);
+
+  // 单个浪峰 - 占据整张画布
+  const baseY=H*0.92;
+  const crestH=H*0.72;
+  const cxMid=W*0.5;
+
+  // 青蓝渐变填充
+  const g=cx.createLinearGradient(0,baseY-crestH,0,baseY);
+  g.addColorStop(0,'#7ce0f0');
+  g.addColorStop(0.25,'#3ab4d2');
+  g.addColorStop(0.55,'#1870b0');
+  g.addColorStop(1,'#0a4580');
+
+  cx.fillStyle=g;
+  cx.beginPath();
+  cx.moveTo(W*0.05,baseY);
+  cx.bezierCurveTo(
+    W*0.18, baseY-crestH*0.55,
+    W*0.32, baseY-crestH*0.95,
+    cxMid,  baseY-crestH
+  );
+  cx.bezierCurveTo(
+    W*0.68, baseY-crestH*0.95,
+    W*0.82, baseY-crestH*0.55,
+    W*0.95, baseY
+  );
+  cx.lineTo(W*0.05,baseY);
+  cx.closePath();
+  cx.fill();
+
+  // 金色描边 (主轮廓)
+  cx.strokeStyle='#e8c070';
+  cx.lineWidth=5;
+  cx.lineCap='round';
+  cx.beginPath();
+  cx.moveTo(W*0.05,baseY);
+  cx.bezierCurveTo(
+    W*0.18, baseY-crestH*0.55,
+    W*0.32, baseY-crestH*0.95,
+    cxMid,  baseY-crestH
+  );
+  cx.bezierCurveTo(
+    W*0.68, baseY-crestH*0.95,
+    W*0.82, baseY-crestH*0.55,
+    W*0.95, baseY
+  );
+  cx.stroke();
+
+  // 内部金色平行流纹 (层层叠叠)
+  for(let layer=1;layer<=6;layer++){
+    const off=layer*13;
+    cx.strokeStyle=`rgba(235,200,120,${0.88-layer*0.11})`;
+    cx.lineWidth=1.8;
+    cx.beginPath();
+    cx.moveTo(W*0.05+off*0.15,baseY);
+    cx.bezierCurveTo(
+      W*0.18+off*0.08, baseY-crestH*0.55+off*0.45,
+      W*0.32+off*0.04, baseY-crestH*0.95+off*0.7,
+      cxMid,           baseY-crestH+off
+    );
+    cx.bezierCurveTo(
+      W*0.68-off*0.04, baseY-crestH*0.95+off*0.7,
+      W*0.82-off*0.08, baseY-crestH*0.55+off*0.45,
+      W*0.95-off*0.15, baseY
+    );
+    cx.stroke();
+  }
+
+  // 浪尖细波纹
+  cx.strokeStyle='rgba(255,250,200,0.7)';
+  cx.lineWidth=1;
+  for(let i=0;i<3;i++){
+    cx.beginPath();
+    cx.arc(cxMid,baseY-crestH+i*4,10-i*2,Math.PI*1.2,Math.PI*1.8);
+    cx.stroke();
+  }
+
+  // 金色珍珠 (浪尖飞溅)
+  function drawPearl(x,y,r){
+    const g=cx.createRadialGradient(x-r*0.3,y-r*0.3,0,x,y,r);
+    g.addColorStop(0,'#fff8dc');
+    g.addColorStop(0.5,'#f0d878');
+    g.addColorStop(0.9,'#c89830');
+    g.addColorStop(1,'rgba(120,80,20,0)');
+    cx.fillStyle=g;
+    cx.beginPath();cx.arc(x,y,r,0,6.28);cx.fill();
+  }
+  // 浪尖附近散布珍珠
+  for(let i=0;i<12;i++){
+    const angle=Math.random()*Math.PI*0.7-Math.PI*0.35-Math.PI/2;
+    const dist=8+Math.random()*35;
+    const px=cxMid+Math.cos(angle)*dist*1.2;
+    const py=baseY-crestH+Math.sin(angle)*dist*0.5;
+    drawPearl(px, py, 3+Math.random()*3);
+  }
+  // 两侧小珍珠
+  for(let i=0;i<8;i++){
+    const t=Math.random();
+    const px=W*0.1+t*W*0.8;
+    const py=baseY-crestH*0.3-Math.random()*30;
+    drawPearl(px,py,2.5+Math.random()*2);
+  }
+
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=THREE.ClampToEdgeWrapping;
+  t.wrapT=THREE.ClampToEdgeWrapping;
+  t.minFilter=THREE.LinearFilter;
+  t.magFilter=THREE.LinearFilter;
+  return t;
+}
+
+const _sharedWaveTex=mkDecorativeWaveTex();
+
+const waveMeshes=[];
+// 动感装饰浪花 - Sprite 面向相机不会变形
+// 每个位置由多层 Sprite 组成，有独立的漂浮+摇摆动画
+function mkWavePatch(loCen,laCen,loSpan,laSpan,loOff,laOff,name){
+  const baseW=3.8;
+  const baseH=baseW*0.52;
+  const group=new THREE.Group();
+  const[ccx,ccz]=ll2s(loCen,laCen);
+  const areaW=loSpan*1.6;
+  const areaH=laSpan*1.8;
+  const cols=Math.max(2,Math.floor(areaW/(baseW*0.70)));
+  const rows=Math.max(1,Math.floor(areaH/(baseH*1.4)));
+
+  const sprites=[];
+  for(let r=0;r<rows;r++){
+    for(let co=0;co<cols;co++){
+      // 棋盘错位
+      const px=-areaW/2+(co+0.5)*areaW/cols+(r%2?baseW*0.3:0);
+      const pz=-areaH/2+(r+0.5)*areaH/rows;
+      // 每个位置 2 层（前后层），减少重叠混乱
+      const layers=[
+        {dy:0.08,scale:1.00,op:1.0,zOff:0,depth:0},     // 前层
+        {dy:0.03,scale:0.78,op:0.85,zOff:-0.15,depth:1} // 后层稍小
+      ];
+      layers.forEach((L,idx)=>{
+        const mat=new THREE.SpriteMaterial({
+          map:_sharedWaveTex,
+          transparent:true,
+          opacity:L.op,
+          depthWrite:false
+        });
+        const sp=new THREE.Sprite(mat);
+        // 随机微调尺寸增加丰富度
+        const jitter=0.88+Math.random()*0.24;
+        const sw=baseW*L.scale*jitter;
+        const sh=baseH*L.scale*jitter;
+        sp.scale.set(sw,sh,1);
+        sp.position.set(px, L.dy+sh*0.5, pz+L.zOff);
+        sp.renderOrder=5+L.depth;
+        sp.userData={
+          baseX:px,
+          baseY:sp.position.y,
+          baseZ:sp.position.z,
+          baseW:sw,
+          baseH:sh,
+          baseOp:L.op,
+          phase:Math.random()*Math.PI*2+co*0.4+r*0.3,
+          speed:0.9+Math.random()*0.6,
+          swayAmp:0.06+Math.random()*0.05,
+          bobAmp:0.10+Math.random()*0.08,
+          rollSpeed:(Math.random()<0.5?-1:1)*(0.3+Math.random()*0.4)
+        };
+        group.add(sp);
+        sprites.push(sp);
+      });
+    }
+  }
+  group.position.set(ccx+loOff,0.02,ccz+laOff);
+  group.userData={name,phase:Math.random()*Math.PI*2,sprites};
+  waveMeshes.push(group);
+  return group;
+}
+
+function mkRiver(coords,width,riverName){
+  width=width||0.5;
+  const ctrl=coords.map(([lo,la])=>{
+    const[x,z]=ll2s(lo,la);
+    return new THREE.Vector3(x,0,z);
+  });
+  const curve=new THREE.CatmullRomCurve3(ctrl,false,'catmullrom',0.5);
+  const N=Math.max(RIVER_PTS,600);
+  const cpts=curve.getPoints(N);
+  // 河宽
+  const rw=width*1.15;
+  const hw=rw/2;
+  // 每个点大范围采样地形最高点（河带范围内），确保不被穿透
+  const heights=[];
+  for(let i=0;i<cpts.length;i++){
+    const p=cpts[i];
+    // 先算该点的局部切线→法线
+    let tx=0,tz=0;
+    if(i>0){tx+=p.x-cpts[i-1].x;tz+=p.z-cpts[i-1].z}
+    if(i<cpts.length-1){tx+=cpts[i+1].x-p.x;tz+=cpts[i+1].z-p.z}
+    const len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
+    const nx=-tz,nz=tx;
+    // 在河带宽度范围内采样 7 个点取最大高度
+    let maxH=-999;
+    for(let k=-3;k<=3;k++){
+      const off=k/3*(hw+0.1);
+      const sx=p.x+nx*off;
+      const sz=p.z+nz*off;
+      // 前后各 0.08 单位也采样
+      for(let d=-1;d<=1;d++){
+        const dx=sx+tx*d*0.08;
+        const dz=sz+tz*d*0.08;
+        const ys=hAt(dx,dz);
+        if(ys>maxH)maxH=ys;
+      }
+    }
+    heights.push(maxH);
+  }
+  // 沿河平滑高度（大窗口移动平均）
+  const smH=new Array(cpts.length);
+  const WIN=6;
+  for(let i=0;i<cpts.length;i++){
+    let s=0,n=0;
+    for(let k=-WIN;k<=WIN;k++){
+      const j=i+k;if(j<0||j>=cpts.length)continue;
+      const w=WIN+1-Math.abs(k);s+=heights[j]*w;n+=w;
+    }
+    smH[i]=s/n+0.05;
+  }
+  // 应用高度
+  cpts.forEach((p,i)=>{p.y=smH[i]});
+
+  // 生成双条带顶点
+  const verts=[],uvs=[],indices=[];
+  for(let i=0;i<cpts.length;i++){
+    const p=cpts[i];
+    let tx=0,tz=0;
+    if(i>0){tx+=p.x-cpts[i-1].x;tz+=p.z-cpts[i-1].z}
+    if(i<cpts.length-1){tx+=cpts[i+1].x-p.x;tz+=cpts[i+1].z-p.z}
+    const len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
+    const nx=-tz,nz=tx;
+    const wScale=rw*(0.88+0.22*Math.sin(i/cpts.length*Math.PI));
+    const half=wScale/2;
+    verts.push(p.x+nx*half,p.y,p.z+nz*half,
+               p.x-nx*half,p.y,p.z-nz*half);
+    const u=i/(cpts.length-1)*6;
+    uvs.push(u,0,u,1);
+    if(i<cpts.length-1){const b=i*2;indices.push(b,b+1,b+2,b+1,b+3,b+2)}
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setIndex(indices);
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+  geo.computeVertexNormals();
+  const tex=mkWaterTex();
+  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:1.0,side:THREE.DoubleSide,depthWrite:false});
+  mat.polygonOffset=true;
+  mat.polygonOffsetFactor=-3;
+  mat.polygonOffsetUnits=-3;
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.renderOrder=2;
+  const startH=getH(coords[0][0],coords[0][1]);
+  const endH=getH(coords[coords.length-1][0],coords[coords.length-1][1]);
+  mesh.userData={tex,flow:startH>=endH?-1:1,name:riverName,curvePts:cpts};
+  riverMeshes.push(mesh);
+  return mesh;
+}
+
+// ═══════════════════════════════════════
+// 河流标签
+// ═══════════════════════════════════════
+const riverLabels=[]; // {el, pos:Vector3, name}
+function buildRiverLabels(){
+  const cont=document.getElementById('rlbls');
+  riverMeshes.forEach((m,idx)=>{
+    if(!m.userData.name)return;
+    const cpts=m.userData.curvePts;
+    const r=RIVERS[idx];
+    // lblAt 是控制点索引，转成 cpts 比例位置
+    const frac=(r.lblAt||Math.floor(r.c.length/2))/(r.c.length-1);
+    const at=Math.min(cpts.length-1,Math.max(0,Math.floor(frac*(cpts.length-1))));
+    const p=cpts[at];
+    const el=document.createElement('div');
+    el.className='rlb';
+    el.textContent=m.userData.name;
+    cont.appendChild(el);
+    riverLabels.push({el,pos:new THREE.Vector3(p.x,p.y+.4,p.z),name:m.userData.name});
+  });
+}
+
+// ═══════════════════════════════════════
+// 体积云系统（多层Sprite叠加）
+// ═══════════════════════════════════════
+const cloudGroups=[];
+
+function mkCloudTex(seed){
+  const c=document.createElement('canvas');c.width=128;c.height=128;const cx=c.getContext('2d');
+  const g=cx.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,`rgba(255,255,253,${0.85+seed*0.1})`);
+  g.addColorStop(.25,`rgba(252,252,250,${0.7+seed*0.1})`);
+  g.addColorStop(.55,'rgba(248,248,246,0.35)');
+  g.addColorStop(.85,'rgba(240,240,240,0.08)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=g;cx.fillRect(0,0,128,128);
+  // 蓬松团块
+  for(let i=0;i<80;i++){
+    const px=20+Math.random()*88,py=20+Math.random()*88,r=Math.random()*22+8;
+    const rg=cx.createRadialGradient(px,py,0,px,py,r);
+    rg.addColorStop(0,`rgba(255,255,253,${.35+Math.random()*.4})`);
+    rg.addColorStop(.6,`rgba(250,250,248,${.15+Math.random()*.15})`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=rg;cx.beginPath();cx.arc(px,py,r,0,6.28);cx.fill();
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+function mkCloudCluster(x,y,z,baseW,baseH){
+  const group=new THREE.Group();
+  const layers=3+Math.floor(Math.random()*2);
+  for(let j=0;j<layers;j++){
+    const yOff=(j-layers/2)*0.7+Math.random()*0.3;
+    const sc=0.45+Math.random()*0.45;
+    const op=0.42+0.3*(1-Math.abs(j-layers/2)/(layers/2));
+    const tex=mkCloudTex(j/layers);
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:op,depthWrite:false,fog:true}));
+    sprite.scale.set(baseW*sc,baseH*sc*0.5,1);
+    sprite.position.set((Math.random()-.5)*baseW*0.4,yOff,(Math.random()-.5)*baseH*0.4);
+    group.add(sprite);
+  }
+  group.position.set(x,y,z);
+  group.userData={baseY:y,driftX:(Math.random()-.5)*.12,driftZ:(Math.random()-.5)*.08,phase:Math.random()*6.28};
+  scene.add(group);cloudGroups.push(group);
+  return group;
+}
+
+// ═══════════════════════════════════════
+// 金色光柱（每个位置上方的光束）
+// ═══════════════════════════════════════
+const beamMeshes=[];
+function mkBeamTex(){
+  const c=document.createElement('canvas');c.width=64;c.height=256;const cx=c.getContext('2d');
+  const g=cx.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'rgba(255,240,190,0)');
+  g.addColorStop(0.10,'rgba(255,235,180,0.40)');
+  g.addColorStop(0.40,'rgba(255,225,160,0.80)');
+  g.addColorStop(0.70,'rgba(255,220,150,0.95)');
+  g.addColorStop(0.92,'rgba(255,235,180,1)');
+  g.addColorStop(1,'rgba(255,250,220,1)');
+  cx.fillStyle=g;cx.fillRect(0,0,64,256);
+  // 横向羽化（更尖锐）
+  const h=cx.createLinearGradient(0,0,64,0);
+  h.addColorStop(0,'rgba(0,0,0,1)');
+  h.addColorStop(0.30,'rgba(0,0,0,0.4)');
+  h.addColorStop(0.5,'rgba(0,0,0,0)');
+  h.addColorStop(0.70,'rgba(0,0,0,0.4)');
+  h.addColorStop(1,'rgba(0,0,0,1)');
+  cx.globalCompositeOperation='destination-out';
+  cx.fillStyle=h;cx.fillRect(0,0,64,256);
+  cx.globalCompositeOperation='source-over';
+  return new THREE.CanvasTexture(c);
+}
+const beamTex=mkBeamTex();
+
+function mkLightBeam(x,y,z){
+  const matB=new THREE.SpriteMaterial({map:beamTex,color:0xffe2a8,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+  const sp=new THREE.Sprite(matB);
+  const beamH=7+Math.random()*2;
+  sp.scale.set(0.30,beamH,1);
+  sp.position.set(x,y+beamH/2,z);
+  sp.userData={baseY:y,h:beamH,phase:Math.random()*Math.PI*2,target:0,current:0};
+  beamMeshes.push(sp);
+  scene.add(sp);
+  const matG=new THREE.SpriteMaterial({map:beamTex,color:0xffd890,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+  const halo=new THREE.Sprite(matG);
+  halo.scale.set(1.1,1.1,1);
+  halo.position.set(x,y+0.25,z);
+  halo.userData={isHalo:true,phase:Math.random()*Math.PI*2,target:0,current:0};
+  beamMeshes.push(halo);
+  scene.add(halo);
+  return [sp,halo];
+}
+
+// ═══════════════════════════════════════
+// 标签
+// ═══════════════════════════════════════
+const labelsEl=document.getElementById('labels');
+const lbls=[],pos3D=[],locBeams=[];
+
+L.forEach((loc,i)=>{
+  const[sx,sz]=ll2s(loc.lo,loc.la);
+  pos3D.push(new THREE.Vector3(sx,0,sz));
+  locBeams.push(null);
+  const el=document.createElement('div');el.className='lb';
+  const fp=loc.ps[0];const lines=fp.l.slice(0,2);
+  let html='<div class="pf">';
+  html+=`<div class="pf-t">${fp.t}</div><div class="pf-a">${fp.a}</div>`;
+  lines.forEach((l,j)=>{html+=`<div class="pf-l" style="animation-delay:${j*1+1}s">${l}</div>`});
+  html+='</div>';
+  html+=`<div class="loc-n">${loc.n}</div>`;
+  el.innerHTML=html;
+  el.addEventListener('click',()=>selectLoc(i));
+  el.addEventListener('mouseenter',()=>setBeam(i,true));
+  el.addEventListener('mouseleave',()=>setBeam(i,false));
+  labelsEl.appendChild(el);lbls.push(el);
+});
+
+function setBeam(i,on){
+  const b=locBeams[i];
+  if(!b)return;
+  b[0].userData.target=on?0.85:0;
+  b[1].userData.target=on?0.40:0;
+}
+
+// ═══════════════════════════════════════
+// 语音朗读
+// ═══════════════════════════════════════
+let speaking=false;
+const speakBtn=document.getElementById('po-speak');
+speakBtn.addEventListener('click',toggleSpeak);
+function toggleSpeak(){
+  if(speaking){speechSynthesis.cancel();speaking=false;speakBtn.classList.remove('speaking');return}
+  if(activeI<0)return;
+  const loc=L[activeI];
+  let text=loc.n+'。\n';
+  loc.ps.forEach(p=>{text+=p.t+'，'+p.d+'，'+p.a+'。\n'+p.l.join('，')+'。\n'});
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='zh-CN';utt.rate=0.75;utt.pitch=1.0;
+  const voices=speechSynthesis.getVoices();
+  const zhV=voices.find(v=>v.lang.startsWith('zh')&&v.name.includes('Female'))||voices.find(v=>v.lang.startsWith('zh'));
+  if(zhV)utt.voice=zhV;
+  utt.onend=()=>{speaking=false;speakBtn.classList.remove('speaking')};
+  speechSynthesis.speak(utt);speaking=true;speakBtn.classList.add('speaking');
+}
+speechSynthesis.getVoices();speechSynthesis.addEventListener('voiceschanged',()=>{});
+
+// ═══════════════════════════════════════
+// 面板
+// ═══════════════════════════════════════
+const po=document.getElementById('po'),pc=document.getElementById('po-c');
+document.getElementById('po-bg').onclick=closePo;
+document.getElementById('po-x').onclick=closePo;
+let activeI=-1,camTo=null,lookTo=null,isAnim=false;
+controls.addEventListener('start',()=>{isAnim=false});
+
+function selectLoc(i){
+  activeI=i;const loc=L[i],p=pos3D[i];
+  lbls.forEach((e,j)=>e.classList.toggle('on',j===i));
+  locBeams.forEach((b,j)=>{if(b){b[0].userData.target=j===i?0.85:0;b[1].userData.target=j===i?0.40:0}});
+  camTo=new THREE.Vector3(p.x+4,p.y+9,p.z+14);lookTo=new THREE.Vector3(p.x,p.y,p.z);isAnim=true;
+  let h='<div class="ph"><div class="pln">'+loc.n+'</div></div><div class="pms">';
+  loc.ps.forEach((p,pi)=>{
+    h+='<div class="pe"><div class="pm"><div class="ps">'+p.d+'</div><div class="pt">'+p.t+'</div><div class="pa">'+p.a+'</div></div><div class="pl">';
+    p.l.forEach((l,li)=>{h+=`<div class="pv" style="animation-delay:${(pi*.25+li*.08+.15).toFixed(2)}s">${l}</div>`});
+    h+='</div></div>';
+  });
+  h+='</div>';pc.innerHTML=h;po.classList.add('vis');
+}
+function closePo(){po.classList.remove('vis');lbls.forEach(e=>e.classList.remove('on'));locBeams.forEach(b=>{if(b){b[0].userData.target=0;b[1].userData.target=0}});activeI=-1;if(speaking){speechSynthesis.cancel();speaking=false;speakBtn.classList.remove('speaking')}}
+
+// ═══════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════
+async function init(){
+  try{hd=await Promise.race([loadDEM(),new Promise(r=>setTimeout(()=>r(null),12000))])}catch(e){hd=null}
+  scene.add(await buildTerrain());
+  // ★ 构建精确高度图（从已渲染地形网格读取）★
+  buildHMap();
+  // 海面由地形自身处理（海域按水色着色），不再单独添加
+  prog.style.width='80%';
+
+  // 河流（使用高度图精确贴合地形）
+  RIVERS.forEach(r=>scene.add(mkRiver(r.c,r.w,r.n)));
+  // 河流名称标签
+  buildRiverLabels();
+  prog.style.width='85%';
+
+  // 台湾海峡浪花（台湾与福建之间）
+  scene.add(mkWavePatch(119.5,23.5,3.2,3.6,0,0,'台湾海峡'));
+  // 琼州海峡浪花（海南与广东之间）
+  scene.add(mkWavePatch(110.3,20.4,2.6,1.4,0,0,'琼州海峡'));
+  // 渤海（东北方向）
+  scene.add(mkWavePatch(120,38.5,3.2,2.8,0,0,'渤海'));
+
+  // ★ 用高度图精确设定标签位置，不再浮空 ★
+  L.forEach((loc,i)=>{
+    const[sx,sz]=ll2s(loc.lo,loc.la);
+    const y=hAt(sx,sz);
+    const yT=Math.max(.05,y)+.15;
+    pos3D[i].set(sx,yT,sz);
+    locBeams[i]=mkLightBeam(sx,yT,sz);
+  });
+  prog.style.width='90%';
+
+  // 体积云
+  for(let i=0;i<CLOUD_N;i++){
+    const lo=80+Math.random()*44,la=21+Math.random()*26;
+    const[x,z]=ll2s(lo,la);const hm=getH(lo,la);
+    const y=Math.max(5,scaleH(isFinite(hm)?hm:500))+4+Math.random()*5;
+    mkCloudCluster(x,y,z,9+Math.random()*15,6+Math.random()*10);
+  }
+  prog.style.width='100%';
+
+  animate();
+  setTimeout(()=>{const ld=document.getElementById('ld');ld.classList.add('off');setTimeout(()=>ld.remove(),800)},500);
+}
+
+// ═══════════════════════════════════════
+// 渲染循环
+// ═══════════════════════════════════════
+const tv=new THREE.Vector3();let lastCam='';const clock=new THREE.Clock();
+let frameCount=0;
+
+function animateSea(t){}
+
+function updateLabels(){
+  const cs=camera.position.toArray().map(v=>v.toFixed(1)).join(',');
+  if(cs===lastCam)return;lastCam=cs;
+  const w=window.innerWidth,h=window.innerHeight;
+  for(let i=0;i<L.length;i++){
+    const p=pos3D[i],el=lbls[i];
+    const dist=camera.position.distanceTo(p);
+    if(dist>130){el.style.display='none';continue}
+    tv.copy(p).project(camera);
+    if(tv.z>1){el.style.display='none';continue}
+    const sx=(tv.x*.5+.5)*w,sy=-(tv.y*.5-.5)*h;
+    if(sx<-80||sx>w+80||sy<-80||sy>h+80){el.style.display='none';continue}
+    el.style.display='';
+    const sc=Math.max(.55,Math.min(1.4,32/dist));
+    el.style.left=sx+'px';el.style.top=sy+'px';
+    el.style.transform=`translate(-50%,-100%) scale(${sc.toFixed(3)})`;
+    el.style.opacity=Math.min(1,Math.max(.4,1-dist/110)).toFixed(2);
+    // 诗句渐显
+    const pf=el.querySelector('.pf');
+    if(pf){if(dist<15){pf.style.display='';pf.style.opacity='.85'}else if(dist<24){pf.style.display='';pf.style.opacity=((24-dist)/9*.7).toFixed(2)}else{pf.style.display='none'}}
+  }
+  // 河流标签
+  for(let i=0;i<riverLabels.length;i++){
+    const rl=riverLabels[i];
+    const dist=camera.position.distanceTo(rl.pos);
+    if(dist>140){rl.el.style.display='none';continue}
+    tv.copy(rl.pos).project(camera);
+    if(tv.z>1){rl.el.style.display='none';continue}
+    const sx=(tv.x*.5+.5)*w,sy=-(tv.y*.5-.5)*h;
+    if(sx<-50||sx>w+50||sy<-50||sy>h+50){rl.el.style.display='none';continue}
+    rl.el.style.display='';
+    const sc=Math.max(.7,Math.min(1.6,42/dist));
+    rl.el.style.left=sx+'px';rl.el.style.top=sy+'px';
+    rl.el.style.transform=`translate(-50%,-50%) scale(${sc.toFixed(3)})`;
+    rl.el.style.opacity=Math.min(.98,Math.max(.7,1.4-dist/130)).toFixed(2);
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta(),t=clock.getElapsedTime();
+  frameCount++;
+
+  if(isAnim&&camTo&&lookTo){camera.position.lerp(camTo,.04);controls.target.lerp(lookTo,.04);if(camera.position.distanceTo(camTo)<.2)isAnim=false}
+
+  // ★ 限制拖拽范围在地形区域内 ★
+  controls.target.x=Math.max(-50,Math.min(100,controls.target.x));
+  controls.target.z=Math.max(-25,Math.min(80,controls.target.z));
+  controls.target.y=Math.max(-2,Math.min(15,controls.target.y));
+  controls.update();
+
+  // 河流丝绸流淌
+  riverMeshes.forEach(m=>{
+    m.userData.tex.offset.x+=dt*0.045*m.userData.flow;
+    m.material.opacity=0.88+Math.sin(t*0.6+m.userData.flow)*0.05;
+  });
+
+  // 海峡浪花：动感漂浮 + 摇摆 + 缩放呼吸
+  waveMeshes.forEach(g=>{
+    const u=g.userData;
+    const sprites=u.sprites;
+    if(!sprites)return;
+    sprites.forEach(sp=>{
+      const d=sp.userData;
+      const ph=t*d.speed+d.phase;
+      // 上下浮动
+      sp.position.y=d.baseY+Math.sin(ph)*d.bobAmp;
+      // 左右轻微摇摆
+      sp.position.x=d.baseX+Math.cos(ph*0.7)*d.swayAmp;
+      // 前后浮动
+      sp.position.z=d.baseZ+Math.sin(ph*0.5)*d.swayAmp*0.6;
+      // 缩放呼吸（浪涌效果）
+      const scaleK=1+Math.sin(ph*0.8)*0.08;
+      sp.scale.set(d.baseW*scaleK,d.baseH*(1+Math.sin(ph*0.8+1)*0.12),1);
+      // 旋转（通过 material.rotation）
+      sp.material.rotation=Math.sin(ph*0.5)*0.12*d.rollSpeed;
+      // 透明度呼吸
+      sp.material.opacity=d.baseOp*(0.75+Math.sin(ph*0.6)*0.22);
+    });
+  });
+
+  // 金色光柱 - 仅悬停时显示
+  beamMeshes.forEach(s=>{
+    const u=s.userData;
+    u.current+=(u.target-u.current)*0.15;
+    const breath=u.isHalo?(0.85+Math.sin(t*0.9+u.phase)*0.20):(0.92+Math.sin(t*0.6+u.phase)*0.15);
+    s.material.opacity=u.current*breath;
+    s.visible=u.current>0.01;
+  });
+
+  // 海浪（每3帧更新一次节省性能）
+  if(frameCount%3===0)animateSea(t);
+
+  // 体积云飘动 + 拉近拨开
+  cloudGroups.forEach(cg=>{
+    const d=cg.userData;
+    cg.position.x+=d.driftX*dt;cg.position.z+=d.driftZ*dt;
+    cg.position.y=d.baseY+Math.sin(t*.25+d.phase)*.6;
+    const dist=camera.position.distanceTo(cg.position);
+    const breath=.85+Math.sin(t*.2+d.phase)*.12;
+    // 近处淡出，远处全显
+    const fade=dist<6?0:dist<18?(dist-6)/12:1;
+    cg.children.forEach(s=>{s.material.opacity=(s.userData_baseOp||0.6)*breath*fade});
+  });
+
+  updateLabels();
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{W=window.innerWidth;H=window.innerHeight;camera.aspect=W/H;camera.updateProjectionMatrix();renderer.setSize(W,H);lastCam=''});
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closePo()});
+
+// 存储每个云层sprite的基础透明度
+function finalizeCloudOpacity(){
+  cloudGroups.forEach(cg=>{
+    cg.children.forEach(s=>{s.userData_baseOp=s.material.opacity||0.2});
+  });
+}
+
+// 启动
+init().then(()=>{finalizeCloudOpacity()});
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# 临时截图和预览图
+*.jpg
+*.jpeg
+*.png
+.preview.jpg
+
+# 大文件（视频、GIF）
+*.mp4
+*.webm
+*.gif
+
+# Python 辅助脚本的缓存
+__pycache__/
+*.pyc
+
+# Claude Code 相关
+.vframes/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 其他子项目（如果不需要版本控制）
+miniprogram/
