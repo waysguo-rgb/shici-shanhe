@@ -196,7 +196,7 @@ def build_ssml(poem, voice, style, rate):
 # ────────────────────────────────────────
 # Azure TTS API 调用
 # ────────────────────────────────────────
-def synthesize(ssml, out_path, retries=3):
+def synthesize(ssml, out_path, retries=5):
     headers = {
         'Ocp-Apim-Subscription-Key': SPEECH_KEY,
         'Content-Type': 'application/ssml+xml',
@@ -218,12 +218,13 @@ def synthesize(ssml, out_path, retries=3):
                 return len(r.content)
             else:
                 last_err = f'HTTP {r.status_code}: {r.text[:200]}'
-                # 429 (rate limit) 等一下再试
-                if r.status_code == 429:
-                    time.sleep(2.0 * (attempt + 1))
+                # 429 / 401 (Azure F0 层级限流有时假扮 401) / 503 → 指数退避后重试
+                if r.status_code in (401, 429, 503):
+                    wait = 3.0 * (attempt + 1)
+                    time.sleep(wait)
                     continue
-                # 400 / 401 等是 SSML 错误, 不重试
-                if r.status_code in (400, 401, 403):
+                # 400 (SSML 语法错误) / 403 (权限错误) → 不重试
+                if r.status_code in (400, 403):
                     break
         except requests.RequestException as e:
             last_err = str(e)
@@ -317,8 +318,8 @@ def main():
             failures.append((loc_name, title, str(e)))
             print(f'[{i+1:3}/{total}] ✗ {loc_name}/{title} | {e}')
 
-        # 避免触发 QPS 限制, 每请求后睡一会儿 (F0 免费层约 20 req/s)
-        time.sleep(0.35)
+        # 避免触发 QPS 限制, 每请求后睡一会儿 (F0 免费层限流较严, 2.0s 稳妥)
+        time.sleep(2.0)
 
     elapsed = time.time() - start_time
     print('=' * 70)
