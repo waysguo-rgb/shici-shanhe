@@ -715,49 +715,20 @@ function carveRivers(mesh,sgwt,sght){
     const sandColor=[0.78,0.64,0.38];  // 沙岸土黄
     const moistColor=[0.44,0.56,0.38]; // 湿润近岸
 
-    // 核心河线半径 (非常窄, 形成锐利线条) — 使用归一化距离, 大河会被自动放大
-    const coreRad=0.16;
-    // 浅水渐变
-    const edgeRad=0.30;
-    // 沙岸
-    const sandRad=0.55;
-    // 近岸湿地
-    const moistRad=0.95;
+    // 顶点色不再承担河流视觉 — 只在河谷两侧加一点点"湿润"暗示
+    // 主视觉改由 mkRiver 生成的细丝 mesh 表达
+    const moistRad=0.80;  // 湿润带半径 (归一化)
 
     for(let i=0;i<pos.count;i++){
       const dist=nearestNormDist[i];
       if(dist>=moistRad)continue;
 
+      // 只做一层湿润色混合: 深青湿润色, 混合比例很低, 过渡极柔
       let mixR,mixG,mixB,blend;
-      if(dist<coreRad){
-        // 河心: 几乎完全用河心色覆盖 (锐利)
-        mixR=riverCore[0];mixG=riverCore[1];mixB=riverCore[2];
-        blend=0.95;
-      }else if(dist<edgeRad){
-        // 河心→浅水: 深青到浅青的渐变
-        const t=(dist-coreRad)/(edgeRad-coreRad);
-        const k=t*t*(3-2*t); // smoothstep
-        mixR=riverCore[0]*(1-k)+riverEdge[0]*k;
-        mixG=riverCore[1]*(1-k)+riverEdge[1]*k;
-        mixB=riverCore[2]*(1-k)+riverEdge[2]*k;
-        blend=0.92-k*0.15; // 0.92 → 0.77
-      }else if(dist<sandRad){
-        // 浅水→沙岸: 青过渡到沙黄
-        const t=(dist-edgeRad)/(sandRad-edgeRad);
-        const k=t*t*(3-2*t);
-        mixR=riverEdge[0]*(1-k)+sandColor[0]*k;
-        mixG=riverEdge[1]*(1-k)+sandColor[1]*k;
-        mixB=riverEdge[2]*(1-k)+sandColor[2]*k;
-        blend=0.77-k*0.25; // 0.77 → 0.52
-      }else{
-        // 沙岸→湿地: 沙黄过渡到湿润近岸色
-        const t=(dist-sandRad)/(moistRad-sandRad);
-        const k=t*t*(3-2*t);
-        mixR=sandColor[0]*(1-k)+moistColor[0]*k;
-        mixG=sandColor[1]*(1-k)+moistColor[1]*k;
-        mixB=sandColor[2]*(1-k)+moistColor[2]*k;
-        blend=0.52*(1-k); // 0.52 → 0
-      }
+      const t=dist/moistRad;  // 0 (河心) → 1 (边缘)
+      const k=1-t*t*(3-2*t);  // smoothstep 反向: 1 → 0
+      mixR=moistColor[0];mixG=moistColor[1];mixB=moistColor[2];
+      blend=0.28*k;  // 最大 28% 混合, 只是一点湿润感
 
       const r=cols.getX(i);
       const g=cols.getY(i);
@@ -905,6 +876,62 @@ function mkWaterTex(){
   const t=new THREE.CanvasTexture(c);
   t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;
   t.repeat.set(4,1);
+  t.minFilter=THREE.LinearFilter;
+  t.magFilter=THREE.LinearFilter;
+  return t;
+}
+
+// ═══════════════════════════════════════
+// 丝线水纹: 用于"发丝"河流, 饱和青色细线 + 柔和透明边缘
+// ═══════════════════════════════════════
+function mkSilkTex(){
+  const W=1024,H=128;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const cx=c.getContext('2d');
+  cx.clearRect(0,0,W,H);
+  // 核心纵向渐变: 边缘柔和透明 → 中心实心饱和深青
+  const bg=cx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,    'rgba(25,65,95,0)');
+  bg.addColorStop(0.18, 'rgba(28,78,110,0.35)');
+  bg.addColorStop(0.30, 'rgba(32,95,130,0.85)');
+  bg.addColorStop(0.42, 'rgba(40,115,155,1.0)');
+  bg.addColorStop(0.50, 'rgba(50,140,175,1.0)');   // 中心饱和色
+  bg.addColorStop(0.58, 'rgba(40,115,155,1.0)');
+  bg.addColorStop(0.70, 'rgba(32,95,130,0.85)');
+  bg.addColorStop(0.82, 'rgba(28,78,110,0.35)');
+  bg.addColorStop(1,    'rgba(25,65,95,0)');
+  cx.fillStyle=bg;cx.fillRect(0,0,W,H);
+
+  // 流动方向性条纹: 深色波纹让水流看出方向
+  cx.globalAlpha=0.38;
+  for(let i=0;i<24;i++){
+    const xx=Math.random()*W;
+    const wl=120+Math.random()*180;
+    const yOff=(Math.random()-0.5)*8;
+    const grad=cx.createLinearGradient(xx,H/2+yOff,xx+wl,H/2+yOff);
+    grad.addColorStop(0,   'rgba(15,55,80,0)');
+    grad.addColorStop(0.5, 'rgba(15,55,80,0.75)');
+    grad.addColorStop(1,   'rgba(15,55,80,0)');
+    cx.fillStyle=grad;
+    cx.fillRect(xx,H/2+yOff-1.5,wl,3);
+  }
+  // 亮色流线 (少量, 表达"闪光")
+  cx.globalAlpha=0.35;
+  for(let i=0;i<10;i++){
+    const xx=Math.random()*W;
+    const wl=80+Math.random()*140;
+    const yOff=(Math.random()-0.5)*6;
+    const grad=cx.createLinearGradient(xx,H/2+yOff,xx+wl,H/2+yOff);
+    grad.addColorStop(0,   'rgba(185,225,240,0)');
+    grad.addColorStop(0.5, 'rgba(185,225,240,0.9)');
+    grad.addColorStop(1,   'rgba(185,225,240,0)');
+    cx.fillStyle=grad;
+    cx.fillRect(xx,H/2+yOff-0.6,wl,1.2);
+  }
+  cx.globalAlpha=1;
+
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;
+  t.repeat.set(6,1);
   t.minFilter=THREE.LinearFilter;
   t.magFilter=THREE.LinearFilter;
   return t;
@@ -1104,8 +1131,8 @@ function mkRiver(coords,width,riverName){
   const curve=new THREE.CatmullRomCurve3(ctrl,false,'catmullrom',0.5);
   const N=Math.max(RIVER_PTS,600);
   const cpts=curve.getPoints(N);
-  // 河宽
-  const rw=width*1.15;
+  // 河宽: 发丝化, 按河流大小缩放, 设最小宽度避免远距离不可见
+  const rw=Math.max(0.22,width*0.85);
   const hw=rw/2;
   // 河谷已被宽幅刻蚀，取大范围最低点(谷底)
   const heights=[];
@@ -1170,13 +1197,19 @@ function mkRiver(coords,width,riverName){
   geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
   geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
   geo.computeVertexNormals();
-  const tex=mkWaterTex();
-  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:1.0,side:THREE.DoubleSide,depthWrite:false});
+  const tex=mkSilkTex();
+  const mat=new THREE.MeshBasicMaterial({
+    map:tex,
+    transparent:true,
+    opacity:1.0,
+    side:THREE.DoubleSide,
+    depthWrite:false
+  });
   mat.polygonOffset=true;
   mat.polygonOffsetFactor=-3;
   mat.polygonOffsetUnits=-3;
   const mesh=new THREE.Mesh(geo,mat);
-  mesh.renderOrder=2;
+  mesh.renderOrder=3;
   const startH=getH(coords[0][0],coords[0][1]);
   const endH=getH(coords[coords.length-1][0],coords[coords.length-1][1]);
   mesh.userData={tex,flow:startH>=endH?-1:1,name:riverName,curvePts:cpts};
@@ -1406,9 +1439,9 @@ async function init(){
   // 海面由地形自身处理（海域按水色着色），不再单独添加
   prog.style.width='80%';
 
-  // 河流: 不再渲染独立 mesh, 只生成曲线数据给标签定位用
-  // (河流的视觉完全由地形顶点染色呈现, 永不"穿山"或"悬浮")
-  RIVERS.forEach(r=>{mkRiver(r.c,r.w,r.n)}); // 生成 curvePts 存入 riverMeshes, 不 scene.add
+  // 河流: 发丝化细线 mesh + 流动纹理
+  // 顶点色只做"湿润暗示", 主视觉由这里的细 mesh 承担
+  RIVERS.forEach(r=>scene.add(mkRiver(r.c,r.w,r.n)));
   buildRiverLabels();
   prog.style.width='85%';
 
