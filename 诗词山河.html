@@ -33,10 +33,10 @@ body{font-family:'Noto Serif SC',serif;background:radial-gradient(ellipse at cen
 #po{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
 #po.vis{display:flex}
 #po-bg{position:absolute;inset:0;background:rgba(40,20,5,0.50);backdrop-filter:blur(4px);cursor:pointer}
-#po-wrap{position:relative;display:flex;align-items:center;max-width:86vw;height:50vh;animation:unfurl .95s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:right center}
+#po-wrap{position:relative;display:flex;align-items:center;max-width:86vw;height:50vh;animation:unfurl 1.1s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:right center}
 @keyframes unfurl{
   0%{max-width:50px;opacity:.3}
-  25%{opacity:.85}
+  15%{opacity:.85}
   100%{max-width:86vw;opacity:1}
 }
 /* 卷轴轴柄：紫檀木 + 铜箍 */
@@ -53,7 +53,9 @@ background-blend-mode:multiply;border-radius:2px;box-shadow:inset 0 0 6px rgba(0
 #po-box{position:relative;background:
   linear-gradient(180deg,rgba(160,120,60,0.25) 0%,rgba(240,220,165,0.82) 8%,rgba(228,200,140,0.78) 50%,rgba(240,220,165,0.82) 92%,rgba(160,120,60,0.25) 100%),
   radial-gradient(ellipse at 50% 50%,rgba(255,240,190,0.15),transparent 70%);
-backdrop-filter:blur(6px);border:none;padding:30px 60px;flex:1;height:100%;min-width:0;overflow-x:auto;overflow-y:hidden;box-shadow:0 6px 40px rgba(40,20,5,0.6),inset 0 0 90px rgba(100,55,15,0.28),inset 0 3px 0 rgba(80,40,10,0.35),inset 0 -3px 0 rgba(80,40,10,0.35);clip-path:inset(0 0 0 0);animation:clipReveal .9s cubic-bezier(.22,.08,.28,1) forwards}
+backdrop-filter:blur(6px);border:none;padding:30px 60px;flex:1;height:100%;min-width:0;overflow-x:auto;overflow-y:hidden;box-shadow:0 6px 40px rgba(40,20,5,0.6),inset 0 0 90px rgba(100,55,15,0.28),inset 0 3px 0 rgba(80,40,10,0.35),inset 0 -3px 0 rgba(80,40,10,0.35);clip-path:inset(0 0 0 0);animation:clipReveal 1.1s cubic-bezier(.22,.08,.28,1) forwards;cursor:grab;scrollbar-width:thin}
+#po-box.dragging{cursor:grabbing}
+#po-box.dragging *{cursor:grabbing!important}
 @keyframes clipReveal{
   0%{clip-path:inset(0 0 0 100%)}
   100%{clip-path:inset(0 0 0 0)}
@@ -69,15 +71,24 @@ mix-blend-mode:multiply}
 #po-speak:hover{transform:scale(1.1)}
 #po-speak.speaking{animation:speakPulse 1.2s infinite}
 @keyframes speakPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(180,60,20,0))}50%{transform:scale(1.08);filter:drop-shadow(0 0 8px rgba(180,60,20,0.6))}}
-#po-c{display:flex;flex-direction:row-reverse;align-items:stretch;justify-content:flex-start;gap:42px;height:100%;padding:6px 30px 6px 10px;position:relative;z-index:2}
+#po-c{display:flex;flex-direction:row-reverse;align-items:stretch;justify-content:flex-start;gap:42px;height:100%;padding:6px 30px 6px 10px;position:relative;z-index:2;width:max-content;min-width:100%}
 .ph{display:flex;flex-direction:column;align-items:center;gap:12px;margin:0;padding:0 14px;border:none;min-width:70px}
 .ps{width:36px;height:36px;border:2px solid #8a2818;color:#8a2818;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 10px rgba(138,40,24,0.35),inset 0 0 10px rgba(255,245,220,0.4);flex-shrink:0;background:rgba(255,245,220,0.35);border-radius:3px;font-family:'Ma Shan Zheng',cursive}
 .pln{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:50px;color:#2a1408;letter-spacing:8px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 14px rgba(255,220,150,0.5);line-height:1;font-weight:700}
-.pms{display:flex;flex-direction:row-reverse;align-items:stretch;gap:38px;flex:1;min-height:100%}
-.pe{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:22px;padding:0;min-height:100%}
+.pms{display:flex;flex-direction:row-reverse;align-items:stretch;gap:38px;flex:0 0 auto;min-height:100%}
+.pe{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:22px;padding:0;min-height:100%;flex:0 0 auto}
 .pm{display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;padding-top:6px}
-.pt{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:36px;color:#2a1408;letter-spacing:6px;line-height:1.1;font-weight:700;text-shadow:0 1px 2px rgba(255,240,200,0.8)}
+.pt{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:36px;color:#2a1408;letter-spacing:6px;line-height:1.1;font-weight:700;text-shadow:0 1px 2px rgba(255,240,200,0.8);max-height:100%}
+.pt.pt-m{font-size:30px;letter-spacing:5px}
+.pt.pt-s{font-size:24px;letter-spacing:4px}
+.pt.pt-xs{font-size:20px;letter-spacing:3px;line-height:1.05}
 .pa{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:15px;color:#5a3a15;letter-spacing:2px;margin-top:6px}
+.pexc{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:12px;color:#8a4818;letter-spacing:2px;margin-top:4px;opacity:.75;font-style:italic}
+/* 突出展示: 地点代表作 — 金色暖光框 */
+.pe.hl .ps{background:linear-gradient(135deg,rgba(255,215,120,0.55),rgba(235,170,75,0.38));border-color:#b43810;color:#7a1a08;box-shadow:0 0 18px rgba(255,180,60,0.55),inset 0 0 10px rgba(255,245,220,0.65)}
+.pe.hl .pt{color:#1a0802;text-shadow:0 0 10px rgba(255,220,140,0.9),0 0 6px rgba(255,235,170,0.7),0 1px 2px rgba(255,240,200,0.98)}
+.pe.hl::before{content:'';position:absolute;left:-8px;top:0;bottom:0;width:3px;background:linear-gradient(180deg,transparent 5%,rgba(200,100,20,0.45) 20%,rgba(200,100,20,0.65) 50%,rgba(200,100,20,0.45) 80%,transparent 95%);pointer-events:none;border-radius:2px}
+.pe{position:relative}
 .pl{display:flex;flex-direction:row-reverse;gap:22px;flex-wrap:nowrap;padding-right:6px}
 .pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:30px;color:#2a1408;letter-spacing:7px;line-height:1.5;opacity:0;animation:li .7s ease forwards;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);white-space:nowrap}
 @keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -121,7 +132,7 @@ mix-blend-mode:multiply}
 // 诗词数据 [地名, 经度, 纬度, 图标, 诗词]
 // ═══════════════════════════════════════
 const R=[
-['长安',108.94,34.26,'🏯',[['春望','杜甫','唐',['国破山河在','城春草木深','感时花溅泪','恨别鸟惊心','烽火连三月','家书抵万金','白头搔更短','浑欲不胜簪']],['清平调','李白','唐',['云想衣裳花想容','春风拂槛露华浓','若非群玉山头见','会向瑶台月下逢']],['九月九日忆山东兄弟','王维','唐',['独在异乡为异客','每逢佳节倍思亲','遥知兄弟登高处','遍插茱萸少一人']],['长恨歌','白居易','唐',['汉皇重色思倾国','御宇多年求不得','回眸一笑百媚生','六宫粉黛无颜色']],['和张仆射塞下曲','卢纶','唐',['月黑雁飞高','单于夜遁逃','欲将轻骑逐','大雪满弓刀']],['乐游原','李商隐','唐',['向晚意不适','驱车登古原','夕阳无限好','只是近黄昏']]]],
+['长安',108.94,34.26,'🏯',[['春望','杜甫','唐',['国破山河在','城春草木深','感时花溅泪','恨别鸟惊心','烽火连三月','家书抵万金','白头搔更短','浑欲不胜簪'],{hl:true}],['长恨歌','白居易','唐',['汉皇重色思倾国','御宇多年求不得','杨家有女初长成','养在深闺人未识','天生丽质难自弃','一朝选在君王侧','回眸一笑百媚生','六宫粉黛无颜色','春寒赐浴华清池','温泉水滑洗凝脂','侍儿扶起娇无力','始是新承恩泽时','云鬓花颜金步摇','芙蓉帐暖度春宵','春宵苦短日高起','从此君王不早朝','在天愿作比翼鸟','在地愿为连理枝','天长地久有时尽','此恨绵绵无绝期'],{excerpt:true,hl:true}],['清平调','李白','唐',['云想衣裳花想容','春风拂槛露华浓','若非群玉山头见','会向瑶台月下逢'],{hl:true}],['九月九日忆山东兄弟','王维','唐',['独在异乡为异客','每逢佳节倍思亲','遥知兄弟登高处','遍插茱萸少一人']],['乐游原','李商隐','唐',['向晚意不适','驱车登古原','夕阳无限好','只是近黄昏'],{hl:true}],['和张仆射塞下曲','卢纶','唐',['月黑雁飞高','单于夜遁逃','欲将轻骑逐','大雪满弓刀']]]],
 ['渭城',108.72,34.33,'🌾',[['送元二使安西','王维','唐',['渭城朝雨浥轻尘','客舍青青柳色新','劝君更尽一杯酒','西出阳关无故人']],['观猎','王维','唐',['风劲角弓鸣','将军猎渭城','草枯鹰眼疾','雪尽马蹄轻']]]],
 ['终南山',108.95,33.95,'⛰️',[['终南山','王维','唐',['太乙近天都','连山接海隅','白云回望合','青霭入看无']],['终南别业','王维','唐',['中岁颇好道','晚家南山陲','行到水穷处','坐看云起时']],['鹿柴','王维','唐',['空山不见人','但闻人语响','返景入深林','复照青苔上']]]],
 ['华山',110.09,34.47,'🗻',[['华山','寇准','宋',['只有天在上','更无山与齐','举头红日近','回首白云低']],['登华山','金章宗','金',['昔年曾上五云梯','此日重来路欲迷','回首三天人已远','顶头还有玉绳低']]]],
@@ -183,7 +194,9 @@ const R=[
 ['邯郸',114.49,36.61,'✉️',[['逢入京使','岑参','唐',['故园东望路漫漫','双袖龙钟泪不干','马上相逢无纸笔','凭君传语报平安']],['邯郸冬至夜思家','白居易','唐',['邯郸驿里逢冬至','抱膝灯前影伴身','想得家中夜深坐','还应说着远行人']]]]
 ];
 
-const L=R.map(([n,lo,la,icon,ps])=>({n,lo,la,icon,ps:ps.map(([t,a,d,l])=>({t,a,d,l}))}));
+const L=R.map(([n,lo,la,icon,ps])=>({n,lo,la,icon,ps:ps.map(p=>{
+  const[t,a,d,l,opts]=p;return{t,a,d,l,...(opts||{})};
+})}));
 const TP=L.reduce((s,l)=>s+l.ps.length,0);
 document.getElementById('sub').textContent='跨越三千年 · '+L.length+'处河山 · '+TP+'首诗词';
 
@@ -1621,13 +1634,83 @@ function selectLoc(i){
   camTo=new THREE.Vector3(p.x+4,p.y+9,p.z+14);lookTo=new THREE.Vector3(p.x,p.y,p.z);isAnim=true;
   let h='<div class="ph"><div class="pln">'+loc.n+'</div></div><div class="pms">';
   loc.ps.forEach((p,pi)=>{
-    h+='<div class="pe"><div class="pm"><div class="ps">'+p.d+'</div><div class="pt">'+p.t+'</div><div class="pa">'+p.a+'</div></div><div class="pl">';
-    p.l.forEach((l,li)=>{h+=`<div class="pv" style="animation-delay:${(pi*.25+li*.08+.15).toFixed(2)}s">${l}</div>`});
+    // 标题字号自动缩放: 按字数阶梯
+    const tl=p.t.length;
+    const titleCls=tl>8?'pt pt-xs':(tl>6?'pt pt-s':(tl>4?'pt pt-m':'pt'));
+    // 突出展示: 首篇(或显式 hl 标记)
+    const hlCls=(p.hl===true||(p.hl!==false&&pi===0))?' hl':'';
+    h+='<div class="pe'+hlCls+'"><div class="pm"><div class="ps">'+p.d+'</div><div class="'+titleCls+'">'+p.t+'</div><div class="pa">'+p.a+'</div>';
+    if(p.excerpt)h+='<div class="pexc">节选</div>';
+    h+='</div><div class="pl">';
+    p.l.forEach((l,li)=>{h+=`<div class="pv" style="animation-delay:${(pi*.20+li*.06+.20).toFixed(2)}s">${l}</div>`});
     h+='</div></div>';
   });
   h+='</div>';pc.innerHTML=h;po.classList.add('vis');
+  // 重置滚动位置 + 卷轴纹理位置
+  requestAnimationFrame(()=>{
+    const box=document.getElementById('po-box');
+    // row-reverse: 第一首在视觉右侧, 初始滚动到右端
+    box.scrollLeft=box.scrollWidth-box.clientWidth;
+    document.querySelectorAll('.roller-wood').forEach(el=>{el.style.backgroundPositionY='0px'});
+  });
 }
 function closePo(){po.classList.remove('vis');lbls.forEach(e=>e.classList.remove('on'));locBeams.forEach(b=>{if(b){b[0].userData.target=0;b[1].userData.target=0}});activeI=-1;if(speaking){speechSynthesis.cancel();speaking=false;speakBtn.classList.remove('speaking')}}
+
+// ═══════════════════════════════════════
+// 卷轴水平拖动 + 轴柄纹理联动
+// ═══════════════════════════════════════
+(function setupScrollDrag(){
+  const box=document.getElementById('po-box');
+  if(!box)return;
+  let dragging=false,startX=0,startScroll=0;
+  box.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    // 不影响按钮点击
+    if(e.target.closest('#po-x')||e.target.closest('#po-speak'))return;
+    dragging=true;
+    startX=e.clientX;
+    startScroll=box.scrollLeft;
+    box.classList.add('dragging');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const dx=e.clientX-startX;
+    box.scrollLeft=startScroll-dx;
+  });
+  window.addEventListener('mouseup',()=>{
+    if(dragging){dragging=false;box.classList.remove('dragging');}
+  });
+  // 触摸支持
+  box.addEventListener('touchstart',e=>{
+    if(e.target.closest('#po-x')||e.target.closest('#po-speak'))return;
+    dragging=true;
+    startX=e.touches[0].clientX;
+    startScroll=box.scrollLeft;
+  },{passive:true});
+  window.addEventListener('touchmove',e=>{
+    if(!dragging)return;
+    const dx=e.touches[0].clientX-startX;
+    box.scrollLeft=startScroll-dx;
+  },{passive:true});
+  window.addEventListener('touchend',()=>{dragging=false});
+  // 滚动时联动轴柄纹理 (视觉上"卷起/放下" 的感觉)
+  box.addEventListener('scroll',()=>{
+    const off=box.scrollLeft*0.7;  // 系数控制纹理滚动速度
+    const rollers=document.querySelectorAll('.roller-wood');
+    // 左轴柄: 往上卷 (纹理 Y 向下滚动)
+    if(rollers[0])rollers[0].style.backgroundPositionY=(-off)+'px, '+(-off*2)+'px';
+    // 右轴柄: 往下卷 (纹理 Y 向上滚动)
+    if(rollers[1])rollers[1].style.backgroundPositionY=(off)+'px, '+(off*2)+'px';
+  });
+  // 鼠标滚轮: 纵向滚动变横向滚动 (便于单指/鼠标翻阅)
+  box.addEventListener('wheel',e=>{
+    if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){
+      box.scrollLeft-=e.deltaY;  // row-reverse 下反向更自然
+      e.preventDefault();
+    }
+  },{passive:false});
+})();
 
 // ═══════════════════════════════════════
 // 初始化
