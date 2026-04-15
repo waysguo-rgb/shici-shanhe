@@ -34,7 +34,7 @@ body{font-family:'Noto Serif SC',serif;color:#f0e0b8;
 .pf-l{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:14px;color:rgba(30,18,8,0.88);letter-spacing:2px;line-height:1.5;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,240,200,0.98);opacity:0;animation:smokeIn 2.5s ease-out forwards,incense 9s ease-in-out infinite;font-weight:700}
 @keyframes incense{0%,100%{transform:translateY(0)}30%{transform:translateY(-2px) translateX(.5px)}60%{transform:translateY(-3px) translateX(-.5px)}90%{transform:translateY(-1px)}}
 @keyframes smokeIn{from{opacity:0;transform:translateY(8px);filter:blur(3px)}to{opacity:.55;transform:translateY(0);filter:blur(0)}}
-#po{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
+#po{position:fixed;inset:0;z-index:100;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px}
 #po.vis{display:flex}
 #po-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(90,58,22,0.55) 0%,rgba(52,32,12,0.72) 100%);backdrop-filter:blur(6px);cursor:pointer}
 #po-wrap{position:relative;display:flex;align-items:center;max-width:86vw;height:50vh;animation:unfurl 1.1s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:right center}
@@ -1612,36 +1612,115 @@ function setBeam(i,on){
   b[0].userData.target=on?0.85:0;
   b[1].userData.target=on?0.40:0;
 }
+// 光柱脉冲: 瞬间拉高再回到常亮, 视觉确认"正在朗读这首诗"
+function pulseBeam(i){
+  const b=locBeams[i];
+  if(!b)return;
+  b[0].userData.target=1.2;
+  b[1].userData.target=0.75;
+  setTimeout(()=>{
+    if(activeI===i){
+      b[0].userData.target=0.85;
+      b[1].userData.target=0.40;
+    }
+  },500);
+}
 
 // ═══════════════════════════════════════
-// 语音朗读: 每首诗独立, 点击标题触发
+// 语音朗读: 分句多段 + 抑扬顿挫, 优先神经网络音色
+// 如果有 assets/audio/<地点>/<标题>.mp3, 优先播放本地录音 (专业朗读)
 // ═══════════════════════════════════════
-let speaking=false,currentSpeakEl=null;
+let speaking=false,currentSpeakEl=null,currentAudio=null;
 function stopSpeak(){
+  if(currentAudio){try{currentAudio.pause();}catch(e){} currentAudio=null;}
   if(speaking)speechSynthesis.cancel();
   speaking=false;
   if(currentSpeakEl){currentSpeakEl.classList.remove('pt-speaking');currentSpeakEl=null;}
+}
+// 选择最好的中文 TTS 音色: 优先神经网络/自然音 > 女声 > 任意中文
+function pickBestVoice(){
+  const voices=speechSynthesis.getVoices();
+  const zh=voices.filter(v=>v.lang&&v.lang.startsWith('zh'));
+  // 神经网络音 (Edge 的 Yunxi/Xiaoxiao Natural, Chrome 的某些音)
+  let v=zh.find(vv=>/Natural|Neural/i.test(vv.name));
+  // 女声优先 (诗词用女声更柔)
+  if(!v)v=zh.find(vv=>/Female|晓|云|Xiaoxiao|Yunxi|Xiaoyi|Xiaochen|Tingting/i.test(vv.name));
+  // 任何中文
+  if(!v)v=zh[0];
+  return v;
+}
+function mkUtt(text,rate,pitch,volume){
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='zh-CN';
+  u.rate=rate;
+  u.pitch=pitch;
+  u.volume=volume||1.0;
+  const v=pickBestVoice();
+  if(v)u.voice=v;
+  return u;
 }
 function speakPoem(poem,titleEl){
   // 同一标题二次点击 = 停止
   if(currentSpeakEl===titleEl&&speaking){stopSpeak();return;}
   stopSpeak();
-  const text=poem.t+'，'+poem.d+'代，'+poem.a+'。\n'+poem.l.join('，')+'。';
-  const utt=new SpeechSynthesisUtterance(text);
-  utt.lang='zh-CN';utt.rate=0.78;utt.pitch=1.0;
-  const voices=speechSynthesis.getVoices();
-  const zhV=voices.find(v=>v.lang.startsWith('zh')&&v.name.includes('Female'))||voices.find(v=>v.lang.startsWith('zh'));
-  if(zhV)utt.voice=zhV;
-  utt.onend=()=>{
-    speaking=false;
-    if(titleEl){titleEl.classList.remove('pt-speaking');}
-    if(currentSpeakEl===titleEl)currentSpeakEl=null;
-  };
-  utt.onerror=utt.onend;
-  speechSynthesis.speak(utt);
-  speaking=true;
   currentSpeakEl=titleEl;
   if(titleEl)titleEl.classList.add('pt-speaking');
+  speaking=true;
+
+  // 路径 1: 尝试加载本地 MP3 录音 (assets/audio/<loc>/<title>.mp3)
+  // 如果文件存在则播放, 否则回退到 TTS
+  const loc=activeI>=0?L[activeI]:null;
+  const audioPath=loc?'assets/audio/'+encodeURIComponent(loc.n)+'/'+encodeURIComponent(poem.t)+'.mp3':null;
+  const tryAudio=new Promise((resolve,reject)=>{
+    if(!audioPath){reject();return;}
+    const a=new Audio(audioPath);
+    a.addEventListener('canplay',()=>resolve(a),{once:true});
+    a.addEventListener('error',()=>reject(),{once:true});
+    a.load();
+    // 300ms 超时
+    setTimeout(()=>reject(),300);
+  });
+  tryAudio.then(a=>{
+    currentAudio=a;
+    a.play().catch(()=>fallbackTTS());
+    a.addEventListener('ended',()=>{
+      speaking=false;
+      if(titleEl)titleEl.classList.remove('pt-speaking');
+      currentAudio=null;
+      if(currentSpeakEl===titleEl)currentSpeakEl=null;
+    });
+  }).catch(()=>fallbackTTS());
+
+  function fallbackTTS(){
+    // 路径 2: 分句多段 TTS, 每句微调 rate/pitch 产生抑扬顿挫
+    // 标题 + 作者开场
+    const utterances=[];
+    utterances.push(mkUtt(poem.t+'，'+poem.a,0.78,1.02));
+    // 诗句: 慢速 + 轻微 pitch 波动 (模拟吟诵的抑扬)
+    poem.l.forEach((line,idx)=>{
+      // 偶数行稍高, 奇数行稍低, 最后一行再放慢
+      const isLast=(idx===poem.l.length-1);
+      const rate=isLast?0.68:0.74+(idx%2)*0.02;
+      // sin 波动 ±6% pitch
+      const pitch=1.0+Math.sin(idx*0.9)*0.06;
+      utterances.push(mkUtt(line,rate,pitch));
+    });
+    // 串行播放: 上一句结束才开始下一句
+    let idx=0;
+    function next(){
+      if(idx>=utterances.length||!speaking){
+        speaking=false;
+        if(titleEl)titleEl.classList.remove('pt-speaking');
+        if(currentSpeakEl===titleEl)currentSpeakEl=null;
+        return;
+      }
+      const u=utterances[idx++];
+      u.onend=()=>setTimeout(next,180); // 句间停顿 180ms
+      u.onerror=u.onend;
+      speechSynthesis.speak(u);
+    }
+    next();
+  }
 }
 speechSynthesis.getVoices();speechSynthesis.addEventListener('voiceschanged',()=>{});
 
@@ -1659,7 +1738,10 @@ function selectLoc(i){
   stopSpeak();
   lbls.forEach((e,j)=>e.classList.toggle('on',j===i));
   locBeams.forEach((b,j)=>{if(b){b[0].userData.target=j===i?0.85:0;b[1].userData.target=j===i?0.40:0}});
-  camTo=new THREE.Vector3(p.x+4,p.y+9,p.z+14);lookTo=new THREE.Vector3(p.x,p.y,p.z);isAnim=true;
+  // 卷轴已移到屏幕下方, 让相机看点稍微偏下, 使地点和光柱出现在屏幕上半部分
+  camTo=new THREE.Vector3(p.x+4,p.y+10,p.z+15);
+  lookTo=new THREE.Vector3(p.x,p.y-4,p.z-2);
+  isAnim=true;
   let h='<div class="ph"><div class="pln">'+loc.n+'</div></div><div class="pms">';
   loc.ps.forEach((p,pi)=>{
     // 标题字号自动缩放: 按字数阶梯
@@ -1680,7 +1762,11 @@ function selectLoc(i){
       ev.stopPropagation();
       const pi=parseInt(el.dataset.pi,10);
       const poem=loc.ps[pi];
-      if(poem)speakPoem(poem,el);
+      if(poem){
+        speakPoem(poem,el);
+        // 点击标题时让对应地点的光柱脉冲一次 (视觉确认"正在朗读这首诗")
+        pulseBeam(activeI);
+      }
     });
   });
   // 重置滚动位置 + 卷轴纹理位置 + 更新箭头显示
