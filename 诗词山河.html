@@ -596,6 +596,8 @@ function carveRivers(){
 
   // 距离场：每个顶点到最近河流中心线的距离
   const nearestDist=new Float32Array(pos.count).fill(999);
+  // 按河流宽度归一化的距离（用于染色，让大河视觉上比小河粗）
+  const nearestNormDist=new Float32Array(pos.count).fill(999);
   // 每个顶点的目标"河谷底"高度（由最近河流决定）
   const valleyFloorY=new Float32Array(pos.count);
   const origY=new Float32Array(pos.count);
@@ -614,6 +616,8 @@ function carveRivers(){
 
   // 宽河谷参数: 适度加深, 主要靠染色展现河流
   allRivers.forEach(({r,pts})=>{
+    // 河宽缩放因子: 长江(0.45)→1.255, 渭河(0.18)→0.962, 约 30% 差异
+    const wScale=0.85+r.w*0.90;
     const valleyR=Math.max(1.2,r.w*4.5);  // 河心核心区
     const outerR=valleyR*2.5;              // 缓坡过渡半径 (更柔)
     const maxDepth=0.35+r.w*0.25;          // 浅谷底 (主要靠染色)
@@ -651,6 +655,9 @@ function carveRivers(){
             }
             valleyFloorY[idx]=targetY;
           }
+          // 归一化距离：按河流宽度缩放，让大河影响半径更大
+          const nd=d/wScale;
+          if(nd<nearestNormDist[idx])nearestNormDist[idx]=nd;
         }
       }
     });
@@ -705,17 +712,17 @@ function carveRivers(){
     const sandColor=[0.78,0.64,0.38];  // 沙岸土黄
     const moistColor=[0.44,0.56,0.38]; // 湿润近岸
 
-    // 核心河线半径 (非常窄, 形成锐利线条)
-    const coreRad=0.50;
+    // 核心河线半径 (非常窄, 形成锐利线条) — 使用归一化距离, 大河会被自动放大
+    const coreRad=0.16;
     // 浅水渐变
-    const edgeRad=0.85;
+    const edgeRad=0.30;
     // 沙岸
-    const sandRad=1.35;
+    const sandRad=0.55;
     // 近岸湿地
-    const moistRad=2.20;
+    const moistRad=0.95;
 
     for(let i=0;i<pos.count;i++){
-      const dist=nearestDist[i];
+      const dist=nearestNormDist[i];
       if(dist>=moistRad)continue;
 
       let mixR,mixG,mixB,blend;
