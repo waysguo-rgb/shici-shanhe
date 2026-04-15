@@ -1071,38 +1071,52 @@ const lakeMeshes=[];
 function mkLakeTex(){
   const S=512;
   const c=document.createElement('canvas');c.width=S;c.height=S;const cx=c.getContext('2d');
-  // 基础深蓝水色, 几乎填满
-  cx.fillStyle='rgba(30,82,120,0.95)';
+  // 基础色: 与河流 mkSilkTex 的核心青蓝一致
+  // 河流中心用 rgba(50,140,175,1.0), 湖泊用稍深一点的 rgba(45,130,165,1.0) 保持视觉一致
+  cx.fillStyle='rgba(45,130,165,1.0)';
   cx.fillRect(0,0,S,S);
-  // 柔和大范围深浅变化 (像水面的光影)
-  const g=cx.createRadialGradient(S/2,S/2,S*0.05,S/2,S/2,S*0.75);
-  g.addColorStop(0,    'rgba(45,110,150,0.65)'); // 中心稍亮
-  g.addColorStop(0.4,  'rgba(30,82,120,0.0)');
-  g.addColorStop(0.7,  'rgba(18,55,85,0.4)');    // 外围稍暗
-  g.addColorStop(1,    'rgba(12,40,65,0.55)');
+
+  // 大范围明暗渐变 (光照感, 不刺眼)
+  const g=cx.createRadialGradient(S/2,S/2,S*0.05,S/2,S/2,S*0.65);
+  g.addColorStop(0,   'rgba(80,170,205,0.45)');   // 中心更亮 (像反光)
+  g.addColorStop(0.5, 'rgba(45,130,165,0.0)');
+  g.addColorStop(0.85,'rgba(30,90,125,0.30)');    // 外围稍暗
+  g.addColorStop(1,   'rgba(20,65,95,0.55)');
   cx.fillStyle=g;cx.fillRect(0,0,S,S);
 
-  // 细碎涟漪 (白色小斑)
-  cx.globalAlpha=0.45;
-  for(let i=0;i<200;i++){
+  // ★ 波光粼粼: 大量随机高光点, 有大有小, 有亮有淡 ★
+  // 小光点 (细密)
+  for(let i=0;i<350;i++){
     const x=Math.random()*S;
     const y=Math.random()*S;
-    const rr=0.5+Math.random()*1.6;
-    cx.fillStyle='rgba(220,240,250,0.9)';
+    const rr=0.4+Math.random()*1.3;
+    cx.fillStyle=`rgba(220,240,250,${0.35+Math.random()*0.55})`;
     cx.beginPath();cx.arc(x,y,rr,0,Math.PI*2);cx.fill();
   }
-  // 水面弧形高光条 (少量大弧)
-  cx.globalAlpha=0.25;
-  for(let i=0;i<15;i++){
+  // 中等亮斑 (光斑感)
+  for(let i=0;i<60;i++){
     const x=Math.random()*S;
     const y=Math.random()*S;
-    const wl=30+Math.random()*70;
-    const gg=cx.createLinearGradient(x,y,x+wl,y+wl*0.2);
-    gg.addColorStop(0,   'rgba(180,220,240,0)');
-    gg.addColorStop(0.5, 'rgba(180,220,240,0.85)');
-    gg.addColorStop(1,   'rgba(180,220,240,0)');
+    const rr=2+Math.random()*3.5;
+    const gg=cx.createRadialGradient(x,y,0,x,y,rr);
+    gg.addColorStop(0,  'rgba(255,255,255,0.75)');
+    gg.addColorStop(0.5,'rgba(200,230,245,0.30)');
+    gg.addColorStop(1,  'rgba(180,220,240,0)');
     cx.fillStyle=gg;
-    cx.beginPath();cx.ellipse(x+wl/2,y+wl*0.1,wl/2,2,Math.PI*0.2,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.arc(x,y,rr,0,Math.PI*2);cx.fill();
+  }
+  // 弧形高光 (波浪反射条)
+  cx.globalAlpha=0.32;
+  for(let i=0;i<24;i++){
+    const x=Math.random()*S;
+    const y=Math.random()*S;
+    const wl=20+Math.random()*50;
+    const gg=cx.createLinearGradient(x,y,x+wl,y);
+    gg.addColorStop(0,  'rgba(230,245,255,0)');
+    gg.addColorStop(0.5,'rgba(230,245,255,0.9)');
+    gg.addColorStop(1,  'rgba(230,245,255,0)');
+    cx.fillStyle=gg;
+    cx.fillRect(x,y-0.6,wl,1.2);
   }
   cx.globalAlpha=1;
 
@@ -1111,6 +1125,8 @@ function mkLakeTex(){
   t.wrapT=THREE.RepeatWrapping;
   t.minFilter=THREE.LinearFilter;
   t.magFilter=THREE.LinearFilter;
+  // 平铺让波光覆盖整个湖面
+  t.repeat.set(2,2);
   return t;
 }
 
@@ -1159,15 +1175,20 @@ function mkLake(lake){
     opacity:0.95,
     side:THREE.DoubleSide,
     depthWrite:false,
-    depthTest:true
+    depthTest:false  // ★ 关键: 湖泊始终渲染在河流之上, 避免河流穿湖
   });
-  mat.polygonOffset=true;
-  mat.polygonOffsetFactor=-8;
-  mat.polygonOffsetUnits=-8;
   const mesh=new THREE.Mesh(geo,mat);
   mesh.position.y=lakeY;
-  mesh.renderOrder=3;
-  mesh.userData={name:lake.n,center:new THREE.Vector3(cx,lakeY,cz),phase:Math.random()*6.28};
+  mesh.renderOrder=10;  // 比河流 (3) 高, 比海峡浪花 (默认) 高
+  // 给每个湖一个独特的波光动画相位, 避免所有湖同步闪烁
+  mesh.userData={
+    name:lake.n,
+    center:new THREE.Vector3(cx,lakeY,cz),
+    phase:Math.random()*6.28,
+    tex:tex,                       // 保存纹理引用, 动画里偏移 UV 实现波光
+    driftX:0.008+Math.random()*0.008,  // 漂移速度
+    driftZ:0.004+Math.random()*0.006,
+  };
   lakeMeshes.push(mesh);
   return mesh;
 }
@@ -1363,7 +1384,16 @@ function mkRiver(coords,width,riverName){
   });
   const curve=new THREE.CatmullRomCurve3(ctrl,false,'catmullrom',0.5);
   const N=Math.max(RIVER_PTS,600);
-  const cpts=curve.getPoints(N);
+  let cpts=curve.getPoints(N);
+  // ★ 截断入海段: 从末尾倒查, 找到最后一个仍然在陆地内的点, 之后的点都丢掉 ★
+  // 防止 ribbon 延伸到海里造成"河流冲出海岸"的视觉
+  for(let i=cpts.length-1;i>=0;i--){
+    const[lo,la]=s2ll(cpts[i].x,cpts[i].z);
+    if(inLand(lo,la)){
+      if(i<cpts.length-1)cpts=cpts.slice(0,i+1);
+      break;
+    }
+  }
   // 河宽: 发丝化, 按河流大小缩放, 设最小宽度避免远距离不可见
   const rw=Math.max(0.22,width*0.85);
   const hw=rw/2;
@@ -2024,6 +2054,17 @@ function animate(){
   riverMeshes.forEach(m=>{
     m.userData.tex.offset.x+=dt*0.045*m.userData.flow;
     m.material.opacity=0.88+Math.sin(t*0.6+m.userData.flow)*0.05;
+  });
+
+  // 湖面波光粼粼: 纹理 UV 缓慢漂移 + opacity 呼吸 + 不同湖不同相位
+  lakeMeshes.forEach(m=>{
+    const u=m.userData;
+    if(u.tex){
+      u.tex.offset.x+=dt*u.driftX;
+      u.tex.offset.y+=dt*u.driftZ;
+    }
+    // 轻微的 opacity 呼吸, 模拟水面光照波动
+    m.material.opacity=0.90+Math.sin(t*0.5+u.phase)*0.05;
   });
 
   // 海峡浪花：动感漂浮 + 摇摆 + 缩放呼吸
