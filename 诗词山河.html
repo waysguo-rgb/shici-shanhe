@@ -648,12 +648,30 @@ async function buildTerrain(sgwt,sght){
         fg=Math.min(1,fg*shade);
         fb=Math.min(1,fb*shade*0.98);
       }
-      cols.push(fr,fg,fb);
+      // 透明度计算: 陆地不透明, 远离陆地 + 靠近平面边缘时渐变为透明
+      // 这样地形平面的方形边缘不会在斜视角下形成明显的对角线
+      let alpha;
+      if(inL){
+        alpha=1.0;
+      }else{
+        // 到陆地边界的距离 (度), 近陆地依然有 BGC 色作为晕染
+        const dLand=dBd(lo,la);
+        // 到平面边缘的距离 (世界单位) — 平面是 PW×PH 矩形, 中心在 (PW/2 偏移)
+        // PlaneGeometry 默认中心在 (0,0), 所以边缘距离 = min(半宽-|x|, 半高-|z|)
+        const edgeD=Math.min(PW/2-Math.abs(sx),PH/2-Math.abs(sz));
+        // 陆地近旁 (<1°): 仍然不透明, 做海岸晕染
+        // 陆地远处 + 靠近平面边: 线性淡出到 0
+        const landFade=Math.min(1,dLand/2.2);  // 0 (陆地边) → 1 (远离陆地 2.2°)
+        const edgeFade=Math.max(0,Math.min(1,(edgeD-3)/18));  // 边缘 3 单位内全透, 距边 21 单位起满
+        // 最终 alpha: 近陆地保留 BGC 晕染, 远陆地完全透 (显示 body 背景)
+        alpha=edgeFade*(1-landFade*0.9);
+      }
+      cols.push(fr,fg,fb,alpha);
     }
     await new Promise(r=>setTimeout(r,0));
   }
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
-  return new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true}));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,4));
+  return new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:true}));
 }
 
 // ═══════════════════════════════════════
