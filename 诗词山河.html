@@ -612,13 +612,11 @@ function carveRivers(){
     return {r,pts};
   });
 
-  // 宽河谷参数：显著加宽和加深
-  // valleyR   - 河心核心区 (完全下沉到谷底)
-  // bankR     - 外缓坡 (线性过渡到原地形)
+  // 宽河谷参数: 适度加深, 主要靠染色展现河流
   allRivers.forEach(({r,pts})=>{
-    const valleyR=Math.max(1.6,r.w*5.5);  // 河心核心区
-    const outerR=valleyR*2.2;              // 缓坡过渡半径
-    const maxDepth=0.55+r.w*0.35;          // 更深的谷底
+    const valleyR=Math.max(1.2,r.w*4.5);  // 河心核心区
+    const outerR=valleyR*2.5;              // 缓坡过渡半径 (更柔)
+    const maxDepth=0.35+r.w*0.25;          // 浅谷底 (主要靠染色)
     const radInGridX=Math.ceil(outerR/PW*SGWT)+1;
     const radInGridZ=Math.ceil(outerR/PH*SGHT)+1;
 
@@ -698,26 +696,59 @@ function carveRivers(){
     }
   }
 
-  // 染色: 河谷附近顶点混入青水/沙岸色
+  // 染色: 河流线完全由地形顶点色表达
+  // 使用三段锐化色阶: 深青河心 → 沙岸 → 远岸淡青
   if(cols){
-    const bankRad=2.4;
+    // 河心色: 鲜明深青, 亮度中等偏高, 饱和度高
+    const riverCore=[0.12,0.35,0.52];  // 深青蓝
+    const riverEdge=[0.30,0.56,0.66];  // 浅青 (河心→沙岸过渡)
+    const sandColor=[0.78,0.64,0.38];  // 沙岸土黄
+    const moistColor=[0.44,0.56,0.38]; // 湿润近岸
+
+    // 核心河线半径 (非常窄, 形成锐利线条)
+    const coreRad=0.50;
+    // 浅水渐变
+    const edgeRad=0.85;
+    // 沙岸
+    const sandRad=1.35;
+    // 近岸湿地
+    const moistRad=2.20;
+
     for(let i=0;i<pos.count;i++){
       const dist=nearestDist[i];
-      if(dist>=bankRad)continue;
+      if(dist>=moistRad)continue;
+
       let mixR,mixG,mixB,blend;
-      if(dist<0.8){
-        // 河床区 - 深青水色
-        mixR=valleyC[0];mixG=valleyC[1];mixB=valleyC[2];
-        blend=0.88;
-      }else if(dist<1.5){
-        // 河岸 - 沙土色
-        mixR=bankR[0];mixG=bankR[1];mixB=bankR[2];
-        blend=0.55*(1-(dist-0.8)/0.7);
+      if(dist<coreRad){
+        // 河心: 几乎完全用河心色覆盖 (锐利)
+        mixR=riverCore[0];mixG=riverCore[1];mixB=riverCore[2];
+        blend=0.95;
+      }else if(dist<edgeRad){
+        // 河心→浅水: 深青到浅青的渐变
+        const t=(dist-coreRad)/(edgeRad-coreRad);
+        const k=t*t*(3-2*t); // smoothstep
+        mixR=riverCore[0]*(1-k)+riverEdge[0]*k;
+        mixG=riverCore[1]*(1-k)+riverEdge[1]*k;
+        mixB=riverCore[2]*(1-k)+riverEdge[2]*k;
+        blend=0.92-k*0.15; // 0.92 → 0.77
+      }else if(dist<sandRad){
+        // 浅水→沙岸: 青过渡到沙黄
+        const t=(dist-edgeRad)/(sandRad-edgeRad);
+        const k=t*t*(3-2*t);
+        mixR=riverEdge[0]*(1-k)+sandColor[0]*k;
+        mixG=riverEdge[1]*(1-k)+sandColor[1]*k;
+        mixB=riverEdge[2]*(1-k)+sandColor[2]*k;
+        blend=0.77-k*0.25; // 0.77 → 0.52
       }else{
-        // 近岸过渡 - 淡青绿
-        mixR=bankG[0];mixG=bankG[1];mixB=bankG[2];
-        blend=0.30*(1-(dist-1.5)/0.9);
+        // 沙岸→湿地: 沙黄过渡到湿润近岸色
+        const t=(dist-sandRad)/(moistRad-sandRad);
+        const k=t*t*(3-2*t);
+        mixR=sandColor[0]*(1-k)+moistColor[0]*k;
+        mixG=sandColor[1]*(1-k)+moistColor[1]*k;
+        mixB=sandColor[2]*(1-k)+moistColor[2]*k;
+        blend=0.52*(1-k); // 0.52 → 0
       }
+
       const r=cols.getX(i);
       const g=cols.getY(i);
       const b=cols.getZ(i);
@@ -1347,9 +1378,9 @@ async function init(){
   // 海面由地形自身处理（海域按水色着色），不再单独添加
   prog.style.width='80%';
 
-  // 河流（使用高度图精确贴合地形）
-  RIVERS.forEach(r=>scene.add(mkRiver(r.c,r.w,r.n)));
-  // 河流名称标签
+  // 河流: 不再渲染独立 mesh, 只生成曲线数据给标签定位用
+  // (河流的视觉完全由地形顶点染色呈现, 永不"穿山"或"悬浮")
+  RIVERS.forEach(r=>{mkRiver(r.c,r.w,r.n)}); // 生成 curvePts 存入 riverMeshes, 不 scene.add
   buildRiverLabels();
   prog.style.width='85%';
 
