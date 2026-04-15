@@ -77,53 +77,147 @@ ENDPOINT = f'https://{SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/
 OUTPUT_FORMAT = 'audio-24khz-96kbitrate-mono-mp3'
 
 # ────────────────────────────────────────
-# 音色分派规则
-# Azure 神经网络音色列表: https://learn.microsoft.com/azure/cognitive-services/speech-service/language-support
+# 风格分派规则: 全部用 XiaoxiaoNeural 女声, 按诗意选情感风格
+# 可用风格: poetry-reading / gentle / lyrical / affectionate / sad / calm / narration-relaxed
 # ────────────────────────────────────────
-# 豪放派男声: 李白、苏轼、辛弃疾、陆游、岳飞、王昌龄、王之涣、范仲淹、王翰、高适、卢纶、李益、寇准、曹操、张养浩、谭嗣同
-HEROIC_AUTHORS = {
-    '李白', '苏轼', '辛弃疾', '陆游', '岳飞',
-    '王昌龄', '王之涣', '范仲淹', '王翰', '高适',
-    '卢纶', '李益', '寇准', '王安石', '毛泽东',
-    '王勃', '金章宗', '韩愈', '张籍',
-    '张养浩', '谭嗣同',
-}
-# 沉郁苍凉派: 杜甫、陈子昂、曹操、李煜 (亡国)、张养浩 (忧民)
-SOMBER_AUTHORS = {
-    '杜甫', '陈子昂', '曹操', '李煜', '崔颢',
-    '马致远', '文天祥',
-}
-# 婉约派女声: 李清照、柳永、温庭筠、秦观、晏殊、欧阳修、杜牧、王维、孟浩然、白居易、李商隐、姜夔
-GRACEFUL_AUTHORS = {
-    '李清照', '柳永', '温庭筠', '秦观', '晏殊', '欧阳修',
-    '杜牧', '王维', '孟浩然', '白居易', '李商隐', '姜夔',
-    '贺知章', '张继', '韦应物', '贾岛', '常建', '刘禹锡',
-    '杨万里', '林升', '朱熹', '范成大', '叶绍翁', '张若虚',
-    '寇准', '张仆射', '谢道韫', '林逋', '杨周', '孟郊',
-    '贺铸', '晁补之', '吴文英', '张孝祥',
+VOICE = 'zh-CN-XiaoxiaoNeural'
+
+# sad 风格: 悼亡、亡国、怀古、哀伤
+SAD_POEMS = {
+    # (location, title) 精确匹配
+    ('金陵', '虞美人'),           # 李煜 亡国之恨
+    ('金陵', '乌衣巷'),           # 刘禹锡 怀古
+    ('金陵', '泊秦淮'),           # 杜牧 亡国之叹
+    ('金陵', '桂枝香·金陵怀古'),   # 王安石
+    ('金陵', '登金陵凤凰台'),      # 李白 怀古
+    ('潼关', '山坡羊·潼关怀古'),   # 张养浩
+    ('汴京', '雨霖铃'),           # 柳永 离别
+    ('汴京', '如梦令'),           # 李清照
+    ('长安', '长恨歌'),           # 白居易 悲剧
+    ('长安', '春望'),             # 杜甫 国破
+    ('越州', '钗头凤·红酥手'),    # 陆游 悲剧爱情
+    ('越州', '示儿'),             # 陆游 临终
+    ('岳阳', '岳阳楼记'),         # 先天下之忧而忧
+    ('白帝城', '登高'),           # 杜甫 凄凉
+    ('密州', '江城子·乙卯正月二十日夜记梦'),  # 苏轼 悼亡妻
+    ('潭州', '江南逢李龟年'),      # 杜甫 衰老飘零
+    ('巴山', '锦瑟'),             # 李商隐 追忆
+    ('赣州', '过零丁洋'),         # 文天祥 赴死
+    ('赣州', '正气歌'),
+    ('郴州', '踏莎行·郴州旅舍'),   # 秦观 贬谪
+    ('永州', '小石潭记'),         # 柳宗元 贬谪凄清
+    ('永州', '江雪'),             # 柳宗元 孤独
+    ('浔阳', '琵琶行'),           # 白居易 同是天涯沦落人
+    ('黄鹤楼', '黄鹤楼'),         # 崔颢 日暮乡关
+    ('黄州', '念奴娇·赤壁怀古'),   # 苏轼 人生如梦
 }
 
-def pick_voice(poem, override=None):
-    """根据作者和内容选择音色 + 情感风格 + 语速"""
+# gentle 风格: 婉约词、相思、柔情、女性视角
+GENTLE_POEMS = {
+    ('长安', '清平调'),           # 李白 美人
+    ('长安', '九月九日忆山东兄弟'),  # 王维 思乡
+    ('长安', '乐游原'),           # 李商隐 夕阳
+    ('苏州', '枫桥夜泊'),         # 张继 愁思
+    ('苏州', '忆江南'),           # 白居易
+    ('苏州', '横塘'),             # 范成大
+    ('秦州', '月夜忆舍弟'),       # 杜甫 思念
+    ('秦州', '月夜'),             # 杜甫 思妻
+    ('洛阳', '春夜洛城闻笛'),     # 李白 思乡
+    ('洛阳', '秋思'),             # 张籍
+    ('洛阳', '洛阳女儿行'),       # 王维 女性
+    ('渭城', '送元二使安西'),     # 王维 送别
+    ('巴山', '夜雨寄北'),         # 李商隐 思人
+    ('蓝关', '蓝桥驿见元九诗'),   # 白居易 怀友
+    ('杭州', '饮湖上初晴后雨'),   # 苏轼 美景
+    ('杭州', '苏堤春晓'),         # 杨周
+    ('扬州', '寄扬州韩绰判官'),   # 杜牧
+    ('合肥', '淡黄柳'),           # 姜夔
+    ('郴州', '鹊桥仙'),           # 秦观 柔情
+    ('邯郸', '逢入京使'),         # 岑参 思乡
+    ('邯郸', '邯郸冬至夜思家'),   # 白居易 思家
+    ('浔阳', '暮江吟'),           # 白居易
+    ('福州', '乌山'),
+    ('福州', '福州'),
+    ('金陵', '泊秦淮'),           # 已在 sad
+    ('池州', '清明'),             # 杜牧 悲凉
+    ('滁州', '丰乐亭游春'),
+    ('天姥山', '天台晓望'),       # 李白
+    ('岳阳', '望洞庭'),           # 刘禹锡
+    ('镇江', '泊船瓜洲'),         # 王安石 思乡
+    ('宣城', '独坐敬亭山'),       # 李白
+    ('宣城', '秋登宣城谢朓北楼'),
+    ('蓝关', '左迁至蓝关示侄孙湘'),  # 韩愈
+}
+
+# calm 风格: 山水田园、闲适
+CALM_POEMS = {
+    ('终南山', '终南山'),         # 王维
+    ('终南山', '终南别业'),       # 王维
+    ('终南山', '鹿柴'),           # 王维
+    ('襄阳', '春晓'),             # 孟浩然
+    ('襄阳', '过故人庄'),         # 孟浩然 田园
+    ('襄阳', '临洞庭湖赠张丞相'),  # 孟浩然
+    ('越州', '游山西村'),         # 陆游
+    ('杭州', '钱塘湖春行'),       # 白居易
+    ('杭州', '晓出净慈寺送林子方'),  # 杨万里
+    ('苏州', '题破山寺后禅院'),   # 常建
+    ('永州', '渔翁'),             # 柳宗元
+    ('永州', '溪居'),             # 柳宗元
+    ('滁州', '醉翁亭记'),         # 欧阳修 闲适
+    ('峨眉山', '峨眉山月歌'),     # 李白
+    ('峨眉山', '登峨眉山'),       # 李白
+    ('庐山', '饮酒'),             # 陶渊明
+    ('庐山', '题西林壁'),         # 苏轼 哲理
+    ('池州', '九日齐山登高'),     # 杜牧
+    ('成都', '春夜喜雨'),         # 杜甫 喜悦
+    ('成都', '江畔独步寻花'),     # 杜甫
+    ('黄州', '定风波'),           # 苏轼 豁达
+}
+
+# narration-relaxed 风格: 长叙事诗、歌行、散文
+NARRATION_POEMS = {
+    ('汉中', '蜀道难'),
+    ('长安', '长恨歌'),           # 可以 sad 也可以 narration, 用 narration 更有故事感
+    ('许昌', '短歌行'),           # 曹操
+    ('许昌', '观沧海'),
+    ('许昌', '龟虽寿'),
+    ('天姥山', '梦游天姥吟留别'), # 李白 长篇
+    ('南昌', '滕王阁序'),         # 骈文
+    ('金陵', '登金陵凤凰台'),
+    ('成都', '茅屋为秋风所破歌'), # 杜甫 叙事
+    ('浔阳', '琵琶行'),
+    ('潼关', '潼关吏'),           # 杜甫 叙事
+    ('汴京', '清明上河'),
+}
+
+# affectionate 风格: 爱情、深情
+AFFECTIONATE_POEMS = {
+    ('巴山', '锦瑟'),
+    ('巴山', '夜雨寄北'),
+    ('金陵', '虞美人'),
+}
+
+def pick_voice(poem, override=None, location=None):
+    """全部 XiaoxiaoNeural 女声, 按诗意选情感风格"""
     if override:
-        return (f'zh-CN-{override}', 'poetry-reading', 0.88)
+        return (f'zh-CN-{override}', 'poetry-reading', 0.86)
 
-    a = poem.get('author', '')
+    key = (location, poem.get('title', ''))
 
-    # 沉郁苍凉 -> 成熟男声, serious 风格
-    if a in SOMBER_AUTHORS:
-        return ('zh-CN-YunyeNeural', 'serious', 0.82)
-
-    # 豪放 -> 阳光男声 + 诗词风格
-    if a in HEROIC_AUTHORS:
-        return ('zh-CN-YunxiNeural', 'poetry-reading', 0.88)
-
-    # 婉约 -> 温柔女声 + 诗词风格
-    if a in GRACEFUL_AUTHORS:
-        return ('zh-CN-XiaoxiaoNeural', 'poetry-reading', 0.86)
-
-    # 默认: 女声诗词风格
-    return ('zh-CN-XiaoxiaoNeural', 'poetry-reading', 0.88)
+    # sad 优先
+    if key in SAD_POEMS:
+        return (VOICE, 'sad', 0.82)
+    # 长叙事用 narration-relaxed (更轻松不犯困)
+    if key in NARRATION_POEMS:
+        return (VOICE, 'narration-relaxed', 0.90)
+    # 柔情抒情
+    if key in GENTLE_POEMS:
+        return (VOICE, 'gentle', 0.86)
+    # 田园山水
+    if key in CALM_POEMS:
+        return (VOICE, 'calm', 0.88)
+    # 默认诗词风格 (端庄大气)
+    return (VOICE, 'poetry-reading', 0.86)
 
 # ────────────────────────────────────────
 # SSML 构建
@@ -140,7 +234,7 @@ def build_ssml(poem, voice, style, rate):
     构造 SSML, 包含:
     - 标题+朝代+作者开场
     - 每句诗之间 500ms 停顿
-    - express-as 情感风格 (styledegree 1.3 加强)
+    - express-as 情感风格 (styledegree 1.0 不过度强调, 避免回音感)
     - prosody rate 控制整体语速
     """
     title = escape_xml(poem['title'])
@@ -148,27 +242,31 @@ def build_ssml(poem, voice, style, rate):
     dynasty = escape_xml(poem['dynasty'])
     lines = [escape_xml(l) for l in poem['lines']]
 
-    # 开场白
-    intro = f'{title}。{dynasty}代，{author}。'
+    # 开场白: 修掉 "现代代" bug — 朝代已经带"代"字时不再加"代"
+    if dynasty.endswith('代'):
+        dyn_text = dynasty
+    else:
+        dyn_text = dynasty + '代'
+    intro = f'{title}。{dyn_text}，{author}。'
 
-    # 诗句: 每句之间 500ms 停顿, 句末 400ms, 形成吟诵节奏
+    # 诗句: 每句之间 400ms 停顿, 句末 700ms
     body_parts = []
     for i, line in enumerate(lines):
         body_parts.append(f'{line}。')
-        # 最后一句用更长停顿
         if i < len(lines) - 1:
-            body_parts.append('<break time="500ms"/>')
+            body_parts.append('<break time="400ms"/>')
         else:
-            body_parts.append('<break time="800ms"/>')
+            body_parts.append('<break time="700ms"/>')
     body = ''.join(body_parts)
 
-    rate_pct = f'{int((rate - 1) * 100):+d}%'  # 0.88 -> "-12%"
+    rate_pct = f'{int((rate - 1) * 100):+d}%'  # 0.86 -> "-14%"
 
     if style:
+        # styledegree 1.0 (正常强度), 避免 1.3 造成的过度情感和回音感
         content = (
-            f'<mstts:express-as style="{style}" styledegree="1.3">'
+            f'<mstts:express-as style="{style}" styledegree="1.0">'
             f'<prosody rate="{rate_pct}">'
-            f'{intro}<break time="700ms"/>'
+            f'{intro}<break time="600ms"/>'
             f'{body}'
             f'</prosody>'
             f'</mstts:express-as>'
@@ -176,7 +274,7 @@ def build_ssml(poem, voice, style, rate):
     else:
         content = (
             f'<prosody rate="{rate_pct}">'
-            f'{intro}<break time="700ms"/>'
+            f'{intro}<break time="600ms"/>'
             f'{body}'
             f'</prosody>'
         )
@@ -295,7 +393,7 @@ def main():
             print(f'[{i+1:3}/{total}] · 已存在: {loc_name}/{title}.mp3')
             continue
 
-        voice, style, rate = pick_voice(poem, override=args.voice)
+        voice, style, rate = pick_voice(poem, override=args.voice, location=loc_name)
         ssml = build_ssml(poem, voice, style, rate)
 
         # 估算字符数 (SSML 标签不计费, 仅文本)
