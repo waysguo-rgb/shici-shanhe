@@ -1134,8 +1134,10 @@ function mkRiver(coords,width,riverName){
   // 河宽: 发丝化, 按河流大小缩放, 设最小宽度避免远距离不可见
   const rw=Math.max(0.22,width*0.85);
   const hw=rw/2;
-  // 河谷已被宽幅刻蚀，取大范围最低点(谷底)
+  // 河谷采样: 较大窗口找谷底, 不依赖河宽(避免窄河流窗口过小漏采)
   const heights=[];
+  const SAMPLE_R=0.60;  // 横向采样半径 (大于任何实际河宽)
+  const SAMPLE_L=0.20;  // 纵向采样半径
   for(let i=0;i<cpts.length;i++){
     const p=cpts[i];
     let tx=0,tz=0;
@@ -1143,13 +1145,14 @@ function mkRiver(coords,width,riverName){
     if(i<cpts.length-1){tx+=cpts[i+1].x-p.x;tz+=cpts[i+1].z-p.z}
     const len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
     const nx=-tz,nz=tx;
-    // 在河心附近横跨+前后 取最低点 (真正的谷底)
+    // 在河心附近大窗口采样, 取最低点 (真正的谷底)
     let minH=999;
-    for(let k=-3;k<=3;k++){
-      const off=k/3*Math.max(hw+0.05,0.25);
-      for(let df=-1;df<=1;df++){
-        const sx=p.x+nx*off+tx*df*0.10;
-        const sz=p.z+nz*off+tz*df*0.10;
+    for(let k=-5;k<=5;k++){
+      const off=k/5*SAMPLE_R;
+      for(let df=-2;df<=2;df++){
+        const dl=df/2*SAMPLE_L;
+        const sx=p.x+nx*off+tx*dl;
+        const sz=p.z+nz*off+tz*dl;
         const ys=hAt(sx,sz);
         if(ys<minH)minH=ys;
       }
@@ -1158,20 +1161,18 @@ function mkRiver(coords,width,riverName){
   }
   // 沿河大窗口平滑 (让水面连续不跳变)
   const smH=new Array(cpts.length);
-  const WIN=12;
+  const WIN=15;
   for(let i=0;i<cpts.length;i++){
     let s=0,n=0;
     for(let k=-WIN;k<=WIN;k++){
       const j=i+k;if(j<0||j>=cpts.length)continue;
       const w=WIN+1-Math.abs(k);s+=heights[j]*w;n+=w;
     }
-    // 水面略微抬起，但不能高于谷壁
-    smH[i]=s/n+0.025;
+    // 水面抬起 0.18 世界单位, 确保稳定高于谷底 (即使 LOD 切换或地形误差)
+    smH[i]=s/n+0.18;
   }
-  // 保证水面单调下降(从源头到入海)
-  for(let i=1;i<smH.length;i++){
-    if(smH[i]>smH[i-1])smH[i]=smH[i-1];
-  }
+  // 注: 不再强制单调下降 —— 之前的强制会把山区段的水面压到山体以下
+  // 让水面自然跟随地形谷底, 配合 polygonOffset 始终可见
   // 应用高度
   cpts.forEach((p,i)=>{p.y=smH[i]});
 
@@ -1206,8 +1207,8 @@ function mkRiver(coords,width,riverName){
     depthWrite:false
   });
   mat.polygonOffset=true;
-  mat.polygonOffsetFactor=-3;
-  mat.polygonOffsetUnits=-3;
+  mat.polygonOffsetFactor=-8;
+  mat.polygonOffsetUnits=-8;
   const mesh=new THREE.Mesh(geo,mat);
   mesh.renderOrder=3;
   const startH=getH(coords[0][0],coords[0][1]);
