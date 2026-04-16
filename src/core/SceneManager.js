@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // Data
-import { MOB, SGWT, SGHT, LOD_LO_W, LOD_LO_H, LOD_SWITCH_DIST, CLOUD_N } from '../data/constants.js';
+import { MOB, SGWT, SGHT, LOD_LO_W, LOD_LO_H, LOD_SWITCH_DIST, CLOUD_N,
+         PW, PH, BGC, Z, TS, TX0, TY0, MW, MH } from '../data/constants.js';
 import RIVERS from '../data/rivers.js';
 import LAKES from '../data/lakes.js';
 
@@ -11,12 +12,12 @@ import LAKES from '../data/lakes.js';
 import { ll2s } from './helpers.js';
 import {
   loadDEM, setHD, getHD,
-  buildTerrain, carveRivers,
   setTerrainRef, setTerrainLoRef, setTerrainLOD,
   buildHMap, buildHMapLo,
   hAt, getH, scaleH,
   terrainLOD
 } from './TerrainBuilder.js';
+import { cacheGet, cachePut, cacheKeyFor } from './TerrainCache.js';
 import { riverMeshes, mkRiver, buildRiverLabels, riverLabels } from './RiverBuilder.js';
 import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.js';
 import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
@@ -83,6 +84,62 @@ export function pulseBeam(i) {
 }
 
 // ═══════════════════════════════════════
+// Terrain worker + geometry helpers
+// ═══════════════════════════════════════
+let _terrainWorker = null;
+function getTerrainWorker() {
+  if (!_terrainWorker) {
+    _terrainWorker = new Worker(new URL('./TerrainWorker.js', import.meta.url), { type: 'module' });
+  }
+  return _terrainWorker;
+}
+
+function buildTerrainInWorker(sgwt, sght, rivers, hd, K, onProgress) {
+  return new Promise((resolve, reject) => {
+    const w = getTerrainWorker();
+    // Copy DEM: main thread keeps its pristine hd for later getH() calls.
+    const hdCopy = hd ? { data: new Uint8ClampedArray(hd.data), width: hd.width, height: hd.height } : null;
+    // Clone river pts so main-thread Float32Array isn't detached by transfer.
+    const riversCopy = rivers.map(r => ({ w: r.w, pts: new Float32Array(r.pts) }));
+    const handler = (e) => {
+      const m = e.data;
+      if (m.type === 'progress') { if (onProgress) onProgress(m.value); return; }
+      if (m.type === 'done')    { w.removeEventListener('message', handler); resolve({ positions: m.positions, colors: m.colors }); return; }
+      if (m.type === 'error')   { w.removeEventListener('message', handler); reject(new Error(m.message)); return; }
+    };
+    w.addEventListener('message', handler);
+    const transferable = [];
+    if (hdCopy) transferable.push(hdCopy.data.buffer);
+    riversCopy.forEach(r => transferable.push(r.pts.buffer));
+    w.postMessage({ sgwt, sght, rivers: riversCopy, hd: hdCopy, K }, transferable);
+  });
+}
+
+function meshFromArrays(positions, colors, sgwt, sght) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(colors, 4));
+  const gridX1 = sgwt + 1;
+  const triCount = sgwt * sght * 2;
+  const IdxArr = (gridX1 * (sght + 1)) > 65535 ? Uint32Array : Uint16Array;
+  const indexArr = new IdxArr(triCount * 3);
+  let i = 0;
+  for (let iy = 0; iy < sght; iy++) {
+    for (let ix = 0; ix < sgwt; ix++) {
+      const a = iy * gridX1 + ix;
+      const b = (iy + 1) * gridX1 + ix;
+      const c = (iy + 1) * gridX1 + (ix + 1);
+      const d = iy * gridX1 + (ix + 1);
+      indexArr[i++] = a; indexArr[i++] = b; indexArr[i++] = d;
+      indexArr[i++] = b; indexArr[i++] = c; indexArr[i++] = d;
+    }
+  }
+  geo.setIndex(new THREE.BufferAttribute(indexArr, 1));
+  geo.computeBoundingSphere();
+  return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: true }));
+}
+
+// ═══════════════════════════════════════
 // Initialize Three.js scene
 // ═══════════════════════════════════════
 export async function init(container, prog, L_data, onLabelClick, onLabelEnter, onLabelLeave) {
@@ -131,26 +188,59 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   } catch (e) { hd = null; }
   setHD(hd);
 
-  // ═══ Terrain LOD ═══
+  // Pre-sample rivers on main thread (needs THREE.CatmullRomCurve3), pack as
+  // Float32Array([x0,z0,x1,z1,…]) so each river is transferable to the worker.
+  const riversSampled = RIVERS.map(r => {
+    const ctrl = r.c.map(([lo, la]) => { const [x, z] = ll2s(lo, la); return new THREE.Vector3(x, 0, z); });
+    const curve = new THREE.CatmullRomCurve3(ctrl, false, 'catmullrom', 0.5);
+    const pts3 = curve.getPoints(400);
+    const flat = new Float32Array(pts3.length * 2);
+    for (let i = 0; i < pts3.length; i++) { flat[i * 2] = pts3[i].x; flat[i * 2 + 1] = pts3[i].z; }
+    return { w: r.w, pts: flat };
+  });
+  const K = { PW, PH, BGC, Z, TS, TX0, TY0, MW, MH };
+
+  // ═══ HD terrain: IndexedDB cache → Worker fallback ═══
   if (prog) prog.style.width = '40%';
-  const terrainHi = await buildTerrain(SGWT, SGHT);
-  await carveRivers(terrainHi, SGWT, SGHT, RIVERS);
+  const hdKey = cacheKeyFor(SGWT, SGHT);
+  let hdResult = await cacheGet(hdKey);
+  if (!hdResult) {
+    hdResult = await buildTerrainInWorker(SGWT, SGHT, riversSampled, hd, K, (p) => {
+      if (prog) prog.style.width = (40 + p * 32) + '%';
+    });
+    cachePut(hdKey, { positions: hdResult.positions, colors: hdResult.colors });
+  }
+  const terrainHi = meshFromArrays(hdResult.positions, hdResult.colors, SGWT, SGHT);
   setTerrainRef(terrainHi);
-  if (prog) prog.style.width = '62%';
+  buildHMap();
 
-  const terrainLo = await buildTerrain(LOD_LO_W, LOD_LO_H);
-  await carveRivers(terrainLo, LOD_LO_W, LOD_LO_H, RIVERS);
-  setTerrainLoRef(terrainLo);
-  if (prog) prog.style.width = '70%';
-
+  // Start with HD-only LOD; LO mesh is built in idle time below.
   const lod = new THREE.LOD();
   lod.addLevel(terrainHi, 0);
-  lod.addLevel(terrainLo, LOD_SWITCH_DIST);
   scene.add(lod);
   setTerrainLOD(lod);
 
-  buildHMap();
-  buildHMapLo();
+  // Defer LO terrain to idle time — LOD swap only happens at far camera distances
+  // that won't occur in the first seconds. First paint no longer waits for it.
+  const scheduleLoBuild = () => {
+    (async () => {
+      const loKey = cacheKeyFor(LOD_LO_W, LOD_LO_H);
+      let loResult = await cacheGet(loKey);
+      if (!loResult) {
+        loResult = await buildTerrainInWorker(LOD_LO_W, LOD_LO_H, riversSampled, hd, K, null);
+        cachePut(loKey, { positions: loResult.positions, colors: loResult.colors });
+      }
+      const terrainLo = meshFromArrays(loResult.positions, loResult.colors, LOD_LO_W, LOD_LO_H);
+      setTerrainLoRef(terrainLo);
+      lod.addLevel(terrainLo, LOD_SWITCH_DIST);
+      buildHMapLo();
+    })().catch(e => console.warn('[LO terrain] build failed:', e));
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(scheduleLoBuild, { timeout: 3000 });
+  } else {
+    setTimeout(scheduleLoBuild, 500);
+  }
   if (prog) prog.style.width = '80%';
 
   // ═══ Rivers ═══

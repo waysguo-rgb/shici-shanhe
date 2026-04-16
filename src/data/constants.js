@@ -1,7 +1,12 @@
 // 全局常量: 设备检测、质量配置、坐标系、地形尺寸等
 
-// 设备检测
-export const MOB = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
+// 设备检测 — worker-safe (Web Workers have no `window`)
+export const MOB = (() => {
+  if (typeof navigator === 'undefined') return false;
+  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) return true;
+  if (typeof window !== 'undefined' && window.innerWidth < 768) return true;
+  return false;
+})();
 
 // 高分辨率地形网格 (近距离 LOD)
 export const SGWT = MOB ? 200 : 1920;
