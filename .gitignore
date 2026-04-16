@@ -1,19 +1,28 @@
-# 临时截图和预览图
-*.jpg
-*.jpeg
-*.png
-.preview.jpg
+# Node.js
+node_modules/
+dist/
 
-# 大文件（视频、GIF）
+# 音频文件 (33MB, 由 tools/generate_doubao_tts.py 生成)
+public/assets/audio/
+
+# 大文件
 *.mp4
 *.webm
 *.gif
 
-# Python 辅助脚本的缓存
+# 图片 (非代码资源)
+*.jpg
+*.jpeg
+*.png
+
+# Python 缓存
 __pycache__/
 *.pyc
 
-# Claude Code 相关
+# 构建/日志
+*.log
+
+# Claude Code
 .vframes/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
@@ -26,9 +35,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Node.js
-node_modules/
-dist/
+# 旧版备份
+legacy/
 
-# 其他子项目（如果不需要版本控制）
+# 微信小程序 (独立子项目)
 miniprogram/
