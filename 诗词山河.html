@@ -1502,8 +1502,8 @@ function mkRiver(coords,width,riverName){
     // 水面抬起 0.12 世界单位 (配合 depthTest:false 可保证不被山埋)
     smH[i]=s/n+0.12;
   }
-  // 入海口: 延伸段平滑过渡到海面高度
-  if(isEstuary){const _lh=smH[Math.min(origLen-1,smH.length-1)];for(let i=origLen;i<cpts.length;i++){const t=(i-origLen)/(cpts.length-1-origLen||1);smH[i]=_lh*(1-t)+(-0.04)*t}}
+  // 入海口: 末段18%开始强制下降到海面, 防止河口上翘
+  if(isEstuary){const _fs=Math.floor(origLen*.82),_sh=smH[_fs];for(let i=_fs;i<cpts.length;i++){const t=(i-_fs)/(cpts.length-1-_fs||1);smH[i]=_sh*(1-t)+(-0.02)*t}}
   // 注: 不再强制单调下降 —— 之前的强制会把山区段的水面压到山体以下
   // 让水面自然跟随地形谷底, 配合 depthTest:false 始终可见
   // 应用高度
