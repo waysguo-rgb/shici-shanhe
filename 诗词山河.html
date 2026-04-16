@@ -1380,23 +1380,28 @@ function mkWavePatch(loCen,laCen,loSpan,laSpan,loOff,laOff,name){
 const coastWaveData=[];
 function buildCoastWaves(){
   const grp=new THREE.Group();
-  const spacing=MOB?7:4;   // 世界单位/个
-  const layers=MOB?1:2;    // 层数
+  const spacing=MOB?6:3.5;
+  const nLayers=MOB?2:3;
+  // 层参数: [离岸距离, 基础宽, 高宽比, 透明度, 涌幅, 浮幅]
+  const LC=[
+    [0.3, 3.0, .30, .50, .12, .02],  // L0: 岸边浪沫 — 宽扁, 贴岸, 遮盖河流延伸痕迹
+    [2.0, 1.8, .48, .65, .35, .04],  // L1: 中浪
+    [4.5, 2.2, .48, .50, .55, .05],  // L2: 远浪
+  ];
   for(let i=0;i<BD_MAIN.length;i++){
     const j=(i+1)%BD_MAIN.length;
     const[aLo,aLa]=BD_MAIN[i],[bLo,bLa]=BD_MAIN[j];
     const mLo=(aLo+bLo)/2,mLa=(aLa+bLa)/2;
-    if(mLo<108||mLa>50)continue; // 跳过内陆边界
+    // ★ 只保留真正的海岸段: 经度>108 且 纬度<41.5 (辽东半岛以南)
+    // 北面是蒙古/俄罗斯边境, 不是海, 不放浪花
+    if(mLo<108||mLa>41.5)continue;
     const dLo=bLo-aLo,dLa=bLa-aLa;
     const sl=Math.sqrt(dLo*dLo+dLa*dLa);
     if(sl<.05)continue;
-    // 左法线 (CW多边形外法线)
     const nLo=-dLa/sl,nLa=dLo/sl;
-    // 判断: 外侧是海, 内侧是陆地 → 海岸段
     const lftLand=inLand(mLo+nLo*.3,mLa+nLa*.3);
     const rgtLand=inLand(mLo-nLo*.3,mLa-nLa*.3);
-    if(lftLand===rgtLand)continue; // 两侧相同, 跳过
-    // 朝海方向
+    if(lftLand===rgtLand)continue;
     const sd=lftLand?-1:1;
     const sNx=(nLo*sd)*SX,sNz=-(nLa*sd)*SY;
     const sn=Math.sqrt(sNx*sNx+sNz*sNz)||1;
@@ -1407,12 +1412,12 @@ function buildCoastWaves(){
     for(let s=0;s<nP;s++){
       const tt=(s+.5)/nP;
       const cx=ax+(bx-ax)*tt,cz=az+(bz-az)*tt;
-      for(let L=0;L<layers;L++){
-        const off=1.0+L*2.5;
-        const wx=cx+nx*off,wz=cz+nz*off;
-        const bW=(1.5+L*.7)*(.85+Math.random()*.3);
-        const bH=bW*.48;
-        const bOp=.6-L*.12;
+      for(let L=0;L<nLayers;L++){
+        const c=LC[Math.min(L,2)];
+        const wx=cx+nx*c[0],wz=cz+nz*c[0];
+        const bW=c[1]*(.85+Math.random()*.3);
+        const bH=bW*c[2];
+        const bOp=c[3];
         const mat=new THREE.SpriteMaterial({map:_sharedWaveTex,transparent:true,opacity:bOp,depthWrite:false});
         const sp=new THREE.Sprite(mat);
         sp.scale.set(bW,bH,1);
@@ -1421,8 +1426,7 @@ function buildCoastWaves(){
         coastWaveData.push({sp,nx,nz,bx:wx,bz:wz,by:.06+L*.02,bW,bH,bOp,
           ph:Math.random()*6.28+i*.3+s*.5,
           spd:.45+Math.random()*.4,
-          surge:.35+L*.2,
-          bob:.04+Math.random()*.04});
+          surge:c[4],bob:c[5]+Math.random()*.03});
         grp.add(sp);
       }
     }
