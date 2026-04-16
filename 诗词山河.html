@@ -97,8 +97,6 @@ box-shadow:
 #po-box::before{content:'';position:absolute;inset:0;pointer-events:none;background:
   repeating-linear-gradient(0deg,transparent 0,transparent 80px,rgba(110,70,30,0.015) 80px,rgba(110,70,30,0.015) 81px);
 opacity:0.6}
-#po-x{position:absolute;top:10px;right:14px;font-size:28px;color:#5a3010;cursor:pointer;background:none;border:none;font-family:'Noto Serif SC';transition:all .3s;z-index:20;line-height:1}
-#po-x:hover{color:#8a1a08;transform:scale(1.1)}
 /* 标题点击朗读 */
 .pt{cursor:pointer;transition:color .25s,text-shadow .25s,transform .25s}
 .pt:hover{color:#8a1a08;text-shadow:0 0 10px rgba(255,180,100,0.75),0 1px 2px rgba(255,240,200,0.95)}
@@ -165,7 +163,7 @@ opacity:0.6}
 <body>
 <div id="cv"></div>
 <div id="ui"><div id="hdr"><div id="hdr-in"><h1>诗词山河</h1><p id="sub"></p></div></div><div id="rlbls"></div><div id="labels"></div></div>
-<div id="po"><div id="po-bg"></div><div id="po-wrap"><div class="roller"><div class="roller-cap top"></div><div class="roller-band2 top"></div><div class="roller-band top"></div><div class="roller-wood"></div><div class="roller-band bot"></div><div class="roller-band2 bot"></div><div class="roller-cap bot"></div></div><div id="po-box"><button id="po-x">&times;</button><div id="po-c"></div></div><button id="po-arr-l" class="po-arr" title="向左翻阅"><svg viewBox="0 0 24 24"><path d="M15 4 L7 12 L15 20 L17 18 L11 12 L17 6 Z"/></svg></button><button id="po-arr-r" class="po-arr" title="向右翻阅"><svg viewBox="0 0 24 24"><path d="M9 4 L17 12 L9 20 L7 18 L13 12 L7 6 Z"/></svg></button><div class="roller"><div class="roller-cap top"></div><div class="roller-band2 top"></div><div class="roller-band top"></div><div class="roller-wood"></div><div class="roller-band bot"></div><div class="roller-band2 bot"></div><div class="roller-cap bot"></div></div></div></div>
+<div id="po"><div id="po-bg"></div><div id="po-wrap"><div class="roller"><div class="roller-cap top"></div><div class="roller-band2 top"></div><div class="roller-band top"></div><div class="roller-wood"></div><div class="roller-band bot"></div><div class="roller-band2 bot"></div><div class="roller-cap bot"></div></div><div id="po-box"><div id="po-c"></div></div><button id="po-arr-l" class="po-arr" title="向左翻阅"><svg viewBox="0 0 24 24"><path d="M15 4 L7 12 L15 20 L17 18 L11 12 L17 6 Z"/></svg></button><button id="po-arr-r" class="po-arr" title="向右翻阅"><svg viewBox="0 0 24 24"><path d="M9 4 L17 12 L9 20 L7 18 L13 12 L7 6 Z"/></svg></button><div class="roller"><div class="roller-cap top"></div><div class="roller-band2 top"></div><div class="roller-band top"></div><div class="roller-wood"></div><div class="roller-band bot"></div><div class="roller-band2 bot"></div><div class="roller-cap bot"></div></div></div></div>
 <div id="ld"><p>正在生成三维山河…</p><div class="bar"><div class="fill" id="prog"></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1376,6 +1374,62 @@ function mkWavePatch(loCen,laCen,loSpan,laSpan,loOff,laOff,name){
   return group;
 }
 
+// ═══════════════════════════════════════
+// 海岸浪花: 沿海岸线自动排布, 向岸涌动动画
+// ═══════════════════════════════════════
+const coastWaveData=[];
+function buildCoastWaves(){
+  const grp=new THREE.Group();
+  const spacing=MOB?7:4;   // 世界单位/个
+  const layers=MOB?1:2;    // 层数
+  for(let i=0;i<BD_MAIN.length;i++){
+    const j=(i+1)%BD_MAIN.length;
+    const[aLo,aLa]=BD_MAIN[i],[bLo,bLa]=BD_MAIN[j];
+    const mLo=(aLo+bLo)/2,mLa=(aLa+bLa)/2;
+    if(mLo<108||mLa>50)continue; // 跳过内陆边界
+    const dLo=bLo-aLo,dLa=bLa-aLa;
+    const sl=Math.sqrt(dLo*dLo+dLa*dLa);
+    if(sl<.05)continue;
+    // 左法线 (CW多边形外法线)
+    const nLo=-dLa/sl,nLa=dLo/sl;
+    // 判断: 外侧是海, 内侧是陆地 → 海岸段
+    const lftLand=inLand(mLo+nLo*.3,mLa+nLa*.3);
+    const rgtLand=inLand(mLo-nLo*.3,mLa-nLa*.3);
+    if(lftLand===rgtLand)continue; // 两侧相同, 跳过
+    // 朝海方向
+    const sd=lftLand?-1:1;
+    const sNx=(nLo*sd)*SX,sNz=-(nLa*sd)*SY;
+    const sn=Math.sqrt(sNx*sNx+sNz*sNz)||1;
+    const nx=sNx/sn,nz=sNz/sn;
+    const[ax,az]=ll2s(aLo,aLa),[bx,bz]=ll2s(bLo,bLa);
+    const wl=Math.sqrt((bx-ax)**2+(bz-az)**2);
+    const nP=Math.max(1,Math.ceil(wl/spacing));
+    for(let s=0;s<nP;s++){
+      const tt=(s+.5)/nP;
+      const cx=ax+(bx-ax)*tt,cz=az+(bz-az)*tt;
+      for(let L=0;L<layers;L++){
+        const off=1.0+L*2.5;
+        const wx=cx+nx*off,wz=cz+nz*off;
+        const bW=(1.5+L*.7)*(.85+Math.random()*.3);
+        const bH=bW*.48;
+        const bOp=.6-L*.12;
+        const mat=new THREE.SpriteMaterial({map:_sharedWaveTex,transparent:true,opacity:bOp,depthWrite:false});
+        const sp=new THREE.Sprite(mat);
+        sp.scale.set(bW,bH,1);
+        sp.position.set(wx,.06+L*.02,wz);
+        sp.renderOrder=7-L;
+        coastWaveData.push({sp,nx,nz,bx:wx,bz:wz,by:.06+L*.02,bW,bH,bOp,
+          ph:Math.random()*6.28+i*.3+s*.5,
+          spd:.45+Math.random()*.4,
+          surge:.35+L*.2,
+          bob:.04+Math.random()*.04});
+        grp.add(sp);
+      }
+    }
+  }
+  return grp;
+}
+
 function mkRiver(coords,width,riverName){
   width=width||0.5;
   const ctrl=coords.map(([lo,la])=>{
@@ -1759,7 +1813,6 @@ speechSynthesis.getVoices();speechSynthesis.addEventListener('voiceschanged',()=
 // ═══════════════════════════════════════
 const po=document.getElementById('po'),pc=document.getElementById('po-c');
 document.getElementById('po-bg').onclick=closePo;
-document.getElementById('po-x').onclick=closePo;
 let activeI=-1,camTo=null,lookTo=null,isAnim=false;
 controls.addEventListener('start',()=>{isAnim=false});
 
@@ -1952,6 +2005,8 @@ async function init(){
   scene.add(mkWavePatch(110.3,20.4,2.6,1.4,0,0,'琼州海峡'));
   // 渤海（东北方向）
   scene.add(mkWavePatch(120,38.5,3.2,2.8,0,0,'渤海'));
+  // 海岸线浪花 (沿整条海岸线自动排布)
+  scene.add(buildCoastWaves());
 
   // ★ 用高度图精确设定标签位置，不再浮空 ★
   L.forEach((loc,i)=>{
@@ -1982,7 +2037,24 @@ async function init(){
 const tv=new THREE.Vector3();let lastCam='';const clock=new THREE.Clock();
 let frameCount=0;
 
-function animateSea(t){}
+function animateSea(t){
+  // 海岸浪花: 向岸涌动 + 浮沉 + 呼吸缩放 + 到岸增亮
+  for(let i=0;i<coastWaveData.length;i++){
+    const d=coastWaveData[i],ph=t*d.spd+d.ph;
+    const sv=Math.sin(ph);
+    // 向岸涌动 (法线方向往复)
+    d.sp.position.x=d.bx-d.nx*sv*d.surge;
+    d.sp.position.z=d.bz-d.nz*sv*d.surge;
+    // 波峰抬升 (接近岸边时升高, 模拟浪涌立体感)
+    d.sp.position.y=d.by+Math.max(0,sv)*d.bob*2.5+Math.sin(ph*.9)*d.bob*.4;
+    // 缩放呼吸 (到岸时浪头变高变宽)
+    const crest=Math.max(0,sv);
+    d.sp.scale.set(d.bW*(1+crest*.12),d.bH*(1+crest*.25),1);
+    // 到岸时明亮, 离岸时暗淡
+    d.sp.material.opacity=d.bOp*(.35+(sv+1)*.325);
+    d.sp.material.rotation=Math.sin(ph*.4)*.06;
+  }
+}
 
 function updateLabels(){
   const cs=camera.position.toArray().map(v=>v.toFixed(1)).join(',');
