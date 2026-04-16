@@ -1452,7 +1452,7 @@ function mkRiver(coords,width,riverName){
     const _dx=cpts[origLen-1].x-cpts[origLen-1-_lk].x;
     const _dz=cpts[origLen-1].z-cpts[origLen-1-_lk].z;
     const _dl=Math.sqrt(_dx*_dx+_dz*_dz)||1;
-    const eLen=Math.max(3,width*14),eN=40;
+    const eLen=width*2,eN=10; // 仅微量延伸到海岸边缘, 不深入海面
     for(let k=1;k<=eN;k++){const t=k/eN;
       cpts.push(new THREE.Vector3(cpts[origLen-1].x+(_dx/_dl)*eLen*t,-0.04,cpts[origLen-1].z+(_dz/_dl)*eLen*t))}
   }else{
