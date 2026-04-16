@@ -1,0 +1,373 @@
+// Main orchestrator: scene init, render loop, label projection, camera animation
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+// Data
+import { MOB, SGWT, SGHT, LOD_LO_W, LOD_LO_H, LOD_SWITCH_DIST, CLOUD_N } from '../data/constants.js';
+import RIVERS from '../data/rivers.js';
+import LAKES from '../data/lakes.js';
+
+// Core modules
+import { ll2s } from './helpers.js';
+import {
+  loadDEM, setHD, getHD,
+  buildTerrain, carveRivers,
+  setTerrainRef, setTerrainLoRef, setTerrainLOD,
+  buildHMap, buildHMapLo,
+  hAt, getH, scaleH,
+  terrainLOD
+} from './TerrainBuilder.js';
+import { riverMeshes, mkRiver, buildRiverLabels, riverLabels } from './RiverBuilder.js';
+import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.js';
+import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
+import { cloudGroups, mkCloudCluster, finalizeCloudOpacity } from './CloudBuilder.js';
+import { beamMeshes, mkLightBeam } from './BeamBuilder.js';
+
+// ═══════════════════════════════════════
+// Exported scene objects (Vue components access these)
+// ═══════════════════════════════════════
+export let scene = null;
+export let camera = null;
+export let renderer = null;
+export let controls = null;
+
+// ═══════════════════════════════════════
+// Label / beam / camera state
+// ═══════════════════════════════════════
+const lbls = [];
+const pos3D = [];
+export const locBeams = [];
+let labelsEl = null;
+
+// Camera animation state
+export let camTo = null;
+export let lookTo = null;
+export let isAnim = false;
+export let activeI = -1;
+
+export function setCamTo(v) { camTo = v; }
+export function setLookTo(v) { lookTo = v; }
+export function setIsAnim(v) { isAnim = v; }
+export function setActiveI(v) { activeI = v; }
+
+// ═══════════════════════════════════════
+// Location data (passed in from Vue component)
+// ═══════════════════════════════════════
+let L = [];
+export function setLocations(locations) { L = locations; }
+export function getLocations() { return L; }
+export function getPos3D() { return pos3D; }
+export function getLbls() { return lbls; }
+
+// ═══════════════════════════════════════
+// Beam control
+// ═══════════════════════════════════════
+export function setBeam(i, on) {
+  const b = locBeams[i];
+  if (!b) return;
+  b[0].userData.target = on ? 0.85 : 0;
+  b[1].userData.target = on ? 0.40 : 0;
+}
+
+export function pulseBeam(i) {
+  const b = locBeams[i];
+  if (!b) return;
+  b[0].userData.target = 1.2;
+  b[1].userData.target = 0.75;
+  setTimeout(() => {
+    if (activeI === i) {
+      b[0].userData.target = 0.85;
+      b[1].userData.target = 0.40;
+    }
+  }, 500);
+}
+
+// ═══════════════════════════════════════
+// Initialize Three.js scene
+// ═══════════════════════════════════════
+export async function init(container, prog, L_data, onLabelClick, onLabelEnter, onLabelLeave) {
+  L = L_data;
+
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = null;
+  scene.fog = new THREE.FogExp2(0x8c7040, 0.0012);
+
+  // Camera
+  let W = window.innerWidth, H = window.innerHeight;
+  camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 600);
+  camera.position.set(8, 110, 40);
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: !MOB, preserveDrawingBuffer: true, alpha: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, MOB ? 1.5 : 2));
+  renderer.setClearColor(0x000000, 0);
+  container.appendChild(renderer.domElement);
+
+  // Controls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.maxPolarAngle = Math.PI / 2 - .02;
+  controls.minDistance = 1.5;
+  controls.maxDistance = 220;
+  controls.target.set(8, 0, 0);
+  controls.screenSpacePanning = true;
+  controls.addEventListener('start', () => { isAnim = false; });
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0xfff0c8, 0.78));
+  const dl = new THREE.DirectionalLight(0xffeac0, 0.88);
+  dl.position.set(-30, 70, 25); scene.add(dl);
+  const dl2 = new THREE.DirectionalLight(0x88a8c8, 0.25);
+  dl2.position.set(40, 40, -30); scene.add(dl2);
+  scene.add(new THREE.HemisphereLight(0xfff4d0, 0x403020, 0.40));
+
+  // ═══ DEM ═══
+  let hd = null;
+  try {
+    hd = await Promise.race([loadDEM(prog), new Promise(r => setTimeout(() => r(null), 12000))]);
+  } catch (e) { hd = null; }
+  setHD(hd);
+
+  // ═══ Terrain LOD ═══
+  if (prog) prog.style.width = '40%';
+  const terrainHi = await buildTerrain(SGWT, SGHT);
+  await carveRivers(terrainHi, SGWT, SGHT, RIVERS);
+  setTerrainRef(terrainHi);
+  if (prog) prog.style.width = '62%';
+
+  const terrainLo = await buildTerrain(LOD_LO_W, LOD_LO_H);
+  await carveRivers(terrainLo, LOD_LO_W, LOD_LO_H, RIVERS);
+  setTerrainLoRef(terrainLo);
+  if (prog) prog.style.width = '70%';
+
+  const lod = new THREE.LOD();
+  lod.addLevel(terrainHi, 0);
+  lod.addLevel(terrainLo, LOD_SWITCH_DIST);
+  scene.add(lod);
+  setTerrainLOD(lod);
+
+  buildHMap();
+  buildHMapLo();
+  if (prog) prog.style.width = '80%';
+
+  // ═══ Rivers ═══
+  RIVERS.forEach(r => scene.add(mkRiver(r.c, r.w, r.n)));
+  buildRiverLabels();
+
+  // ═══ Lakes ═══
+  LAKES.forEach(l => scene.add(mkLake(l)));
+  buildLakeLabels();
+  if (prog) prog.style.width = '85%';
+
+  // ═══ Strait wave patches ═══
+  scene.add(mkWavePatch(119.5, 23.5, 3.2, 3.6, 0, 0, '台湾海峡'));
+  scene.add(mkWavePatch(110.3, 20.4, 2.6, 1.4, 0, 0, '琼州海峡'));
+  scene.add(mkWavePatch(120, 38.5, 3.2, 2.8, 0, 0, '渤海'));
+  scene.add(buildCoastWaves());
+
+  // ═══ Location labels + beams ═══
+  labelsEl = document.getElementById('labels');
+  L.forEach((loc, i) => {
+    const [sx, sz] = ll2s(loc.lo, loc.la);
+    pos3D.push(new THREE.Vector3(sx, 0, sz));
+    locBeams.push(null);
+    const el = document.createElement('div'); el.className = 'lb';
+    const fp = loc.ps[0]; const lines = fp.l.slice(0, 2);
+    let html = '<div class="pf">';
+    html += `<div class="pf-t">${fp.t}</div><div class="pf-a">${fp.a}</div>`;
+    lines.forEach((l, j) => { html += `<div class="pf-l" style="animation-delay:${j * 1 + 1}s">${l}</div>`; });
+    html += '</div>';
+    html += `<div class="loc-n">${loc.n}</div>`;
+    el.innerHTML = html;
+    el.addEventListener('click', () => onLabelClick(i));
+    el.addEventListener('mouseenter', () => onLabelEnter(i));
+    el.addEventListener('mouseleave', () => onLabelLeave(i));
+    labelsEl.appendChild(el); lbls.push(el);
+  });
+
+  // Set precise label heights from heightmap
+  L.forEach((loc, i) => {
+    const [sx, sz] = ll2s(loc.lo, loc.la);
+    const y = hAt(sx, sz);
+    const yT = Math.max(.05, y) + .15;
+    pos3D[i].set(sx, yT, sz);
+    locBeams[i] = mkLightBeam(sx, yT, sz, scene);
+  });
+  if (prog) prog.style.width = '90%';
+
+  // ═══ Clouds ═══
+  for (let i = 0; i < CLOUD_N; i++) {
+    const lo = 80 + Math.random() * 44, la = 21 + Math.random() * 26;
+    const [x, z] = ll2s(lo, la); const hm = getH(lo, la);
+    const y = Math.max(5, scaleH(isFinite(hm) ? hm : 500)) + 4 + Math.random() * 5;
+    mkCloudCluster(x, y, z, 9 + Math.random() * 15, 6 + Math.random() * 10, scene);
+  }
+  if (prog) prog.style.width = '100%';
+
+  // ═══ Start render loop ═══
+  animate();
+  finalizeCloudOpacity();
+
+  // ═══ Resize handler ═══
+  window.addEventListener('resize', () => {
+    W = window.innerWidth; H = window.innerHeight;
+    camera.aspect = W / H; camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+    lastCam = '';
+  });
+}
+
+// ═══════════════════════════════════════
+// Label projection (3D → screen)
+// ═══════════════════════════════════════
+const tv = new THREE.Vector3();
+let lastCam = '';
+
+function updateLabels() {
+  const cs = camera.position.toArray().map(v => v.toFixed(1)).join(',');
+  if (cs === lastCam) return; lastCam = cs;
+  const w = window.innerWidth, h = window.innerHeight;
+  for (let i = 0; i < L.length; i++) {
+    const p = pos3D[i], el = lbls[i];
+    const dist = camera.position.distanceTo(p);
+    if (dist > 130) { el.style.display = 'none'; continue; }
+    tv.copy(p).project(camera);
+    if (tv.z > 1) { el.style.display = 'none'; continue; }
+    const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
+    if (sx < -80 || sx > w + 80 || sy < -80 || sy > h + 80) { el.style.display = 'none'; continue; }
+    el.style.display = '';
+    const sc = Math.max(.55, Math.min(1.4, 32 / dist));
+    el.style.left = sx + 'px'; el.style.top = sy + 'px';
+    el.style.transform = `translate(-50%,-100%) scale(${sc.toFixed(3)})`;
+    el.style.opacity = Math.min(1, Math.max(.4, 1 - dist / 110)).toFixed(2);
+    const pf = el.querySelector('.pf');
+    if (pf) {
+      if (dist < 15) { pf.style.display = ''; pf.style.opacity = '.85'; }
+      else if (dist < 24) { pf.style.display = ''; pf.style.opacity = ((24 - dist) / 9 * .7).toFixed(2); }
+      else { pf.style.display = 'none'; }
+    }
+  }
+  // River labels
+  for (let i = 0; i < riverLabels.length; i++) {
+    const rl = riverLabels[i];
+    const dist = camera.position.distanceTo(rl.pos);
+    if (dist > 140) { rl.el.style.display = 'none'; continue; }
+    tv.copy(rl.pos).project(camera);
+    if (tv.z > 1) { rl.el.style.display = 'none'; continue; }
+    const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
+    if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) { rl.el.style.display = 'none'; continue; }
+    rl.el.style.display = '';
+    const sc = Math.max(.7, Math.min(1.6, 42 / dist));
+    rl.el.style.left = sx + 'px'; rl.el.style.top = sy + 'px';
+    rl.el.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(3)})`;
+    rl.el.style.opacity = Math.min(.98, Math.max(.7, 1.4 - dist / 130)).toFixed(2);
+  }
+  // Lake labels
+  for (let i = 0; i < lakeLabels.length; i++) {
+    const ll = lakeLabels[i];
+    const dist = camera.position.distanceTo(ll.pos);
+    if (dist > 150) { ll.el.style.display = 'none'; continue; }
+    tv.copy(ll.pos).project(camera);
+    if (tv.z > 1) { ll.el.style.display = 'none'; continue; }
+    const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
+    if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) { ll.el.style.display = 'none'; continue; }
+    ll.el.style.display = '';
+    const sc = Math.max(.65, Math.min(1.5, 38 / dist));
+    ll.el.style.left = sx + 'px'; ll.el.style.top = sy + 'px';
+    ll.el.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(3)})`;
+    ll.el.style.opacity = Math.min(.96, Math.max(.65, 1.35 - dist / 135)).toFixed(2);
+  }
+}
+
+// ═══════════════════════════════════════
+// Render loop
+// ═══════════════════════════════════════
+const clock = new THREE.Clock();
+let frameCount = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta(), t = clock.getElapsedTime();
+  frameCount++;
+
+  // Camera animation (fly to location)
+  if (isAnim && camTo && lookTo) {
+    camera.position.lerp(camTo, .04);
+    controls.target.lerp(lookTo, .04);
+    if (camera.position.distanceTo(camTo) < .2) isAnim = false;
+  }
+
+  // Clamp drag range
+  controls.target.x = Math.max(-50, Math.min(100, controls.target.x));
+  controls.target.z = Math.max(-25, Math.min(80, controls.target.z));
+  controls.target.y = Math.max(-2, Math.min(15, controls.target.y));
+  controls.update();
+
+  // River silk flow
+  riverMeshes.forEach(m => {
+    m.userData.tex.offset.x += dt * 0.045 * m.userData.flow;
+    m.material.opacity = 0.88 + Math.sin(t * 0.6 + m.userData.flow) * 0.05;
+  });
+
+  // Lake shimmer
+  lakeMeshes.forEach(m => {
+    const u = m.userData;
+    if (u.tex) {
+      u.tex.offset.x += dt * u.driftX;
+      u.tex.offset.y += dt * u.driftZ;
+    }
+    m.material.opacity = 0.90 + Math.sin(t * 0.5 + u.phase) * 0.05;
+  });
+
+  // Strait wave animation
+  waveMeshes.forEach(g => {
+    const u = g.userData;
+    const sprites = u.sprites;
+    if (!sprites) return;
+    sprites.forEach(sp => {
+      const d = sp.userData;
+      const ph = t * d.speed + d.phase;
+      sp.position.y = d.baseY + Math.sin(ph) * d.bobAmp;
+      sp.position.x = d.baseX + Math.cos(ph * 0.7) * d.swayAmp;
+      sp.position.z = d.baseZ + Math.sin(ph * 0.5) * d.swayAmp * 0.6;
+      const scaleK = 1 + Math.sin(ph * 0.8) * 0.08;
+      sp.scale.set(d.baseW * scaleK, d.baseH * (1 + Math.sin(ph * 0.8 + 1) * 0.12), 1);
+      sp.material.rotation = Math.sin(ph * 0.5) * 0.12 * d.rollSpeed;
+      sp.material.opacity = d.baseOp * (0.75 + Math.sin(ph * 0.6) * 0.22);
+    });
+  });
+
+  // Beam pulse
+  beamMeshes.forEach(s => {
+    const u = s.userData;
+    u.current += (u.target - u.current) * 0.15;
+    const breath = u.isHalo
+      ? (0.85 + Math.sin(t * 0.9 + u.phase) * 0.20)
+      : (0.92 + Math.sin(t * 0.6 + u.phase) * 0.15);
+    s.material.opacity = u.current * breath;
+    s.visible = u.current > 0.01;
+  });
+
+  // Coast waves (every 3 frames)
+  if (frameCount % 3 === 0) animateSea(t);
+
+  // Cloud drift + proximity fade
+  cloudGroups.forEach(cg => {
+    const d = cg.userData;
+    cg.position.x += d.driftX * dt; cg.position.z += d.driftZ * dt;
+    cg.position.y = d.baseY + Math.sin(t * .25 + d.phase) * .6;
+    const dist = camera.position.distanceTo(cg.position);
+    const breath = .85 + Math.sin(t * .2 + d.phase) * .12;
+    const fade = dist < 6 ? 0 : dist < 18 ? (dist - 6) / 12 : 1;
+    cg.children.forEach(s => { s.material.opacity = (s.userData_baseOp || 0.6) * breath * fade; });
+  });
+
+  updateLabels();
+
+  // LOD update
+  if (terrainLOD) terrainLOD.update(camera);
+
+  renderer.render(scene, camera);
+}

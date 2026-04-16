@@ -26,5 +26,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Node.js
+node_modules/
+dist/
+
 # 其他子项目（如果不需要版本控制）
 miniprogram/

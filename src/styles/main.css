@@ -1,0 +1,155 @@
+/* 诗词山河 - 主样式表 */
+/* 包含: 基础重置、布局、地图标签、诗卷弹出层、卷轴样式、加载动画、响应式适配 */
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;touch-action:none}
+body{font-family:'Noto Serif SC',serif;color:#f0e0b8;
+  background:
+    radial-gradient(ellipse 85% 80% at 50% 50%,#b8a068 0%,#a89058 30%,#8c7040 60%,#6e5428 88%,#4a3620 100%),
+    #3a2810;
+  background-attachment:fixed}
+#cv{position:fixed;inset:0;z-index:0;background:transparent}
+#ui{position:fixed;inset:0;z-index:10;pointer-events:none}
+#hdr{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:30;pointer-events:none}
+#hdr-in{background:rgba(240,220,170,0.82);backdrop-filter:blur(6px);padding:11px 38px;border-radius:2px;border:1px solid rgba(120,80,35,0.55);text-align:center;box-shadow:0 4px 22px rgba(60,35,10,0.5),inset 0 0 22px rgba(180,130,60,0.25)}
+#hdr h1{font-family:'Ma Shan Zheng',cursive;font-size:36px;color:#2a1a08;letter-spacing:8px;text-shadow:0 1px 1px rgba(255,240,200,0.9),0 0 8px rgba(255,220,150,0.4)}
+#hdr p{font-size:11px;font-weight:600;color:#5a3a15;letter-spacing:3px}
+#labels{position:absolute;inset:0;z-index:15;pointer-events:none}
+.lb{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto;transition:opacity .3s;will-change:transform}
+.loc-n{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;text-orientation:upright;font-size:21px;color:#2a1208;letter-spacing:4px;padding:3px 2px;font-weight:700;text-shadow:0 0 7px rgba(252,238,205,1),0 0 3px rgba(252,238,205,1),0 0 2px rgba(252,238,205,1),0 1px 2px rgba(255,245,220,0.95);transition:all .3s}
+.lb:hover .loc-n{color:#8a1a08;text-shadow:0 0 10px rgba(255,240,200,1),0 0 5px rgba(255,240,200,1),0 0 3px rgba(255,240,200,1)}
+.loc-dot{display:none}
+.lb.on .loc-n{font-size:24px;color:#a82010;text-shadow:0 0 12px rgba(255,245,210,1),0 0 6px rgba(255,245,210,1),0 0 3px rgba(255,245,210,1),0 1px 2px rgba(255,245,220,0.95)}
+#rlbls{position:absolute;inset:0;z-index:13;pointer-events:none}
+.rlb{position:absolute;font-family:'Ma Shan Zheng',cursive;font-size:21px;color:#0e2a48;letter-spacing:6px;text-shadow:0 0 8px rgba(255,248,215,1),0 0 5px rgba(255,248,215,1),0 0 3px rgba(255,248,215,1),0 1px 2px rgba(255,245,220,0.95);writing-mode:vertical-rl;text-orientation:upright;font-weight:700;transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap}
+.llb{position:absolute;font-family:'ZCOOL XiaoWei','Ma Shan Zheng',serif;font-size:18px;color:#0a2338;letter-spacing:2px;text-shadow:0 0 7px rgba(235,245,255,1),0 0 4px rgba(235,245,255,1),0 1px 2px rgba(220,235,250,0.95);font-weight:700;transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap;pointer-events:none}
+.pf{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:5px;margin-bottom:8px;pointer-events:none}
+.pf-t{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:15px;color:rgba(30,18,8,0.92);letter-spacing:2px;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,242,210,0.98),0 0 7px rgba(255,230,180,0.8);animation:incense 7s ease-in-out infinite;font-weight:700}
+.pf-a{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:10px;color:rgba(70,40,15,0.88);letter-spacing:1px;margin-top:4px;text-shadow:0 0 3px rgba(255,242,210,1),0 1px 1px rgba(255,240,200,0.95)}
+.pf-l{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:14px;color:rgba(30,18,8,0.88);letter-spacing:2px;line-height:1.5;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,240,200,0.98);opacity:0;animation:smokeIn 2.5s ease-out forwards,incense 9s ease-in-out infinite;font-weight:700}
+@keyframes incense{0%,100%{transform:translateY(0)}30%{transform:translateY(-2px) translateX(.5px)}60%{transform:translateY(-3px) translateX(-.5px)}90%{transform:translateY(-1px)}}
+@keyframes smokeIn{from{opacity:0;transform:translateY(8px);filter:blur(3px)}to{opacity:.55;transform:translateY(0);filter:blur(0)}}
+#po{position:fixed;inset:0;z-index:100;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px}
+#po.vis{display:flex}
+#po-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(90,58,22,0.55) 0%,rgba(52,32,12,0.72) 100%);backdrop-filter:blur(6px);cursor:pointer}
+#po-wrap{position:relative;display:flex;align-items:center;max-width:86vw;height:50vh;animation:unfurl 1.1s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:right center}
+@keyframes unfurl{
+  0%{max-width:50px;opacity:.3}
+  15%{opacity:.85}
+  100%{max-width:86vw;opacity:1}
+}
+/* 卷轴轴柄：紫檀木主体 + 青玉端头 + 铜箍铜丝 (精致古韵) */
+.roller{width:40px;height:calc(100% + 60px);flex-shrink:0;position:relative;z-index:5}
+/* 紫檀木主体: 深褐红 + 侧面明暗渐变 + 细密竖向纹理 */
+.roller-wood{position:absolute;left:10px;right:10px;top:26px;bottom:26px;background:
+  repeating-linear-gradient(0deg,transparent 0,transparent 2.5px,rgba(0,0,0,0.22) 2.5px,rgba(0,0,0,0.22) 3px),
+  linear-gradient(90deg,#0e0502 0%,#1f0a04 10%,#3a130a 28%,#5c220f 48%,#6a2a14 50%,#5c220f 52%,#3a130a 72%,#1f0a04 90%,#0e0502 100%);
+background-blend-mode:multiply,normal;border-radius:1px;box-shadow:
+  inset 0 0 5px rgba(0,0,0,0.7),
+  inset -1px 0 0 rgba(255,180,130,0.06),
+  inset 1px 0 0 rgba(255,180,130,0.04),
+  0 3px 15px rgba(0,0,0,0.55)}
+/* 铜箍 (木与玉之间的金属环, 上下各一对) */
+.roller-band{position:absolute;left:3px;right:3px;height:4px;background:
+  linear-gradient(180deg,#d8a856 0%,#b88438 25%,#8a5820 50%,#b88438 75%,#d8a856 100%);
+border-radius:1px;box-shadow:0 0 3px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,230,170,0.6),inset 0 -1px 0 rgba(40,20,5,0.4);z-index:2}
+.roller-band.top{top:22px}
+.roller-band.bot{bottom:22px}
+.roller-band2{position:absolute;left:4px;right:4px;height:1.5px;background:linear-gradient(180deg,#a07030,#5a3008);z-index:2}
+.roller-band2.top{top:28px}
+.roller-band2.bot{bottom:28px}
+/* 青玉端头: 淡青玉色 + 微云纹 */
+.roller-cap{position:absolute;left:0;right:0;height:26px;background:
+  radial-gradient(ellipse at 50% 32%,
+    #f4fbf6 0%,
+    #d9ebd6 15%,
+    #9cc7ae 38%,
+    #5d8a77 68%,
+    #2a4838 92%,
+    #0f2015 100%),
+  linear-gradient(135deg,rgba(255,255,255,0.25) 0%,transparent 40%,rgba(255,255,255,0.12) 70%,transparent 100%);
+border:1px solid rgba(20,45,30,0.85);
+box-shadow:
+  0 4px 10px rgba(0,0,0,0.65),
+  inset 0 -3px 5px rgba(0,0,0,0.35),
+  inset 0 2px 4px rgba(255,255,255,0.55),
+  0 0 2px rgba(180,220,195,0.4)}
+.roller-cap.top{top:0;border-radius:6px 6px 2px 2px}
+.roller-cap.bot{bottom:0;border-radius:2px 2px 6px 6px}
+/* 玉端上的细云纹装饰 */
+.roller-cap::after{content:'';position:absolute;left:20%;right:20%;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent);transform:translateY(-2px)}
+.roller-cap::before{content:'';position:absolute;left:30%;right:30%;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);transform:translateY(3px)}
+/* 卷轴纸面: 单一宣纸色, 不再做渐变 */
+#po-box{position:relative;background:rgba(232,208,155,0.96);border:none;padding:30px 60px;flex:1;height:100%;min-width:0;overflow-x:auto;overflow-y:hidden;box-shadow:0 8px 50px rgba(30,15,4,0.7),inset 0 0 60px rgba(180,130,60,0.18);clip-path:inset(0 0 0 0);animation:clipReveal 1.1s cubic-bezier(.22,.08,.28,1) forwards;cursor:grab;scrollbar-width:none;-ms-overflow-style:none}
+#po-box::-webkit-scrollbar{display:none;width:0;height:0}
+#po-box.dragging{cursor:grabbing}
+#po-box.dragging *{cursor:grabbing!important}
+@keyframes clipReveal{
+  0%{clip-path:inset(0 0 0 100%)}
+  100%{clip-path:inset(0 0 0 0)}
+}
+/* 极淡的纸纹, 不影响整体色调 */
+#po-box::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  repeating-linear-gradient(0deg,transparent 0,transparent 80px,rgba(110,70,30,0.015) 80px,rgba(110,70,30,0.015) 81px);
+opacity:0.6}
+/* 标题点击朗读 */
+.pt{cursor:pointer;transition:color .25s,text-shadow .25s,transform .25s}
+.pt:hover{color:#8a1a08;text-shadow:0 0 10px rgba(255,180,100,0.75),0 1px 2px rgba(255,240,200,0.95)}
+.pt.pt-speaking{color:#b42a08;text-shadow:0 0 14px rgba(255,160,60,0.9),0 0 8px rgba(255,200,100,0.75);animation:ptPulse 1.4s ease-in-out infinite}
+@keyframes ptPulse{0%,100%{text-shadow:0 0 10px rgba(255,160,60,0.75),0 0 5px rgba(255,200,100,0.55),0 1px 2px rgba(255,240,200,0.95)}50%{text-shadow:0 0 16px rgba(255,170,60,1),0 0 10px rgba(255,210,120,0.85),0 1px 2px rgba(255,240,200,0.98)}}
+#po-c{display:flex;flex-direction:row-reverse;align-items:stretch;justify-content:flex-start;gap:42px;height:100%;padding:6px 30px 6px 10px;position:relative;z-index:2;width:max-content;min-width:100%}
+.ph{display:flex;flex-direction:column;align-items:center;gap:12px;margin:0;padding:0 14px;border:none;min-width:70px}
+.ps{width:36px;height:36px;border:2px solid #8a2818;color:#8a2818;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 10px rgba(138,40,24,0.35),inset 0 0 10px rgba(255,245,220,0.4);flex-shrink:0;background:rgba(255,245,220,0.35);border-radius:3px;font-family:'Ma Shan Zheng',cursive}
+.pln{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:50px;color:#2a1408;letter-spacing:8px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 14px rgba(255,220,150,0.5);line-height:1;font-weight:700}
+.pms{display:flex;flex-direction:row-reverse;align-items:stretch;gap:38px;flex:0 0 auto;min-height:100%}
+.pe{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:22px;padding:0;min-height:100%;flex:0 0 auto}
+.pm{display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;padding-top:6px}
+.pt{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:36px;color:#2a1408;letter-spacing:6px;line-height:1.1;font-weight:700;text-shadow:0 1px 2px rgba(255,240,200,0.8);max-height:100%}
+.pt.pt-m{font-size:30px;letter-spacing:5px}
+.pt.pt-s{font-size:24px;letter-spacing:4px}
+.pt.pt-xs{font-size:20px;letter-spacing:3px;line-height:1.05}
+.pa{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:15px;color:#5a3a15;letter-spacing:2px;margin-top:6px}
+.pexc{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:12px;color:#8a4818;letter-spacing:2px;margin-top:4px;opacity:.75;font-style:italic}
+/* 卷轴内侧的滚动提示箭头 */
+.po-arr{position:absolute;top:50%;width:28px;height:56px;background:radial-gradient(ellipse at center,rgba(240,220,170,0.55),rgba(200,160,80,0.30));backdrop-filter:blur(4px);border:1px solid rgba(120,70,20,0.35);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .35s,background .25s,transform .25s;transform:translateY(-50%) scale(0.9);z-index:15;border-radius:3px;padding:0;box-shadow:0 2px 10px rgba(40,20,5,0.35)}
+.po-arr svg{width:16px;height:16px;fill:#5a3010;filter:drop-shadow(0 1px 1px rgba(255,240,200,0.7))}
+.po-arr.show{opacity:.65;transform:translateY(-50%) scale(1)}
+.po-arr.show:hover{opacity:1;background:radial-gradient(ellipse at center,rgba(255,235,180,0.75),rgba(220,180,100,0.5));transform:translateY(-50%) scale(1.06)}
+#po-arr-l{left:58px}
+#po-arr-r{right:58px}
+.po-arr-breathe{animation:arrBreathe 2s ease-in-out infinite}
+@keyframes arrBreathe{0%,100%{transform:translateY(-50%) scale(1) translateX(0)}50%{transform:translateY(-50%) scale(1.04) translateX(-3px)}}
+#po-arr-r.po-arr-breathe{animation-name:arrBreatheR}
+@keyframes arrBreatheR{0%,100%{transform:translateY(-50%) scale(1) translateX(0)}50%{transform:translateY(-50%) scale(1.04) translateX(3px)}}
+/* 突出展示: 地点代表作 — 标题下方金色横线 + 朱砂印章着色 */
+.pe.hl .ps{background:linear-gradient(135deg,rgba(255,215,120,0.6),rgba(230,160,60,0.45));border-color:#9a2810;color:#6a1408;box-shadow:0 0 14px rgba(255,180,60,0.55),inset 0 0 8px rgba(255,245,220,0.6)}
+.pe.hl .pt{color:#1a0802;text-shadow:0 0 8px rgba(255,220,140,0.85),0 0 5px rgba(255,235,170,0.6),0 1px 2px rgba(255,240,200,0.95)}
+.pe{position:relative}
+.pl{display:flex;flex-direction:row-reverse;gap:22px;flex-wrap:nowrap;padding-right:6px}
+.pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:30px;color:#2a1408;letter-spacing:7px;line-height:1.5;opacity:0;animation:li .7s ease forwards;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);white-space:nowrap}
+@keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes li{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#ld{position:fixed;inset:0;z-index:1000;background:radial-gradient(ellipse at center,#b89060 0%,#503820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .8s}
+#ld.off{opacity:0;pointer-events:none}
+#ld p{font-family:'Ma Shan Zheng',cursive;color:#2a1408;font-size:22px;letter-spacing:6px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 10px rgba(255,220,150,0.5)}
+#ld .bar{width:220px;height:3px;background:rgba(60,35,10,0.3);border-radius:2px;overflow:hidden}
+#ld .fill{height:100%;background:#5a2e10;border-radius:2px;transition:width .3s}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#4a5553;border-radius:2px}
+@media(max-width:768px){
+#hdr h1{font-size:22px;letter-spacing:4px}
+#hdr p{font-size:9px}
+#hdr-in{padding:6px 18px}
+.loc-n{font-size:14px;letter-spacing:3px}
+.pf-t{font-size:11px}.pf-l{font-size:10px}
+#po-wrap{height:60vh;max-width:94vw}
+#po-box{padding:20px 30px}
+.pln{font-size:32px;letter-spacing:5px}
+.pt{font-size:24px;letter-spacing:4px}
+.pv{font-size:22px;letter-spacing:5px}
+.pms{gap:20px}
+.pe{gap:14px}
+.pl{gap:14px}
+#po-c{gap:18px;padding:6px 20px}
+.roller{width:24px}
+.roller-cap{height:14px}
+}
