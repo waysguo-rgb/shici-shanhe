@@ -1443,13 +1443,22 @@ function mkRiver(coords,width,riverName){
   const curve=new THREE.CatmullRomCurve3(ctrl,false,'catmullrom',0.5);
   const N=Math.max(RIVER_PTS,600);
   let cpts=curve.getPoints(N);
-  // ★ 截断入海段: 从末尾倒查, 找到最后一个仍然在陆地内的点, 之后的点都丢掉 ★
-  // 防止 ribbon 延伸到海里造成"河流冲出海岸"的视觉
-  for(let i=cpts.length-1;i>=0;i--){
-    const[lo,la]=s2ll(cpts[i].x,cpts[i].z);
-    if(inLand(lo,la)){
-      if(i<cpts.length-1)cpts=cpts.slice(0,i+1);
-      break;
+  // ★ 入海口检测: 末端靠近海岸的河流做喇叭形延伸, 其余正常截断 ★
+  const _lc=coords[coords.length-1],isEstuary=dBd(_lc[0],_lc[1])<1.5;
+  const origLen=cpts.length;
+  if(isEstuary){
+    // 延伸方向: 末段平均走向
+    const _lk=Math.min(20,Math.floor(origLen*.03));
+    const _dx=cpts[origLen-1].x-cpts[origLen-1-_lk].x;
+    const _dz=cpts[origLen-1].z-cpts[origLen-1-_lk].z;
+    const _dl=Math.sqrt(_dx*_dx+_dz*_dz)||1;
+    const eLen=Math.max(3,width*14),eN=40;
+    for(let k=1;k<=eN;k++){const t=k/eN;
+      cpts.push(new THREE.Vector3(cpts[origLen-1].x+(_dx/_dl)*eLen*t,-0.04,cpts[origLen-1].z+(_dz/_dl)*eLen*t))}
+  }else{
+    for(let i=cpts.length-1;i>=0;i--){
+      const[lo,la]=s2ll(cpts[i].x,cpts[i].z);
+      if(inLand(lo,la)){if(i<cpts.length-1)cpts=cpts.slice(0,i+1);break}
     }
   }
   // 河宽: 发丝化, 按河流大小缩放, 设最小宽度避免远距离不可见
@@ -1493,6 +1502,8 @@ function mkRiver(coords,width,riverName){
     // 水面抬起 0.12 世界单位 (配合 depthTest:false 可保证不被山埋)
     smH[i]=s/n+0.12;
   }
+  // 入海口: 延伸段平滑过渡到海面高度
+  if(isEstuary){const _lh=smH[Math.min(origLen-1,smH.length-1)];for(let i=origLen;i<cpts.length;i++){const t=(i-origLen)/(cpts.length-1-origLen||1);smH[i]=_lh*(1-t)+(-0.04)*t}}
   // 注: 不再强制单调下降 —— 之前的强制会把山区段的水面压到山体以下
   // 让水面自然跟随地形谷底, 配合 depthTest:false 始终可见
   // 应用高度
@@ -1507,7 +1518,9 @@ function mkRiver(coords,width,riverName){
     if(i<cpts.length-1){tx+=cpts[i+1].x-p.x;tz+=cpts[i+1].z-p.z}
     const len=Math.hypot(tx,tz)||1;tx/=len;tz/=len;
     const nx=-tz,nz=tx;
-    const wScale=rw*(0.88+0.22*Math.sin(i/cpts.length*Math.PI));
+    let wScale=rw*(0.88+0.22*Math.sin(i/cpts.length*Math.PI));
+    // 入海口喇叭形展宽: 后22%段二次曲线加宽, 河越大入海口越宽
+    if(isEstuary){const _t=i/(cpts.length-1),_es=.78*origLen/(cpts.length-1);if(_t>_es){const _e=(_t-_es)/(1-_es);wScale*=1+_e*_e*rw*25}}
     const half=wScale/2;
     verts.push(p.x+nx*half,p.y,p.z+nz*half,
                p.x-nx*half,p.y,p.z-nz*half);
