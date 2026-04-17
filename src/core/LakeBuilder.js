@@ -46,7 +46,9 @@ export function mkLake(lake) {
     opacity: 0.95,
     side: THREE.DoubleSide,
     depthWrite: false,
-    depthTest: false
+    // depthTest ON: lakes must be occluded by mountains in front of them.
+    // (was false, which let us always see lakes even through terrain.)
+    depthTest: true
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = lakeY;
