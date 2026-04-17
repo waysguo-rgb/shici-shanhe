@@ -125,8 +125,10 @@ opacity:0.6}
 .pe.hl .ps{background:linear-gradient(135deg,rgba(255,215,120,0.6),rgba(230,160,60,0.45));border-color:#9a2810;color:#6a1408;box-shadow:0 0 14px rgba(255,180,60,0.55),inset 0 0 8px rgba(255,245,220,0.6)}
 .pe.hl .pt{color:#1a0802;text-shadow:0 0 8px rgba(255,220,140,0.85),0 0 5px rgba(255,235,170,0.6),0 1px 2px rgba(255,240,200,0.95)}
 .pe{position:relative}
-.pl{display:flex;flex-direction:row-reverse;gap:22px;flex-wrap:nowrap;padding-right:6px}
+.pl{display:flex;flex-direction:row-reverse;gap:22px;flex-wrap:nowrap;padding-right:6px;cursor:pointer}
 .pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:30px;color:#2a1408;letter-spacing:7px;line-height:1.5;opacity:0;animation:li .7s ease forwards;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);white-space:nowrap}
+/* Readable mode: click any poem body to switch to Noto Serif SC for clarity */
+#po-c.readable .pv{font-family:'Noto Serif SC','Songti SC',serif;font-size:26px;letter-spacing:4px;font-weight:600}
 @keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes li{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 #ld{position:fixed;inset:0;z-index:1000;background:radial-gradient(ellipse at center,#b89060 0%,#503820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .8s}

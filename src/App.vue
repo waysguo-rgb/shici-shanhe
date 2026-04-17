@@ -151,6 +151,20 @@ function selectLoc(i) {
     })
   })
 
+  // Bind verse-body click → toggle readable font globally (草书 ↔ 楷体)
+  // Guard against drag-scroll: only treat as click if mouse barely moved.
+  poContent.value.querySelectorAll('.pl').forEach(el => {
+    let dx = 0, dy = 0, mdX = 0, mdY = 0
+    el.addEventListener('mousedown', ev => { mdX = ev.clientX; mdY = ev.clientY })
+    el.addEventListener('mouseup', ev => {
+      dx = Math.abs(ev.clientX - mdX); dy = Math.abs(ev.clientY - mdY)
+      if (dx < 6 && dy < 6) {
+        ev.stopPropagation()
+        poContent.value.classList.toggle('readable')
+      }
+    })
+  })
+
   // Reset scroll position
   nextTick(() => {
     const box = poBox.value
