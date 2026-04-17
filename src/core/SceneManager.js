@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass }    from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
+import { SSAOPass }      from 'three/examples/jsm/postprocessing/SSAOPass.js';
 // Real atmospheric sky (Rayleigh/Mie scattering)
 import { Sky }           from 'three/examples/jsm/objects/Sky.js';
 
@@ -30,6 +31,7 @@ import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.j
 import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
 import { cloudGroups, mkCloudCluster, finalizeCloudOpacity } from './CloudBuilder.js';
 import { beamMeshes, mkLightBeam } from './BeamBuilder.js';
+import { makeWaterMaterial, waterMaterials } from './WaterMaterial.js';
 
 // ═══════════════════════════════════════
 // Exported scene objects (Vue components access these)
@@ -39,6 +41,8 @@ export let camera = null;
 export let renderer = null;
 export let controls = null;
 export let composer = null;
+// Sky cube texture — shared by water shader for reflections.
+export let skyCube = null;
 
 // ═══════════════════════════════════════
 // Label / beam / camera state
@@ -184,6 +188,12 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   composer.setPixelRatio(renderer.getPixelRatio());
   composer.setSize(W, H);
   composer.addPass(new RenderPass(scene, camera));
+
+  // NOTE: SSAOPass disabled — this scene has many transparent meshes (terrain
+  // alpha-fade at edges, clouds, labels) and SSAO's depth pass can't distinguish
+  // them, producing a hazy wash over large areas. We rely on ShadowMaterial +
+  // polygonOffset overlay (set up below) to give crevice/valley darkening.
+
   // strength / radius / threshold. Higher threshold = only very bright things bloom
   // (light beams, water sparkle) — sky and terrain stay sharp.
   const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.18, 0.60, 0.96);
@@ -249,6 +259,7 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   const cubeCam = new THREE.CubeCamera(0.1, 1000, cubeRT);
   cubeCam.update(renderer, skyScene);
   scene.background = cubeRT.texture;
+  skyCube = cubeRT.texture;
 
   // ═══ DEM ═══
   let hd = null;
@@ -335,6 +346,20 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // ═══ Lakes ═══
   LAKES.forEach(l => scene.add(mkLake(l)));
   buildLakeLabels();
+
+  // ═══ Water shader overlay (lakes) ═══
+  // Shares geometry with each painted lake mesh, sits a hair above so that
+  // fresnel sparkle + sky reflection adds on top additively. No darkening.
+  lakeMeshes.forEach(lakeMesh => {
+    const waterMat = makeWaterMaterial(skyCube, { tint: new THREE.Color(0xaac7e6), intensity: 0.85 });
+    const overlay = new THREE.Mesh(lakeMesh.geometry, waterMat);
+    overlay.position.copy(lakeMesh.position);
+    overlay.position.y += 0.008;
+    overlay.rotation.copy(lakeMesh.rotation);
+    overlay.renderOrder = 11;
+    waterMaterials.push(waterMat);
+    scene.add(overlay);
+  });
   if (prog) prog.style.width = '85%';
 
   // ═══ Strait wave patches ═══
@@ -541,6 +566,15 @@ function animate() {
   });
 
   updateLabels();
+
+  // Water shader: tick time, push current camera for fresnel math
+  if (waterMaterials.length) {
+    for (let i = 0; i < waterMaterials.length; i++) {
+      const u = waterMaterials[i].uniforms;
+      u.uTime.value = t;
+      u.uCamPos.value.copy(camera.position);
+    }
+  }
 
   // LOD update
   if (terrainLOD) terrainLOD.update(camera);
