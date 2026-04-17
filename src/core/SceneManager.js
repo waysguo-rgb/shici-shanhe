@@ -194,9 +194,13 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // them, producing a hazy wash over large areas. We rely on ShadowMaterial +
   // polygonOffset overlay (set up below) to give crevice/valley darkening.
 
-  // strength / radius / threshold. Higher threshold = only very bright things bloom
-  // (light beams, water sparkle) — sky and terrain stay sharp.
-  const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.18, 0.60, 0.96);
+  // strength / radius / threshold. With sRGB tone mapping off, terrain whites
+  // (snowy peaks ~[0.88,0.90,0.85]) already sit near 1.0. A low threshold made
+  // Bloom smear those peaks into huge white clouds that ate the surrounding
+  // terrain color. Threshold 1.5 means only emissive-style pixels bloom —
+  // light beams, water sparkle (driven by additive sparkle in water shader),
+  // and specular highlights. Snow/cloud no longer glow.
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.55, 0.55, 1.5);
   // strength, radius, threshold — only pixels above threshold bloom; sky stays clean
   composer.addPass(bloomPass);
   if (!MOB) {
@@ -302,7 +306,7 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // polygonOffset prevents z-fighting with the terrain underneath.
   const shadowOverlay = new THREE.Mesh(
     terrainHi.geometry,
-    new THREE.ShadowMaterial({ color: 0x0a1a2c, opacity: 0.55, transparent: true })
+    new THREE.ShadowMaterial({ color: 0x0a1a2c, opacity: 0.38, transparent: true })
   );
   shadowOverlay.material.polygonOffset = true;
   shadowOverlay.material.polygonOffsetFactor = -1;
