@@ -186,98 +186,26 @@ export function mkLakeTex() {
 
 // ═══════════════════════════════════════
 // Decorative wave sprite texture (mkDecorativeWaveTex)
-// 简化中国画浪花: 圆润单峰, 淡蓝渐变, 一道白泡沫边, 三两水珠.
-// 不求复杂造型 (小 sprite 尺度下细节反而看成杂乱三角), 求大气圆融.
+// 国潮云纹海浪 PNG (来自爱给网, 免费素材).
+// 比程序绘制的圆润单峰更有传统装饰韵味, 适合古画卷整体风格.
+// 透明背景 PNG, sprite 直接以 SpriteMaterial.color 着色.
 // ═══════════════════════════════════════
 export function mkDecorativeWaveTex() {
-  const W = 512, H = 256;
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const cx = c.getContext('2d');
-  cx.clearRect(0, 0, W, H);
-
-  // 淡雅青蓝调, 对比不过强
-  const BODY_DARK  = '#3a6a96';
-  const BODY_MID   = '#6fa0c2';
-  const BODY_LIGHT = '#b3d0dd';
-  const FOAM       = '#fbf4e0';   // 暖色泡沫 (配绢纸底)
-  const OUTLINE    = 'rgba(20, 55, 95, 0.55)';  // 柔和描边, 非硬黑
-
-  const baseY = H * 0.94;
-  const peakX = W * 0.50;
-  const peakY = H * 0.20;
-
-  // ── 主波体: 单峰圆润 bezier, 峰居中 ──
-  const body = new Path2D();
-  body.moveTo(0, baseY);
-  body.bezierCurveTo(W * 0.12, baseY, W * 0.30, H * 0.50, peakX, peakY);
-  body.bezierCurveTo(W * 0.70, H * 0.50, W * 0.88, baseY, W, baseY);
-  body.lineTo(W, H);
-  body.lineTo(0, H);
-  body.closePath();
-
-  const bodyGrad = cx.createLinearGradient(0, peakY, 0, baseY);
-  bodyGrad.addColorStop(0.00, BODY_LIGHT);
-  bodyGrad.addColorStop(0.35, BODY_MID);
-  bodyGrad.addColorStop(1.00, BODY_DARK);
-  cx.fillStyle = bodyGrad;
-  cx.fill(body);
-
-  // ── 内部鱼鳞状浪纹 (浅色细线, 被 clip 在波体内) ──
-  cx.save();
-  cx.clip(body);
-  cx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
-  cx.lineWidth = 1.3;
-  cx.lineCap = 'round';
-  for (let layer = 1; layer <= 3; layer++) {
-    const off = layer * 16;
-    cx.beginPath();
-    cx.moveTo(W * 0.08, baseY - off * 0.3);
-    cx.bezierCurveTo(W * 0.28, H * 0.58 + off * 0.3, W * 0.42, peakY + 10 + off, peakX, peakY + 6 + off);
-    cx.bezierCurveTo(W * 0.58, peakY + 10 + off, W * 0.72, H * 0.58 + off * 0.3, W * 0.92, baseY - off * 0.3);
-    cx.stroke();
-  }
-  cx.restore();
-
-  // ── 波顶泡沫卷边: 一整条沿峰顶曲线的白色 stroke (不是多个爪) ──
-  const rim = new Path2D();
-  rim.moveTo(W * 0.22, H * 0.48);
-  rim.bezierCurveTo(W * 0.32, H * 0.28, W * 0.42, peakY + 4, peakX, peakY);
-  rim.bezierCurveTo(W * 0.58, peakY + 4, W * 0.68, H * 0.28, W * 0.78, H * 0.48);
-  cx.strokeStyle = FOAM;
-  cx.lineWidth = 10;
-  cx.lineCap = 'round';
-  cx.lineJoin = 'round';
-  cx.stroke(rim);
-
-  // 在泡沫边上再叠一层更细更亮的白线, 增加"丝绸"质感
-  cx.strokeStyle = 'rgba(255, 252, 235, 0.85)';
-  cx.lineWidth = 3;
-  cx.stroke(rim);
-
-  // ── 柔和轮廓描边 (代替硬黑, 融入底色) ──
-  cx.strokeStyle = OUTLINE;
-  cx.lineWidth = 1.8;
-  cx.lineCap = 'round';
-  cx.lineJoin = 'round';
-  cx.stroke(body);
-
-  // ── 三两飞溅小水珠, 峰顶正上方 ──
-  cx.fillStyle = FOAM;
-  for (let i = 0; i < 4; i++) {
-    const dx = peakX + (Math.random() - 0.5) * W * 0.3;
-    const dy = peakY - 10 - Math.random() * 30;
-    const r = 2.5 + Math.random() * 2.5;
-    cx.beginPath();
-    cx.arc(dx, dy, r, 0, Math.PI * 2);
-    cx.fill();
-  }
-
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = THREE.ClampToEdgeWrapping;
-  t.wrapT = THREE.ClampToEdgeWrapping;
-  t.minFilter = THREE.LinearFilter;
-  t.magFilter = THREE.LinearFilter;
-  return t;
+  const loader = new THREE.TextureLoader();
+  const tex = loader.load('/assets/textures/wave.png', (t) => {
+    // 加载完成后, 让 sprite material 重新评估
+    t.needsUpdate = true;
+  });
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
+  // 颜色空间: PNG 已是 sRGB, three r128 默认 LinearEncoding 会偏暗 →  设为 sRGBEncoding
+  tex.encoding = THREE.sRGBEncoding;
+  // 略微增加各向异性, 避免远距离 sprite 出现锯齿
+  tex.anisotropy = 4;
+  return tex;
 }
 
 // Shared wave texture instance (created once, reused by WaveBuilder)

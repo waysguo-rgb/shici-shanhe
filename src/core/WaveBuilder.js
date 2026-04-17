@@ -10,6 +10,21 @@ export const waveMeshes = [];
 export const coastWaveData = [];
 
 // ═══════════════════════════════════════
+// Per-sprite color variation (淡蓝 → 青 → 浅灰蓝, 个别偏暖白)
+// 给每个浪沫 sprite 一点点不同的颜色, 避免完全一致显得呆板
+// ═══════════════════════════════════════
+const _waveTints = [
+  new THREE.Color('#dfeff5'),  // 浅蓝白 (主调)
+  new THREE.Color('#cfe4ee'),  // 偏冷
+  new THREE.Color('#e6eef0'),  // 偏暖白
+  new THREE.Color('#bfdce7'),  // 中蓝
+  new THREE.Color('#d8e8ec'),  // 灰青
+];
+function _pickTint() {
+  return _waveTints[Math.floor(Math.random() * _waveTints.length)];
+}
+
+// ═══════════════════════════════════════
 // Wave patch (strait / sea area sprites)
 // ═══════════════════════════════════════
 export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
@@ -36,20 +51,24 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
           map: _sharedWaveTex,
           transparent: true,
           opacity: L.op,
-          depthWrite: false
+          depthWrite: false,
+          color: _pickTint().clone()
         });
         const sp = new THREE.Sprite(mat);
         const jitter = 0.88 + Math.random() * 0.24;
         const sw = baseW * L.scale * jitter;
         const sh = baseH * L.scale * jitter;
-        sp.scale.set(sw, sh, 1);
+        // 一半 sprite 镜像翻转 — 把符号烘进 baseW, 这样 animation 重写 scale 时也能保留
+        const flip = Math.random() < 0.5 ? -1 : 1;
+        const sw_signed = sw * flip;
+        sp.scale.set(sw_signed, sh, 1);
         sp.position.set(px, L.dy + sh * 0.5, pz + L.zOff);
         sp.renderOrder = 5 + L.depth;
         sp.userData = {
           baseX: px,
           baseY: sp.position.y,
           baseZ: sp.position.z,
-          baseW: sw,
+          baseW: sw_signed,
           baseH: sh,
           baseOp: L.op,
           phase: Math.random() * Math.PI * 2 + co * 0.4 + r * 0.3,
@@ -111,13 +130,21 @@ export function buildCoastWaves() {
         const bW = c[1] * (.85 + Math.random() * .3);
         const bH = bW * c[2];
         const bOp = c[3];
-        const mat = new THREE.SpriteMaterial({ map: _sharedWaveTex, transparent: true, opacity: bOp, depthWrite: false });
+        const mat = new THREE.SpriteMaterial({
+          map: _sharedWaveTex,
+          transparent: true,
+          opacity: bOp,
+          depthWrite: false,
+          color: _pickTint().clone()
+        });
         const sp = new THREE.Sprite(mat);
-        sp.scale.set(bW, bH, 1);
+        // 一半 sprite 镜像翻转, 朝向多样化
+        const flip = Math.random() < 0.5 ? -1 : 1;
+        sp.scale.set(bW * flip, bH, 1);
         sp.position.set(wx, .06 + L * .02, wz);
         sp.renderOrder = 7 - L;
         coastWaveData.push({
-          sp, nx, nz, bx: wx, bz: wz, by: .06 + L * .02, bW, bH, bOp,
+          sp, nx, nz, bx: wx, bz: wz, by: .06 + L * .02, bW: bW * flip, bH, bOp,
           ph: Math.random() * 6.28 + i * .3 + s * .5,
           spd: .45 + Math.random() * .4,
           surge: c[4], bob: c[5] + Math.random() * .03

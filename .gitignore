@@ -14,6 +14,9 @@ public/assets/audio/
 *.jpg
 *.jpeg
 *.png
+# 但是 textures/ 下的纹理图是项目资源, 必须入库
+!public/assets/textures/*.png
+!public/assets/textures/*.jpg
 
 # Python 缓存
 __pycache__/
