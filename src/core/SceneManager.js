@@ -30,7 +30,7 @@ import { cacheGet, cachePut, cacheKeyFor } from './TerrainCache.js';
 import { riverMeshes, mkRiver, buildRiverLabels, riverLabels } from './RiverBuilder.js';
 import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.js';
 import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
-import { cloudGroups, mkCloudCluster, finalizeCloudOpacity } from './CloudBuilder.js';
+import { cloudGroups, mkCloudCluster, mkMistBand, finalizeCloudOpacity } from './CloudBuilder.js';
 import { beamMeshes, mkLightBeam } from './BeamBuilder.js';
 import { makeWaterMaterial, waterMaterials } from './WaterMaterial.js';
 
@@ -450,6 +450,27 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     const y = Math.max(5, scaleH(isFinite(hm) ? hm : 500)) + 4 + Math.random() * 5;
     mkCloudCluster(x, y, z, 9 + Math.random() * 15, 6 + Math.random() * 10, scene);
   }
+
+  // ═══ Drifting mist bands — 云山雾罩, the poetic motif ═══
+  // Placed over historically mist-famous regions: Sichuan basin, Wuling,
+  // Huangshan/Jiangnan, Yunnan/Guizhou karsts, Wuyi. Mist sits just above
+  // valley floor so it reads as "hugging the slopes."
+  const MIST_SITES = [
+    { lo: 104, la: 30.5, w: 18, h: 5 }, // 四川盆地
+    { lo: 110, la: 28.2, w: 14, h: 4 }, // 武陵 / 张家界
+    { lo: 117, la: 29.0, w: 13, h: 4 }, // 江南 / 黄山
+    { lo: 102, la: 25.5, w: 15, h: 4 }, // 云南
+    { lo: 108, la: 26.5, w: 13, h: 4 }, // 贵州喀斯特
+    { lo: 119, la: 26.8, w: 12, h: 4 }, // 武夷 / 闽北
+    { lo: 113, la: 23.5, w: 12, h: 3.5 } // 岭南
+  ];
+  MIST_SITES.forEach(({ lo, la, w: mw, h: mh }) => {
+    const [x, z] = ll2s(lo, la);
+    const hm = getH(lo, la);
+    // Mist hangs just above valley/hill terrain, 1.5-2.8 units above surface
+    const y = Math.max(0.5, scaleH(isFinite(hm) ? hm : 200)) + 1.8 + Math.random() * 1.0;
+    mkMistBand(x, y, z, mw, mh, scene);
+  });
   if (prog) prog.style.width = '100%';
 
   // ═══ Start render loop ═══

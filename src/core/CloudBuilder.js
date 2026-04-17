@@ -57,6 +57,47 @@ export function mkCloudCluster(x, y, z, baseW, baseH, scene) {
   return group;
 }
 
+// ═══════════════════════════════════════
+// Drifting mist band — low, wide, warm-tinted translucent layer that clings
+// to valleys. Classic Chinese landscape painting motif: 云山雾罩.
+// Shares cloudGroups so the existing animate() drift/breath logic ticks it too.
+// ═══════════════════════════════════════
+export function mkMistBand(x, y, z, baseW, baseH, scene) {
+  const group = new THREE.Group();
+  const sliceCount = 2 + Math.floor(Math.random() * 2); // 2-3 wide slices per band
+  for (let j = 0; j < sliceCount; j++) {
+    const tex = mkCloudTex(0.15 + Math.random() * 0.3);
+    const tint = new THREE.Color().setHSL(
+      0.10 + Math.random() * 0.03,   // warm amber-ivory hue
+      0.15 + Math.random() * 0.08,   // low sat
+      0.88 + Math.random() * 0.06    // near-white
+    );
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex, color: tint, transparent: true, opacity: 0.22 + Math.random() * 0.12,
+      depthWrite: false, fog: true
+    }));
+    // Wide & flat — mist bands lie along valleys
+    sprite.scale.set(baseW * (0.75 + Math.random() * 0.4), baseH * (0.35 + Math.random() * 0.2), 1);
+    sprite.position.set(
+      (j - (sliceCount - 1) / 2) * baseW * 0.55 + (Math.random() - 0.5) * 2,
+      (Math.random() - 0.5) * baseH * 0.3,
+      (Math.random() - 0.5) * baseH * 0.4
+    );
+    group.add(sprite);
+  }
+  group.position.set(x, y, z);
+  group.userData = {
+    baseY: y,
+    // Slower than clouds, mostly westerly drift
+    driftX: 0.04 + Math.random() * 0.04,
+    driftZ: (Math.random() - 0.5) * 0.02,
+    phase: Math.random() * 6.28
+  };
+  scene.add(group);
+  cloudGroups.push(group);
+  return group;
+}
+
 // Store each cloud layer sprite's base opacity (called after init)
 export function finalizeCloudOpacity() {
   cloudGroups.forEach(cg => {
