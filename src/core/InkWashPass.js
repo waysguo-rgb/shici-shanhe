@@ -20,10 +20,11 @@ const InkWashShader = {
     uWarmth:        { value: 0.10  },
     uDesat:         { value: 0.10  },
     uVignette:      { value: 0.28  },
-    // Sobel ink stroke: edge detect on luminance; darken pixels whose gradient
-    // magnitude exceeds uEdgeThreshold, mimicking a brush outlining ridges.
-    uEdgeStrength:  { value: 0.55 },
-    uEdgeThreshold: { value: 0.09 }
+    // Sobel ink stroke — only the strongest edges get a whisper of ink.
+    // Raised threshold from 0.09 → 0.22 (most mid-contrast noise skipped) and
+    // dropped strength from 0.55 → 0.22 so the line is suggested, not drawn.
+    uEdgeStrength:  { value: 0.22 },
+    uEdgeThreshold: { value: 0.22 }
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -76,10 +77,12 @@ const InkWashShader = {
       float gx = (l20 + 2.0*l21 + l22) - (l00 + 2.0*l01 + l02);
       float gy = (l02 + 2.0*l12 + l22) - (l00 + 2.0*l10 + l20);
       float edge = sqrt(gx*gx + gy*gy);
-      float ink  = smoothstep(uEdgeThreshold, uEdgeThreshold + 0.22, edge) * uEdgeStrength;
-      // Multiply darken — ink color pulled toward a warm sumi tone, not pure black
-      col.rgb *= (1.0 - ink * 0.85);
-      col.rgb = mix(col.rgb, vec3(0.08, 0.05, 0.03), ink * 0.20);
+      // Wider ramp (0.22 → 0.22+0.30) so the ink fades in gently — no hard edge.
+      float ink  = smoothstep(uEdgeThreshold, uEdgeThreshold + 0.30, edge) * uEdgeStrength;
+      // Gentle multiply darken (was 0.85 → 0.55) + warmer ink (was cold sumi
+      // 0.08/0.05/0.03 → warm tea 0.22/0.16/0.10) to avoid the "dirty" look.
+      col.rgb *= (1.0 - ink * 0.55);
+      col.rgb = mix(col.rgb, vec3(0.22, 0.16, 0.10), ink * 0.12);
 
       // 1. Xuan paper fiber (coarse undulation + fine speckle)
       vec2 p   = vUv * uRes;
