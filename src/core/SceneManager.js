@@ -330,6 +330,16 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     terrainHi.geometry,
     new THREE.ShadowMaterial({ color: 0x0a1a2c, opacity: 0.38, transparent: true })
   );
+  // CRITICAL: depthWrite=false.
+  // ShadowMaterial defaults to depthWrite=true. Our overlay uses HD terrain
+  // geometry, but LOD often swaps to LO at camera distance > LOD_SWITCH_DIST.
+  // HD and LO have different vertex Y values in mountainous regions (Tibet,
+  // southern uplands). If the overlay writes depth at HD Y (with polygonOffset
+  // pulling it forward), the LO terrain behind fails depth test and disappears,
+  // showing only scene.background through its missing color — huge swaths of
+  // western / southern terrain vanish. With depthWrite=false, overlay blends
+  // additively on top without masking the actual terrain depth.
+  shadowOverlay.material.depthWrite = false;
   shadowOverlay.material.polygonOffset = true;
   shadowOverlay.material.polygonOffsetFactor = -1;
   shadowOverlay.material.polygonOffsetUnits  = -1;
