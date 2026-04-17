@@ -20,11 +20,11 @@ const InkWashShader = {
     uWarmth:        { value: 0.10  },
     uDesat:         { value: 0.10  },
     uVignette:      { value: 0.28  },
-    // Sobel ink stroke — only the strongest edges get a whisper of ink.
-    // Raised threshold from 0.09 → 0.22 (most mid-contrast noise skipped) and
-    // dropped strength from 0.55 → 0.22 so the line is suggested, not drawn.
-    uEdgeStrength:  { value: 0.22 },
-    uEdgeThreshold: { value: 0.22 }
+    // Sobel ink stroke — threshold stays high (only real edges get ink, no
+    // noise), but strength is the middle-ground 0.40: visible brushwork on
+    // rivers/coastlines/ridges without descending into "dirty" density.
+    uEdgeStrength:  { value: 0.40 },
+    uEdgeThreshold: { value: 0.20 }
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -77,12 +77,13 @@ const InkWashShader = {
       float gx = (l20 + 2.0*l21 + l22) - (l00 + 2.0*l01 + l02);
       float gy = (l02 + 2.0*l12 + l22) - (l00 + 2.0*l10 + l20);
       float edge = sqrt(gx*gx + gy*gy);
-      // Wider ramp (0.22 → 0.22+0.30) so the ink fades in gently — no hard edge.
-      float ink  = smoothstep(uEdgeThreshold, uEdgeThreshold + 0.30, edge) * uEdgeStrength;
-      // Gentle multiply darken (was 0.85 → 0.55) + warmer ink (was cold sumi
-      // 0.08/0.05/0.03 → warm tea 0.22/0.16/0.10) to avoid the "dirty" look.
-      col.rgb *= (1.0 - ink * 0.55);
-      col.rgb = mix(col.rgb, vec3(0.22, 0.16, 0.10), ink * 0.12);
+      // Ramp of 0.25 — soft enough to avoid hard edges, narrow enough so
+      // inking reaches full effect on genuine ridges/rivers.
+      float ink  = smoothstep(uEdgeThreshold, uEdgeThreshold + 0.25, edge) * uEdgeStrength;
+      // Multiply darken 0.70 (darker than last round's 0.55 but still below
+      // original 0.85). Warm tea ink at 0.15 mix.
+      col.rgb *= (1.0 - ink * 0.70);
+      col.rgb = mix(col.rgb, vec3(0.20, 0.14, 0.09), ink * 0.15);
 
       // 1. Xuan paper fiber (coarse undulation + fine speckle)
       vec2 p   = vUv * uRes;
