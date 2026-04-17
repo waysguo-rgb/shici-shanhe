@@ -223,8 +223,9 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // lights exist mainly so dl can CAST real shadows (ShadowMaterial catcher below).
   scene.add(new THREE.AmbientLight(0xfff0c8, 0.78));
   const dl = new THREE.DirectionalLight(0xffeac0, 0.88);
-  // Low sun angle matches the Sky sunPosition so cast shadows point east-south.
-  dl.position.set(-60, 44, 50);
+  // Sun high in the sky (matches Sky sunPosition below).
+  // Moderate angle gives visible shadows without grazing pure-horizon blowout.
+  dl.position.set(-45, 72, 35);
   dl.castShadow = true;
   dl.shadow.mapSize.set(MOB ? 1024 : 2048, MOB ? 1024 : 2048);
   // Orthographic shadow camera — covers the whole terrain plane (PW=130, PH=90)
@@ -248,20 +249,37 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // Render atmospheric scattering into a cube texture and use it as the scene
   // background. This avoids a giant translucent dome clipping terrain edges,
   // while still giving real Rayleigh/Mie gradients at infinity.
+  // Build a sky cube, but ALSO keep a solid fallback color so if the cube
+  // somehow renders blown-out (older GPU, extreme sun params), we never see
+  // full white. scene.background texture wins over color when both set, so
+  // the fallback only matters if we intentionally clear .background.
   const skyScene = new THREE.Scene();
   const sky = new Sky();
   sky.scale.setScalar(450);
   skyScene.add(sky);
   const skyU = sky.material.uniforms;
-  skyU.turbidity.value       = 3.2;
-  skyU.rayleigh.value        = 1.4;
-  skyU.mieCoefficient.value  = 0.004;
-  skyU.mieDirectionalG.value = 0.72;
-  const sunDir = new THREE.Vector3(-30, 22, 25).normalize();
+  // Tamer sky so zenith never saturates to pure white under any camera angle:
+  //  - higher turbidity = hazier/yellower overall (less blue-white zenith)
+  //  - lower rayleigh   = less short-wavelength scattering (zenith darker)
+  skyU.turbidity.value       = 6.0;
+  skyU.rayleigh.value        = 0.55;
+  skyU.mieCoefficient.value  = 0.006;
+  skyU.mieDirectionalG.value = 0.78;
+  // Keep sun well above horizon so the sky doesn't blow out toward horizon.
+  const sunDir = new THREE.Vector3(-0.45, 0.72, 0.35).normalize();
   skyU.sunPosition.value.copy(sunDir);
   const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
   const cubeCam = new THREE.CubeCamera(0.1, 1000, cubeRT);
+  // Sky shader outputs HDR values well above 1.0. Render the cube with ACES
+  // tone mapping so the cube texture is in displayable range (0..1). Without
+  // this the zenith saturates to pure white in the scene.background sampler.
+  const prevTM = renderer.toneMapping;
+  const prevExp = renderer.toneMappingExposure;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.45;
   cubeCam.update(renderer, skyScene);
+  renderer.toneMapping = prevTM;
+  renderer.toneMappingExposure = prevExp;
   scene.background = cubeRT.texture;
   skyCube = cubeRT.texture;
 
