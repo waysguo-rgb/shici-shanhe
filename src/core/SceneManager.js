@@ -280,7 +280,11 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   cubeCam.update(renderer, skyScene);
   renderer.toneMapping = prevTM;
   renderer.toneMappingExposure = prevExp;
-  scene.background = cubeRT.texture;
+  // Scene background = warm scroll-paper color (ancient Chinese painting feel),
+  // NOT the Sky cube — we want an even sepia wash behind the terrain, not a
+  // gradient atmosphere. The sky cube is kept alive below purely so the water
+  // shader still has something pleasant to reflect.
+  scene.background = new THREE.Color(0xa8824f);
   skyCube = cubeRT.texture;
 
   // ═══ DEM ═══
