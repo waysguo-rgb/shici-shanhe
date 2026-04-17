@@ -28,13 +28,15 @@ export const CLOUD_N = MOB ? 2 : 3;
 // 河流插值点数
 export const RIVER_PTS = MOB ? 160 : 380;
 
-// DEM 瓦片参数
-export const Z = 5;
+// DEM 瓦片参数 (Terrarium tiles)
+// Z=6: 真实高程分辨率 3072×3072px (vs Z=5 的 1536²), 瓦片数 12×12=144
+// 覆盖经度 67.5°–135°, 纬度 0°–55.75° (与原 Z=5 一致)
+export const Z = 6;
 export const TS = 256;
-export const TX0 = 22;
-export const TX1 = 27;
-export const TY0 = 10;
-export const TY1 = 15;
+export const TX0 = 44;
+export const TX1 = 55;
+export const TY0 = 20;
+export const TY1 = 31;
 export const TC = TX1 - TX0 + 1;
 export const TR_ = TY1 - TY0 + 1;
 export const MW = TC * TS;

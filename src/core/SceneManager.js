@@ -184,7 +184,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // ═══ DEM ═══
   let hd = null;
   try {
-    hd = await Promise.race([loadDEM(prog), new Promise(r => setTimeout(() => r(null), 12000))]);
+    // Z=6 下载 144 张瓦片, 放宽到 20s 超时给慢网络留余地 (超时则回退到过程化地形)
+    hd = await Promise.race([loadDEM(prog), new Promise(r => setTimeout(() => r(null), 20000))]);
   } catch (e) { hd = null; }
   setHD(hd);
 
