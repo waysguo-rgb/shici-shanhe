@@ -185,9 +185,9 @@ export function mkLakeTex() {
 }
 
 // ═══════════════════════════════════════
-// Decorative wave sprite texture (mkDecorativeWaveTex) — 浮世绘 Great Wave
-// 北斋神奈川冲浪里 启发: 深蓝 + 浅青绿的波身, 奶油白泡沫爪状曲线,
-// 深墨描边, 非对称峰型.
+// Decorative wave sprite texture (mkDecorativeWaveTex)
+// 简化中国画浪花: 圆润单峰, 淡蓝渐变, 一道白泡沫边, 三两水珠.
+// 不求复杂造型 (小 sprite 尺度下细节反而看成杂乱三角), 求大气圆融.
 // ═══════════════════════════════════════
 export function mkDecorativeWaveTex() {
   const W = 512, H = 256;
@@ -195,112 +195,81 @@ export function mkDecorativeWaveTex() {
   const cx = c.getContext('2d');
   cx.clearRect(0, 0, W, H);
 
-  // Hokusai palette
-  const NAVY_DEEP = '#0b2553';
-  const NAVY_MID  = '#1e4f91';
-  const TEAL_HI   = '#6ea6c4';
-  const TEAL_LIGHT= '#b1d1dd';
-  const FOAM      = '#f4ead0';    // 奶油色而非纯白, 匹配绢纸主色调
-  const INK       = '#0a1a33';
+  // 淡雅青蓝调, 对比不过强
+  const BODY_DARK  = '#3a6a96';
+  const BODY_MID   = '#6fa0c2';
+  const BODY_LIGHT = '#b3d0dd';
+  const FOAM       = '#fbf4e0';   // 暖色泡沫 (配绢纸底)
+  const OUTLINE    = 'rgba(20, 55, 95, 0.55)';  // 柔和描边, 非硬黑
 
   const baseY = H * 0.94;
-  const crestTop = H * 0.10;      // peak at very top
-  const peakX = W * 0.40;
+  const peakX = W * 0.50;
+  const peakY = H * 0.20;
 
-  // ── Step 1: 主波体 (dark-to-light 垂直渐变) ──
-  const bodyPath = new Path2D();
-  bodyPath.moveTo(0, baseY);
-  // 左坡缓慢抬升
-  bodyPath.bezierCurveTo(W*0.08, baseY, W*0.20, H*0.55, W*0.32, H*0.30);
-  // 上升到峰顶
-  bodyPath.bezierCurveTo(W*0.36, H*0.15, peakX-10, crestTop+6, peakX, crestTop);
-  // 顶部向右卷 (浮世绘的招牌 curl)
-  bodyPath.bezierCurveTo(peakX+W*0.08, crestTop-6, peakX+W*0.18, H*0.18, peakX+W*0.22, H*0.28);
-  // 卷回钩状
-  bodyPath.bezierCurveTo(peakX+W*0.20, H*0.36, peakX+W*0.12, H*0.36, peakX+W*0.06, H*0.32);
-  // 回到波体内部再转向右侧下落
-  bodyPath.bezierCurveTo(peakX+W*0.10, H*0.40, peakX+W*0.18, H*0.48, W*0.70, H*0.55);
-  bodyPath.bezierCurveTo(W*0.82, H*0.68, W*0.92, baseY-10, W, baseY);
-  bodyPath.lineTo(W, H);
-  bodyPath.lineTo(0, H);
-  bodyPath.closePath();
+  // ── 主波体: 单峰圆润 bezier, 峰居中 ──
+  const body = new Path2D();
+  body.moveTo(0, baseY);
+  body.bezierCurveTo(W * 0.12, baseY, W * 0.30, H * 0.50, peakX, peakY);
+  body.bezierCurveTo(W * 0.70, H * 0.50, W * 0.88, baseY, W, baseY);
+  body.lineTo(W, H);
+  body.lineTo(0, H);
+  body.closePath();
 
-  const bodyGrad = cx.createLinearGradient(0, crestTop, 0, baseY);
-  bodyGrad.addColorStop(0.00, TEAL_LIGHT);
-  bodyGrad.addColorStop(0.18, TEAL_HI);
-  bodyGrad.addColorStop(0.45, NAVY_MID);
-  bodyGrad.addColorStop(1.00, NAVY_DEEP);
+  const bodyGrad = cx.createLinearGradient(0, peakY, 0, baseY);
+  bodyGrad.addColorStop(0.00, BODY_LIGHT);
+  bodyGrad.addColorStop(0.35, BODY_MID);
+  bodyGrad.addColorStop(1.00, BODY_DARK);
   cx.fillStyle = bodyGrad;
-  cx.fill(bodyPath);
+  cx.fill(body);
 
-  // ── Step 2: 内部平行浪纹线 (ukiyo-e 水纹特征) ──
+  // ── 内部鱼鳞状浪纹 (浅色细线, 被 clip 在波体内) ──
   cx.save();
-  cx.clip(bodyPath);
-  cx.strokeStyle = 'rgba(12, 40, 85, 0.55)';
-  cx.lineWidth = 1.4;
+  cx.clip(body);
+  cx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  cx.lineWidth = 1.3;
   cx.lineCap = 'round';
-  for (let layer = 1; layer <= 6; layer++) {
-    const off = layer * 14;
+  for (let layer = 1; layer <= 3; layer++) {
+    const off = layer * 16;
     cx.beginPath();
-    cx.moveTo(0, baseY - off * 0.3);
-    cx.bezierCurveTo(W*0.12, baseY - crestTop*0.5 - off*0.6, W*0.22, H*0.45 + off*0.3, W*0.30 + off*0.2, H*0.38 + off*0.4);
-    cx.bezierCurveTo(W*0.35 + off*0.15, H*0.28 + off*0.5, peakX - off*0.1, crestTop + 5 + off, peakX + off*0.1, crestTop + 10 + off);
+    cx.moveTo(W * 0.08, baseY - off * 0.3);
+    cx.bezierCurveTo(W * 0.28, H * 0.58 + off * 0.3, W * 0.42, peakY + 10 + off, peakX, peakY + 6 + off);
+    cx.bezierCurveTo(W * 0.58, peakY + 10 + off, W * 0.72, H * 0.58 + off * 0.3, W * 0.92, baseY - off * 0.3);
     cx.stroke();
   }
   cx.restore();
 
-  // ── Step 3: 深墨色描边 (画面骨架) ──
-  cx.strokeStyle = INK;
-  cx.lineWidth = 2.4;
+  // ── 波顶泡沫卷边: 一整条沿峰顶曲线的白色 stroke (不是多个爪) ──
+  const rim = new Path2D();
+  rim.moveTo(W * 0.22, H * 0.48);
+  rim.bezierCurveTo(W * 0.32, H * 0.28, W * 0.42, peakY + 4, peakX, peakY);
+  rim.bezierCurveTo(W * 0.58, peakY + 4, W * 0.68, H * 0.28, W * 0.78, H * 0.48);
+  cx.strokeStyle = FOAM;
+  cx.lineWidth = 10;
   cx.lineCap = 'round';
   cx.lineJoin = 'round';
-  cx.stroke(bodyPath);
+  cx.stroke(rim);
 
-  // ── Step 4: 波顶泡沫爪 (浮世绘招牌 finger-claws) ──
-  function foamClaw(x, y, size, angle, curl) {
-    cx.save();
-    cx.translate(x, y);
-    cx.rotate(angle);
-    // drop shape with finger-like tip
-    cx.beginPath();
-    cx.moveTo(0, 0);
-    cx.bezierCurveTo(size*0.55, -size*0.35, size*1.20, -size*0.40*curl, size*1.55, size*0.05);
-    cx.bezierCurveTo(size*1.20, size*0.28, size*0.60, size*0.32, 0, size*0.08);
-    cx.closePath();
-    cx.fillStyle = FOAM;
-    cx.fill();
-    cx.strokeStyle = INK;
-    cx.lineWidth = 1.4;
-    cx.stroke();
-    cx.restore();
-  }
-  // 从波峰向右延伸的一串爪子 (主要特征)
-  const clawBaseX = peakX + W*0.06;
-  const clawBaseY = crestTop + 4;
-  foamClaw(clawBaseX,         clawBaseY,         30, -0.20, 1.1);
-  foamClaw(clawBaseX + 20,    clawBaseY - 10,    25, -0.05, 1.0);
-  foamClaw(clawBaseX + 38,    clawBaseY + 3,     22,  0.12, 0.9);
-  foamClaw(clawBaseX - 12,    clawBaseY + 15,    24, -0.55, 1.2);
-  // 内侧小爪子 (curl 下面)
-  foamClaw(peakX + W*0.10,    H*0.25,            18,  0.35, 0.8);
-  foamClaw(peakX + W*0.04,    H*0.32,            14,  0.85, 0.7);
+  // 在泡沫边上再叠一层更细更亮的白线, 增加"丝绸"质感
+  cx.strokeStyle = 'rgba(255, 252, 235, 0.85)';
+  cx.lineWidth = 3;
+  cx.stroke(rim);
 
-  // ── Step 5: 飞溅水珠 (奶油色小圆) ──
+  // ── 柔和轮廓描边 (代替硬黑, 融入底色) ──
+  cx.strokeStyle = OUTLINE;
+  cx.lineWidth = 1.8;
+  cx.lineCap = 'round';
+  cx.lineJoin = 'round';
+  cx.stroke(body);
+
+  // ── 三两飞溅小水珠, 峰顶正上方 ──
   cx.fillStyle = FOAM;
-  cx.strokeStyle = INK;
-  cx.lineWidth = 1.0;
-  for (let i = 0; i < 18; i++) {
-    // 集中在峰顶附近, 向右上喷发
-    const angle = Math.random() * 1.2 - 0.6 - Math.PI * 0.35;
-    const dist = 18 + Math.random() * 80;
-    const dx = peakX + W*0.08 + Math.cos(angle) * dist * 0.9;
-    const dy = crestTop + Math.sin(angle) * dist * 0.55;
-    if (dx < 0 || dx > W || dy < 0 || dy > H) continue;
-    const r = 2.5 + Math.random() * 3.5;
+  for (let i = 0; i < 4; i++) {
+    const dx = peakX + (Math.random() - 0.5) * W * 0.3;
+    const dy = peakY - 10 - Math.random() * 30;
+    const r = 2.5 + Math.random() * 2.5;
     cx.beginPath();
     cx.arc(dx, dy, r, 0, Math.PI * 2);
     cx.fill();
-    cx.stroke();
   }
 
   const t = new THREE.CanvasTexture(c);
