@@ -47,7 +47,8 @@ export async function cachePut(key, value) {
 // v3: 海岸沙滩段 (tColor 色板在 0-30m 加浅米色过渡)
 // v4: R1 河流变宽渐变 + R2 河岸双段染色 (内蓝外绿)
 // v5: R3 新增 8 条支流 (嘉陵/乌/丹/闽/钱塘/海/辽/松花)
-const VERSION = 5;
+// v6: 去掉外圈河岸绿带, 只保留紧贴河道的淡蓝湿痕
+const VERSION = 6;
 export function cacheKeyFor(sgwt, sght) {
   return `terrain-${sgwt}x${sght}-v${VERSION}`;
 }

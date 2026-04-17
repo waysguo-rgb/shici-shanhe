@@ -31,7 +31,9 @@ export function mkRiver(coords, width, riverName) {
     const _dx = cpts[origLen - 1].x - cpts[origLen - 1 - _lk].x;
     const _dz = cpts[origLen - 1].z - cpts[origLen - 1 - _lk].z;
     const _dl = Math.sqrt(_dx * _dx + _dz * _dz) || 1;
-    const eLen = width * 2, eN = 10;
+    // Longer extension so the river has visual room to dissolve INTO the sea
+    // instead of vanishing while still over land.
+    const eLen = width * 4.5, eN = 28;
     for (let k = 1; k <= eN; k++) {
       const t = k / eN;
       cpts.push(new THREE.Vector3(
@@ -109,23 +111,24 @@ export function mkRiver(coords, width, riverName) {
     const tSourceMouth = Math.min(1, i / Math.max(1, origLen - 1));
     let wScale = rw * (0.55 + 0.75 * tSourceMouth);
     wScale *= 0.97 + 0.05 * Math.sin(i * 0.11);  // tiny organic wobble
-    // Estuary flare (last 22% of extended path widens into the sea)
-    // + per-vertex RGBA: color drifts toward sea-warm and alpha fades to 0 over
-    // the flare region, so the river "dissolves" into sea/background instead of
-    // ending in a hard line.
+    // River body stays FULL color until it crosses the coastline, then fades
+    // only across the sea-extension portion. Width flaring starts a bit earlier
+    // so the estuary widens approaching the coast, but color/alpha only drops
+    // from origLen onward — never fades while still visibly over land.
     let rR = 1, rG = 1, rB = 1, rA = 1;
     if (isEstuary) {
-      const _t = i / (cpts.length - 1), _es = .62 * origLen / (cpts.length - 1);
-      if (_t > _es) {
-        const _e = Math.min(1, (_t - _es) / (1 - _es));
+      const _t = i / (cpts.length - 1);
+      const flareStart = .85 * origLen / (cpts.length - 1);
+      if (_t > flareStart) {
+        const _e = Math.min(1, (_t - flareStart) / (1 - flareStart));
         wScale *= 1 + _e * _e * rw * 25;
-        // smooth cubic fade — starts gentle, accelerates at mouth
-        const fade = _e * _e * (3 - 2 * _e);
-        // warm tint toward sepia (0.66, 0.51, 0.31 = bg #a8824f) then alpha→0
-        rR = 1 - fade * 0.00;       // keep red channel high (silk stays luminous)
-        rG = 1 - fade * 0.18;       // dim green slightly
-        rB = 1 - fade * 0.48;       // drop blue so silk shifts to warm
-        rA = 1 - fade;              // alpha disappears
+      }
+      const fadeStart = origLen / (cpts.length - 1);
+      if (_t > fadeStart) {
+        const _f = Math.min(1, (_t - fadeStart) / (1 - fadeStart));
+        // near-linear fade so river has clear presence right at the coast and
+        // thins smoothly over the sea extension.
+        rA = 1 - _f;
       }
     }
     const half = wScale / 2;

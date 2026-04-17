@@ -317,8 +317,7 @@ export function carveRiversArrays(positions, colors, sgwt, sght, riversSampled, 
   const { PW, PH } = K;
   const gridX1 = sgwt + 1;
   const N = gridX1 * (sght + 1);
-  const moistColor    = [0.44, 0.56, 0.38];
-  const riparianColor = [0.28, 0.44, 0.22]; // R2: darker lush green outer band
+  const moistColor = [0.44, 0.56, 0.38];
   const nearestDist     = new Float32Array(N); nearestDist.fill(999);
   const nearestNormDist = new Float32Array(N); nearestNormDist.fill(999);
   const valleyFloorY    = new Float32Array(N);
@@ -415,30 +414,20 @@ export function carveRiversArrays(positions, colors, sgwt, sght, riversSampled, 
     if (report) report(0.85 + (pass + 1) / 3 * 0.1);
   }
 
-  // R2: 两段式河岸渲染 — 内圈蓝湿带 (原 moistRad), 外圈绿意带 (riparian).
-  const moistRad    = 0.80;  // inner wet tint zone
-  const riparianRad = 1.60;  // outer vegetation band (fades to 0 at edge)
+  // 河岸染色: 只保留紧贴河道的淡蓝湿痕, 去掉之前宽带绿意染色.
+  // 原 R2 riparian outer band 让河两岸 1.6 单位宽全都泛绿, 在实机上
+  // 看起来像河边"雾化", 不自然; 去掉后河流就是单纯的水带, 周围保持
+  // 地形原色.
+  const moistRad = 0.55;
   for (let i = 0; i < N; i++) {
     const dist = nearestNormDist[i];
-    if (dist >= riparianRad) continue;
-    if (dist < moistRad) {
-      // Inner: bluish-green wet tint (existing behavior)
-      const t = dist / moistRad;
-      const k = 1 - t * t * (3 - 2 * t);
-      const blend = 0.28 * k;
-      colors[i * 4]     = colors[i * 4]     * (1 - blend) + moistColor[0] * blend;
-      colors[i * 4 + 1] = colors[i * 4 + 1] * (1 - blend) + moistColor[1] * blend;
-      colors[i * 4 + 2] = colors[i * 4 + 2] * (1 - blend) + moistColor[2] * blend;
-    } else {
-      // Outer: lush riparian greens fading out to baseline terrain.
-      // k peaks at moistRad (1) and ramps to 0 at riparianRad.
-      const t = (dist - moistRad) / (riparianRad - moistRad);
-      const k = 1 - t * t * (3 - 2 * t);
-      const blend = 0.20 * k;
-      colors[i * 4]     = colors[i * 4]     * (1 - blend) + riparianColor[0] * blend;
-      colors[i * 4 + 1] = colors[i * 4 + 1] * (1 - blend) + riparianColor[1] * blend;
-      colors[i * 4 + 2] = colors[i * 4 + 2] * (1 - blend) + riparianColor[2] * blend;
-    }
+    if (dist >= moistRad) continue;
+    const t = dist / moistRad;
+    const k = 1 - t * t * (3 - 2 * t);
+    const blend = 0.18 * k;
+    colors[i * 4]     = colors[i * 4]     * (1 - blend) + moistColor[0] * blend;
+    colors[i * 4 + 1] = colors[i * 4 + 1] * (1 - blend) + moistColor[1] * blend;
+    colors[i * 4 + 2] = colors[i * 4 + 2] * (1 - blend) + moistColor[2] * blend;
   }
   if (report) report(1.0);
 }

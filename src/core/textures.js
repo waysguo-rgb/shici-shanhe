@@ -185,89 +185,122 @@ export function mkLakeTex() {
 }
 
 // ═══════════════════════════════════════
-// Decorative wave sprite texture (mkDecorativeWaveTex)
+// Decorative wave sprite texture (mkDecorativeWaveTex) — 浮世绘 Great Wave
+// 北斋神奈川冲浪里 启发: 深蓝 + 浅青绿的波身, 奶油白泡沫爪状曲线,
+// 深墨描边, 非对称峰型.
 // ═══════════════════════════════════════
 export function mkDecorativeWaveTex() {
   const W = 512, H = 256;
-  const c = document.createElement('canvas'); c.width = W; c.height = H; const cx = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const cx = c.getContext('2d');
   cx.clearRect(0, 0, W, H);
 
-  const baseY = H * 0.92;
-  const crestH = H * 0.72;
-  const cxMid = W * 0.5;
+  // Hokusai palette
+  const NAVY_DEEP = '#0b2553';
+  const NAVY_MID  = '#1e4f91';
+  const TEAL_HI   = '#6ea6c4';
+  const TEAL_LIGHT= '#b1d1dd';
+  const FOAM      = '#f4ead0';    // 奶油色而非纯白, 匹配绢纸主色调
+  const INK       = '#0a1a33';
 
-  const g = cx.createLinearGradient(0, baseY - crestH, 0, baseY);
-  g.addColorStop(0, '#7ce0f0');
-  g.addColorStop(0.25, '#3ab4d2');
-  g.addColorStop(0.55, '#1870b0');
-  g.addColorStop(1, '#0a4580');
+  const baseY = H * 0.94;
+  const crestTop = H * 0.10;      // peak at very top
+  const peakX = W * 0.40;
 
-  cx.fillStyle = g;
-  cx.beginPath();
-  cx.moveTo(W * 0.05, baseY);
-  cx.bezierCurveTo(W * 0.18, baseY - crestH * 0.55, W * 0.32, baseY - crestH * 0.95, cxMid, baseY - crestH);
-  cx.bezierCurveTo(W * 0.68, baseY - crestH * 0.95, W * 0.82, baseY - crestH * 0.55, W * 0.95, baseY);
-  cx.lineTo(W * 0.05, baseY);
-  cx.closePath();
-  cx.fill();
+  // ── Step 1: 主波体 (dark-to-light 垂直渐变) ──
+  const bodyPath = new Path2D();
+  bodyPath.moveTo(0, baseY);
+  // 左坡缓慢抬升
+  bodyPath.bezierCurveTo(W*0.08, baseY, W*0.20, H*0.55, W*0.32, H*0.30);
+  // 上升到峰顶
+  bodyPath.bezierCurveTo(W*0.36, H*0.15, peakX-10, crestTop+6, peakX, crestTop);
+  // 顶部向右卷 (浮世绘的招牌 curl)
+  bodyPath.bezierCurveTo(peakX+W*0.08, crestTop-6, peakX+W*0.18, H*0.18, peakX+W*0.22, H*0.28);
+  // 卷回钩状
+  bodyPath.bezierCurveTo(peakX+W*0.20, H*0.36, peakX+W*0.12, H*0.36, peakX+W*0.06, H*0.32);
+  // 回到波体内部再转向右侧下落
+  bodyPath.bezierCurveTo(peakX+W*0.10, H*0.40, peakX+W*0.18, H*0.48, W*0.70, H*0.55);
+  bodyPath.bezierCurveTo(W*0.82, H*0.68, W*0.92, baseY-10, W, baseY);
+  bodyPath.lineTo(W, H);
+  bodyPath.lineTo(0, H);
+  bodyPath.closePath();
 
-  cx.strokeStyle = '#e8c070';
-  cx.lineWidth = 5;
+  const bodyGrad = cx.createLinearGradient(0, crestTop, 0, baseY);
+  bodyGrad.addColorStop(0.00, TEAL_LIGHT);
+  bodyGrad.addColorStop(0.18, TEAL_HI);
+  bodyGrad.addColorStop(0.45, NAVY_MID);
+  bodyGrad.addColorStop(1.00, NAVY_DEEP);
+  cx.fillStyle = bodyGrad;
+  cx.fill(bodyPath);
+
+  // ── Step 2: 内部平行浪纹线 (ukiyo-e 水纹特征) ──
+  cx.save();
+  cx.clip(bodyPath);
+  cx.strokeStyle = 'rgba(12, 40, 85, 0.55)';
+  cx.lineWidth = 1.4;
   cx.lineCap = 'round';
-  cx.beginPath();
-  cx.moveTo(W * 0.05, baseY);
-  cx.bezierCurveTo(W * 0.18, baseY - crestH * 0.55, W * 0.32, baseY - crestH * 0.95, cxMid, baseY - crestH);
-  cx.bezierCurveTo(W * 0.68, baseY - crestH * 0.95, W * 0.82, baseY - crestH * 0.55, W * 0.95, baseY);
-  cx.stroke();
-
   for (let layer = 1; layer <= 6; layer++) {
-    const off = layer * 13;
-    cx.strokeStyle = `rgba(235,200,120,${0.88 - layer * 0.11})`;
-    cx.lineWidth = 1.8;
+    const off = layer * 14;
     cx.beginPath();
-    cx.moveTo(W * 0.05 + off * 0.15, baseY);
-    cx.bezierCurveTo(
-      W * 0.18 + off * 0.08, baseY - crestH * 0.55 + off * 0.45,
-      W * 0.32 + off * 0.04, baseY - crestH * 0.95 + off * 0.7,
-      cxMid, baseY - crestH + off
-    );
-    cx.bezierCurveTo(
-      W * 0.68 - off * 0.04, baseY - crestH * 0.95 + off * 0.7,
-      W * 0.82 - off * 0.08, baseY - crestH * 0.55 + off * 0.45,
-      W * 0.95 - off * 0.15, baseY
-    );
+    cx.moveTo(0, baseY - off * 0.3);
+    cx.bezierCurveTo(W*0.12, baseY - crestTop*0.5 - off*0.6, W*0.22, H*0.45 + off*0.3, W*0.30 + off*0.2, H*0.38 + off*0.4);
+    cx.bezierCurveTo(W*0.35 + off*0.15, H*0.28 + off*0.5, peakX - off*0.1, crestTop + 5 + off, peakX + off*0.1, crestTop + 10 + off);
     cx.stroke();
   }
+  cx.restore();
 
-  cx.strokeStyle = 'rgba(255,250,200,0.7)';
-  cx.lineWidth = 1;
-  for (let i = 0; i < 3; i++) {
+  // ── Step 3: 深墨色描边 (画面骨架) ──
+  cx.strokeStyle = INK;
+  cx.lineWidth = 2.4;
+  cx.lineCap = 'round';
+  cx.lineJoin = 'round';
+  cx.stroke(bodyPath);
+
+  // ── Step 4: 波顶泡沫爪 (浮世绘招牌 finger-claws) ──
+  function foamClaw(x, y, size, angle, curl) {
+    cx.save();
+    cx.translate(x, y);
+    cx.rotate(angle);
+    // drop shape with finger-like tip
     cx.beginPath();
-    cx.arc(cxMid, baseY - crestH + i * 4, 10 - i * 2, Math.PI * 1.2, Math.PI * 1.8);
+    cx.moveTo(0, 0);
+    cx.bezierCurveTo(size*0.55, -size*0.35, size*1.20, -size*0.40*curl, size*1.55, size*0.05);
+    cx.bezierCurveTo(size*1.20, size*0.28, size*0.60, size*0.32, 0, size*0.08);
+    cx.closePath();
+    cx.fillStyle = FOAM;
+    cx.fill();
+    cx.strokeStyle = INK;
+    cx.lineWidth = 1.4;
     cx.stroke();
+    cx.restore();
   }
+  // 从波峰向右延伸的一串爪子 (主要特征)
+  const clawBaseX = peakX + W*0.06;
+  const clawBaseY = crestTop + 4;
+  foamClaw(clawBaseX,         clawBaseY,         30, -0.20, 1.1);
+  foamClaw(clawBaseX + 20,    clawBaseY - 10,    25, -0.05, 1.0);
+  foamClaw(clawBaseX + 38,    clawBaseY + 3,     22,  0.12, 0.9);
+  foamClaw(clawBaseX - 12,    clawBaseY + 15,    24, -0.55, 1.2);
+  // 内侧小爪子 (curl 下面)
+  foamClaw(peakX + W*0.10,    H*0.25,            18,  0.35, 0.8);
+  foamClaw(peakX + W*0.04,    H*0.32,            14,  0.85, 0.7);
 
-  function drawPearl(x, y, r) {
-    const g = cx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
-    g.addColorStop(0, '#fff8dc');
-    g.addColorStop(0.5, '#f0d878');
-    g.addColorStop(0.9, '#c89830');
-    g.addColorStop(1, 'rgba(120,80,20,0)');
-    cx.fillStyle = g;
-    cx.beginPath(); cx.arc(x, y, r, 0, 6.28); cx.fill();
-  }
-  for (let i = 0; i < 12; i++) {
-    const angle = Math.random() * Math.PI * 0.7 - Math.PI * 0.35 - Math.PI / 2;
-    const dist = 8 + Math.random() * 35;
-    const px = cxMid + Math.cos(angle) * dist * 1.2;
-    const py = baseY - crestH + Math.sin(angle) * dist * 0.5;
-    drawPearl(px, py, 3 + Math.random() * 3);
-  }
-  for (let i = 0; i < 8; i++) {
-    const t = Math.random();
-    const px = W * 0.1 + t * W * 0.8;
-    const py = baseY - crestH * 0.3 - Math.random() * 30;
-    drawPearl(px, py, 2.5 + Math.random() * 2);
+  // ── Step 5: 飞溅水珠 (奶油色小圆) ──
+  cx.fillStyle = FOAM;
+  cx.strokeStyle = INK;
+  cx.lineWidth = 1.0;
+  for (let i = 0; i < 18; i++) {
+    // 集中在峰顶附近, 向右上喷发
+    const angle = Math.random() * 1.2 - 0.6 - Math.PI * 0.35;
+    const dist = 18 + Math.random() * 80;
+    const dx = peakX + W*0.08 + Math.cos(angle) * dist * 0.9;
+    const dy = crestTop + Math.sin(angle) * dist * 0.55;
+    if (dx < 0 || dx > W || dy < 0 || dy > H) continue;
+    const r = 2.5 + Math.random() * 3.5;
+    cx.beginPath();
+    cx.arc(dx, dy, r, 0, Math.PI * 2);
+    cx.fill();
+    cx.stroke();
   }
 
   const t = new THREE.CanvasTexture(c);
