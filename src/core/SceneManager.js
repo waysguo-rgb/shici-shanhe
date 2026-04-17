@@ -1,6 +1,13 @@
 // Main orchestrator: scene init, render loop, label projection, camera animation
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// Post-processing pipeline: bloom for light beams + SMAA for edge AA
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass }    from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
+// Real atmospheric sky (Rayleigh/Mie scattering)
+import { Sky }           from 'three/examples/jsm/objects/Sky.js';
 
 // Data
 import { MOB, SGWT, SGHT, LOD_LO_W, LOD_LO_H, LOD_SWITCH_DIST, CLOUD_N,
@@ -31,6 +38,7 @@ export let scene = null;
 export let camera = null;
 export let renderer = null;
 export let controls = null;
+export let composer = null;
 
 // ═══════════════════════════════════════
 // Label / beam / camera state
@@ -155,12 +163,36 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 600);
   camera.position.set(8, 110, 40);
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias: !MOB, preserveDrawingBuffer: true, alpha: true });
+  // Renderer with ACES filmic tone mapping for richer highlights/shadows,
+  // and real shadow maps (PCF soft) driven by the main directional light.
+  // alpha:false so the Sky dome is the actual rendered background, not the
+  // CSS page background showing through. Keep preserveDrawingBuffer for screenshots.
+  renderer = new THREE.WebGLRenderer({ antialias: !MOB, preserveDrawingBuffer: true, alpha: false });
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MOB ? 1.5 : 2));
-  renderer.setClearColor(0x000000, 0);
+  // Linear tone mapping — terrain colors are pre-baked to sRGB, we don't want
+  // ACES squashing the carefully tuned palette. Bloom alone gives us the lift.
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
+
+  // ═══ Post-processing composer ═══
+  // RenderPass → Bloom (selectively lifts light beams + water highlights)
+  //            → SMAA (subpixel morphological AA, desktop only — mobile uses MSAA from WebGL)
+  composer = new EffectComposer(renderer);
+  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setSize(W, H);
+  composer.addPass(new RenderPass(scene, camera));
+  // strength / radius / threshold. Higher threshold = only very bright things bloom
+  // (light beams, water sparkle) — sky and terrain stay sharp.
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.18, 0.60, 0.96);
+  // strength, radius, threshold — only pixels above threshold bloom; sky stays clean
+  composer.addPass(bloomPass);
+  if (!MOB) {
+    const smaa = new SMAAPass(W * renderer.getPixelRatio(), H * renderer.getPixelRatio());
+    composer.addPass(smaa);
+  }
 
   // Controls
   controls = new OrbitControls(camera, renderer.domElement);
@@ -173,13 +205,50 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   controls.screenSpacePanning = true;
   controls.addEventListener('start', () => { isAnim = false; });
 
-  // Lights
+  // Lights — terrain shading is already baked into vertex colors, so these
+  // lights exist mainly so dl can CAST real shadows (ShadowMaterial catcher below).
   scene.add(new THREE.AmbientLight(0xfff0c8, 0.78));
   const dl = new THREE.DirectionalLight(0xffeac0, 0.88);
-  dl.position.set(-30, 70, 25); scene.add(dl);
+  // Low sun angle matches the Sky sunPosition so cast shadows point east-south.
+  dl.position.set(-60, 44, 50);
+  dl.castShadow = true;
+  dl.shadow.mapSize.set(MOB ? 1024 : 2048, MOB ? 1024 : 2048);
+  // Orthographic shadow camera — covers the whole terrain plane (PW=130, PH=90)
+  dl.shadow.camera.left   = -95;
+  dl.shadow.camera.right  =  95;
+  dl.shadow.camera.top    =  75;
+  dl.shadow.camera.bottom = -75;
+  dl.shadow.camera.near   =   1;
+  dl.shadow.camera.far    = 240;
+  dl.shadow.bias       = -0.0008;
+  dl.shadow.normalBias =  0.02;
+  dl.shadow.radius     =  3;
+  dl.target.position.set(8, 0, 0);
+  scene.add(dl);
+  scene.add(dl.target);
   const dl2 = new THREE.DirectionalLight(0x88a8c8, 0.25);
   dl2.position.set(40, 40, -30); scene.add(dl2);
   scene.add(new THREE.HemisphereLight(0xfff4d0, 0x403020, 0.40));
+
+  // ═══ Sky ═══
+  // Render atmospheric scattering into a cube texture and use it as the scene
+  // background. This avoids a giant translucent dome clipping terrain edges,
+  // while still giving real Rayleigh/Mie gradients at infinity.
+  const skyScene = new THREE.Scene();
+  const sky = new Sky();
+  sky.scale.setScalar(450);
+  skyScene.add(sky);
+  const skyU = sky.material.uniforms;
+  skyU.turbidity.value       = 3.2;
+  skyU.rayleigh.value        = 1.4;
+  skyU.mieCoefficient.value  = 0.004;
+  skyU.mieDirectionalG.value = 0.72;
+  const sunDir = new THREE.Vector3(-30, 22, 25).normalize();
+  skyU.sunPosition.value.copy(sunDir);
+  const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+  const cubeCam = new THREE.CubeCamera(0.1, 1000, cubeRT);
+  cubeCam.update(renderer, skyScene);
+  scene.background = cubeRT.texture;
 
   // ═══ DEM ═══
   let hd = null;
@@ -212,8 +281,23 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     cachePut(hdKey, { positions: hdResult.positions, colors: hdResult.colors });
   }
   const terrainHi = meshFromArrays(hdResult.positions, hdResult.colors, SGWT, SGHT);
+  terrainHi.castShadow = true;
   setTerrainRef(terrainHi);
   buildHMap();
+
+  // Shadow-catcher overlay — shares the HD geometry, renders only shadowed pixels
+  // as a translucent cool-blue multiply. This gives us real shadows without
+  // disturbing the existing baked vertex-color lighting on MeshBasicMaterial.
+  // polygonOffset prevents z-fighting with the terrain underneath.
+  const shadowOverlay = new THREE.Mesh(
+    terrainHi.geometry,
+    new THREE.ShadowMaterial({ color: 0x0a1a2c, opacity: 0.55, transparent: true })
+  );
+  shadowOverlay.material.polygonOffset = true;
+  shadowOverlay.material.polygonOffsetFactor = -1;
+  shadowOverlay.material.polygonOffsetUnits  = -1;
+  shadowOverlay.receiveShadow = true;
+  scene.add(shadowOverlay);
 
   // Start with HD-only LOD; LO mesh is built in idle time below.
   const lod = new THREE.LOD();
@@ -307,6 +391,7 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     W = window.innerWidth; H = window.innerHeight;
     camera.aspect = W / H; camera.updateProjectionMatrix();
     renderer.setSize(W, H);
+    if (composer) composer.setSize(W, H);
     lastCam = '';
   });
 }
@@ -460,5 +545,6 @@ function animate() {
   // LOD update
   if (terrainLOD) terrainLOD.update(camera);
 
-  renderer.render(scene, camera);
+  if (composer) composer.render();
+  else renderer.render(scene, camera);
 }
