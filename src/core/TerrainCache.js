@@ -45,7 +45,8 @@ export async function cachePut(key, value) {
 // algorithms, river data, or DEM source.
 // v2: DEM Z=5 → Z=6 (higher elevation fidelity, 4× DEM pixels)
 // v3: 海岸沙滩段 (tColor 色板在 0-30m 加浅米色过渡)
-const VERSION = 3;
+// v4: R1 河流变宽渐变 + R2 河岸双段染色 (内蓝外绿)
+const VERSION = 4;
 export function cacheKeyFor(sgwt, sght) {
   return `terrain-${sgwt}x${sght}-v${VERSION}`;
 }

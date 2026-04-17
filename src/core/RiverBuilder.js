@@ -104,8 +104,12 @@ export function mkRiver(coords, width, riverName) {
     if (i < cpts.length - 1) { tx += cpts[i + 1].x - p.x; tz += cpts[i + 1].z - p.z; }
     const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
     const nx = -tz, nz = tx;
-    let wScale = rw * (0.88 + 0.22 * Math.sin(i / cpts.length * Math.PI));
-    // Estuary flare
+    // R1: source→mouth linear taper. Data convention: coords[0] is source.
+    // Previous formula used sin(π·t) which made middle widest — visually wrong.
+    const tSourceMouth = Math.min(1, i / Math.max(1, origLen - 1));
+    let wScale = rw * (0.55 + 0.75 * tSourceMouth);
+    wScale *= 0.97 + 0.05 * Math.sin(i * 0.11);  // tiny organic wobble
+    // Estuary flare (last 22% of extended path widens into the sea)
     if (isEstuary) {
       const _t = i / (cpts.length - 1), _es = .78 * origLen / (cpts.length - 1);
       if (_t > _es) { const _e = (_t - _es) / (1 - _es); wScale *= 1 + _e * _e * rw * 25; }

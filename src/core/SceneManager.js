@@ -114,7 +114,11 @@ function buildTerrainInWorker(sgwt, sght, rivers, hd, K, onProgress) {
     // Copy DEM: main thread keeps its pristine hd for later getH() calls.
     const hdCopy = hd ? { data: new Uint8ClampedArray(hd.data), width: hd.width, height: hd.height } : null;
     // Clone river pts so main-thread Float32Array isn't detached by transfer.
-    const riversCopy = rivers.map(r => ({ w: r.w, pts: new Float32Array(r.pts) }));
+    const riversCopy = rivers.map(r => ({
+      w: r.w,
+      pts: new Float32Array(r.pts),
+      ws: r.ws ? new Float32Array(r.ws) : null
+    }));
     const handler = (e) => {
       const m = e.data;
       if (m.type === 'progress') { if (onProgress) onProgress(m.value); return; }
@@ -124,7 +128,7 @@ function buildTerrainInWorker(sgwt, sght, rivers, hd, K, onProgress) {
     w.addEventListener('message', handler);
     const transferable = [];
     if (hdCopy) transferable.push(hdCopy.data.buffer);
-    riversCopy.forEach(r => transferable.push(r.pts.buffer));
+    riversCopy.forEach(r => { transferable.push(r.pts.buffer); if (r.ws) transferable.push(r.ws.buffer); });
     w.postMessage({ sgwt, sght, rivers: riversCopy, hd: hdCopy, K }, transferable);
   });
 }
@@ -310,13 +314,22 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
 
   // Pre-sample rivers on main thread (needs THREE.CatmullRomCurve3), pack as
   // Float32Array([x0,z0,x1,z1,…]) so each river is transferable to the worker.
+  // R1: include per-point width array (ws) — upstream narrow, downstream wide,
+  // following the data convention that coords[0] is source, coords[end] is mouth.
   const riversSampled = RIVERS.map(r => {
     const ctrl = r.c.map(([lo, la]) => { const [x, z] = ll2s(lo, la); return new THREE.Vector3(x, 0, z); });
     const curve = new THREE.CatmullRomCurve3(ctrl, false, 'catmullrom', 0.5);
     const pts3 = curve.getPoints(400);
-    const flat = new Float32Array(pts3.length * 2);
-    for (let i = 0; i < pts3.length; i++) { flat[i * 2] = pts3[i].x; flat[i * 2 + 1] = pts3[i].z; }
-    return { w: r.w, pts: flat };
+    const N = pts3.length;
+    const flat = new Float32Array(N * 2);
+    const ws   = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      flat[i * 2]     = pts3[i].x;
+      flat[i * 2 + 1] = pts3[i].z;
+      const t01 = i / (N - 1);
+      ws[i] = r.w * (0.55 + 0.75 * t01);  // 0.55× at source → 1.30× at mouth
+    }
+    return { w: r.w, pts: flat, ws };
   });
   const K = { PW, PH, BGC, Z, TS, TX0, TY0, MW, MH };
 

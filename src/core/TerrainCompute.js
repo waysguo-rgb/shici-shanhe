@@ -311,12 +311,14 @@ export function computeTerrainArrays(sgwt, sght, hdData, K, report) {
 }
 
 // ═══ Carve river valleys, 3-pass box smoothing, moisture tint ═══
-// riversSampled: [{ w: number, pts: Float32Array([x0, z0, x1, z1, ...]) }, ...]
+// riversSampled: [{ w: number, pts: Float32Array([x0,z0,x1,z1,...]),
+//                   ws?: Float32Array(numPoints) /* optional per-point width */ }, ...]
 export function carveRiversArrays(positions, colors, sgwt, sght, riversSampled, K, report) {
   const { PW, PH } = K;
   const gridX1 = sgwt + 1;
   const N = gridX1 * (sght + 1);
-  const moistColor = [0.44, 0.56, 0.38];
+  const moistColor    = [0.44, 0.56, 0.38];
+  const riparianColor = [0.28, 0.44, 0.22]; // R2: darker lush green outer band
   const nearestDist     = new Float32Array(N); nearestDist.fill(999);
   const nearestNormDist = new Float32Array(N); nearestNormDist.fill(999);
   const valleyFloorY    = new Float32Array(N);
@@ -324,15 +326,21 @@ export function carveRiversArrays(positions, colors, sgwt, sght, riversSampled, 
   for (let i = 0; i < N; i++) origY[i] = positions[i * 3 + 1];
 
   for (let ri = 0; ri < riversSampled.length; ri++) {
-    const { w, pts } = riversSampled[ri];
-    const wScale = 0.85 + w * 0.90;
-    const valleyR = Math.max(1.2, w * 4.5);
-    const outerR = valleyR * 2.5;
-    const maxDepth = 0.35 + w * 0.25;
-    const radInGridX = Math.ceil(outerR / PW * sgwt) + 1;
-    const radInGridZ = Math.ceil(outerR / PH * sght) + 1;
+    const { w, pts, ws } = riversSampled[ri];
+    // R1: max width across path (usually at mouth) for bounding-box radius.
+    const wMax = ws ? ws[ws.length - 1] : w;
+    const valleyRMax = Math.max(1.2, wMax * 4.5);
+    const outerRMax  = valleyRMax * 2.5;
+    const radInGridX = Math.ceil(outerRMax / PW * sgwt) + 1;
+    const radInGridZ = Math.ceil(outerRMax / PH * sght) + 1;
     const ptCount = pts.length >> 1;
     for (let pi = 0; pi < ptCount; pi++) {
+      // R1: use per-point width if provided (source narrow, mouth wide)
+      const wi = ws ? ws[pi] : w;
+      const wScale = 0.85 + wi * 0.90;
+      const valleyR = Math.max(1.2, wi * 4.5);
+      const outerR = valleyR * 2.5;
+      const maxDepth = 0.35 + wi * 0.25;
       const rpx = pts[pi * 2];
       const rpz = pts[pi * 2 + 1];
       const fgx = (rpx + PW / 2) / PW * sgwt;
@@ -407,16 +415,30 @@ export function carveRiversArrays(positions, colors, sgwt, sght, riversSampled, 
     if (report) report(0.85 + (pass + 1) / 3 * 0.1);
   }
 
-  const moistRad = 0.80;
+  // R2: 两段式河岸渲染 — 内圈蓝湿带 (原 moistRad), 外圈绿意带 (riparian).
+  const moistRad    = 0.80;  // inner wet tint zone
+  const riparianRad = 1.60;  // outer vegetation band (fades to 0 at edge)
   for (let i = 0; i < N; i++) {
     const dist = nearestNormDist[i];
-    if (dist >= moistRad) continue;
-    const t = dist / moistRad;
-    const k = 1 - t * t * (3 - 2 * t);
-    const blend = 0.28 * k;
-    colors[i * 4]     = colors[i * 4]     * (1 - blend) + moistColor[0] * blend;
-    colors[i * 4 + 1] = colors[i * 4 + 1] * (1 - blend) + moistColor[1] * blend;
-    colors[i * 4 + 2] = colors[i * 4 + 2] * (1 - blend) + moistColor[2] * blend;
+    if (dist >= riparianRad) continue;
+    if (dist < moistRad) {
+      // Inner: bluish-green wet tint (existing behavior)
+      const t = dist / moistRad;
+      const k = 1 - t * t * (3 - 2 * t);
+      const blend = 0.28 * k;
+      colors[i * 4]     = colors[i * 4]     * (1 - blend) + moistColor[0] * blend;
+      colors[i * 4 + 1] = colors[i * 4 + 1] * (1 - blend) + moistColor[1] * blend;
+      colors[i * 4 + 2] = colors[i * 4 + 2] * (1 - blend) + moistColor[2] * blend;
+    } else {
+      // Outer: lush riparian greens fading out to baseline terrain.
+      // k peaks at moistRad (1) and ramps to 0 at riparianRad.
+      const t = (dist - moistRad) / (riparianRad - moistRad);
+      const k = 1 - t * t * (3 - 2 * t);
+      const blend = 0.20 * k;
+      colors[i * 4]     = colors[i * 4]     * (1 - blend) + riparianColor[0] * blend;
+      colors[i * 4 + 1] = colors[i * 4 + 1] * (1 - blend) + riparianColor[1] * blend;
+      colors[i * 4 + 2] = colors[i * 4 + 2] * (1 - blend) + riparianColor[2] * blend;
+    }
   }
   if (report) report(1.0);
 }
