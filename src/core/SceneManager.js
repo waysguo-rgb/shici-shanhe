@@ -7,6 +7,7 @@ import { RenderPass }    from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { SSAOPass }      from 'three/examples/jsm/postprocessing/SSAOPass.js';
+import { makeInkWashPass } from './InkWashPass.js';
 // Real atmospheric sky (Rayleigh/Mie scattering)
 import { Sky }           from 'three/examples/jsm/objects/Sky.js';
 
@@ -203,6 +204,14 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.55, 0.55, 1.5);
   // strength, radius, threshold — only pixels above threshold bloom; sky stays clean
   composer.addPass(bloomPass);
+
+  // Ink-wash pass: rice-paper grain + warm wash + scroll vignette.
+  // Placed AFTER bloom (so bloom highlights are part of the painting), BEFORE
+  // SMAA (so SMAA smooths any micro-grain contrast edges).
+  const inkWash = makeInkWashPass();
+  inkWash.uniforms.uRes.value.set(W, H);
+  composer.addPass(inkWash);
+
   if (!MOB) {
     const smaa = new SMAAPass(W * renderer.getPixelRatio(), H * renderer.getPixelRatio());
     composer.addPass(smaa);
@@ -453,6 +462,9 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     camera.aspect = W / H; camera.updateProjectionMatrix();
     renderer.setSize(W, H);
     if (composer) composer.setSize(W, H);
+    // Ink-wash uRes is in pixel space so paper grain stays the same physical
+    // scale regardless of window size.
+    inkWash.uniforms.uRes.value.set(W, H);
     lastCam = '';
   });
 }
