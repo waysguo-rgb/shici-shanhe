@@ -281,9 +281,15 @@ function speakPoem(poem, titleEl) {
   const tryAudio = new Promise((resolve, reject) => {
     if (!audioPath) { reject(); return }
     const a = new Audio(audioPath)
-    a.addEventListener('canplay', () => resolve(a), { once: true })
-    a.addEventListener('error', () => reject(), { once: true })
-    a.load(); setTimeout(() => reject(), 300)
+    let settled = false
+    const finish = (fn, val) => { if (settled) return; settled = true; clearTimeout(t); fn(val) }
+    // 原本 300ms 太短, 即便文件存在也常被超时抢先触发 fallback.
+    // 放宽到 3s: 文件真缺失时浏览器会在几百 ms 内 fire 'error',
+    // 走到 3s 说明网络/磁盘真的卡, 此时 fallback 到 TTS 合理.
+    const t = setTimeout(() => finish(reject, new Error('audio load timeout')), 3000)
+    a.addEventListener('canplay', () => finish(resolve, a), { once: true })
+    a.addEventListener('error',   () => finish(reject, new Error('audio load error')), { once: true })
+    a.load()
   })
   tryAudio.then(a => {
     currentAudio = a
