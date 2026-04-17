@@ -9,7 +9,6 @@ import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { SSAOPass }      from 'three/examples/jsm/postprocessing/SSAOPass.js';
 import { makeInkWashPass } from './InkWashPass.js';
 import { initPetals, updatePetals } from './PetalParticles.js';
-import { buildVegetation } from './VegetationBuilder.js';
 // Real atmospheric sky (Rayleigh/Mie scattering)
 import { Sky }           from 'three/examples/jsm/objects/Sky.js';
 
@@ -489,10 +488,6 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     const y = Math.max(0.5, scaleH(isFinite(hm) ? hm : 200)) + 1.8 + Math.random() * 1.0;
     mkMistBand(x, y, z, mw, mh, scene);
   });
-
-  // ═══ 植被点染 (O2 点苔法) — InstancedMesh 墨点布满中低海拔山坡 ═══
-  // 需要 hMap 已就绪 (buildHMap 上面已完成), 否则 hAt 返回 0.
-  buildVegetation(scene, { target: MOB ? 1200 : 3600 });
 
   // ═══ Drifting blossom petals ═══
   initPetals(scene, { count: MOB ? 50 : 110 });
