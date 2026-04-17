@@ -33,9 +33,10 @@ except ImportError:
 
 # ────────────────────────────────────────
 HERE = Path(__file__).parent
-ROOT = HERE.parent.parent
-LOCATIONS_JSON = ROOT / 'assets' / 'locations' / 'locations.json'
-AUDIO_DIR = ROOT / 'assets' / 'audio'
+# Vue/Vite 迁移后, locations 和 audio 都在 public/ 下
+ROOT = HERE.parent
+LOCATIONS_JSON = ROOT / 'public' / 'assets' / 'locations' / 'locations.json'
+AUDIO_DIR = ROOT / 'public' / 'assets' / 'audio'
 
 API_KEY = os.getenv('DOUBAO_API_KEY', '').strip()
 DEFAULT_VOICE = os.getenv('DOUBAO_VOICE', 'zh_female_vv_uranus_bigtts').strip()
@@ -91,6 +92,7 @@ MOOD_INSTRUCTIONS = {
     ('金陵', '虞美人'):         '请用哀婉悲切的语气朗读，表达李煜亡国之痛、故国之思。',
     ('汴京', '雨霖铃'):         '请用缠绵悱恻的语气朗读，诉说柳永执手相看泪眼的离别之痛。',
     ('汴京', '如梦令'):         '请用俏皮活泼的语气朗读，再现李清照少女时代的欢快游玩。',
+    ('汴京', '汴河曲'):         '请用怀古感伤的语气朗读，诉说汴水东流、隋家宫阙成尘的沧桑悲叹。',
     ('密州', '水调歌头'):       '请用旷达深情的语气朗读，诵出苏轼但愿人长久千里共婵娟的深情。',
     ('密州', '江城子·乙卯正月二十日夜记梦'): '请用泪眼凄婉的语气朗读，表达苏轼对亡妻的深切思念。',
     ('密州', '江城子·密州出猎'): '请用豪情壮志的语气朗读，展现苏轼老夫聊发少年狂的豪迈。',
