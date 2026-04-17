@@ -44,7 +44,8 @@ export async function cachePut(key, value) {
 // Cache key includes grid size + version. Bump VERSION if you change terrain
 // algorithms, river data, or DEM source.
 // v2: DEM Z=5 → Z=6 (higher elevation fidelity, 4× DEM pixels)
-const VERSION = 2;
+// v3: 海岸沙滩段 (tColor 色板在 0-30m 加浅米色过渡)
+const VERSION = 3;
 export function cacheKeyFor(sgwt, sght) {
   return `terrain-${sgwt}x${sght}-v${VERSION}`;
 }

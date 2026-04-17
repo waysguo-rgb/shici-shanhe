@@ -525,6 +525,12 @@ function updateLabels() {
     const p = pos3D[i], el = lbls[i];
     const dist = camera.position.distanceTo(p);
     if (dist > 130) { el.style.display = 'none'; continue; }
+    // Zoom-level tiering: at overview only show "major" spots (high poem count);
+    // when camera zooms in, lesser spots fade in progressively. Stops the
+    // eastern coast labels from piling on top of each other at default view.
+    const poemCount = (L[i].ps && L[i].ps.length) || 0;
+    const threshold = dist > 95 ? 5 : dist > 65 ? 3 : dist > 40 ? 2 : 0;
+    if (poemCount < threshold) { el.style.display = 'none'; continue; }
     tv.copy(p).project(camera);
     if (tv.z > 1) { el.style.display = 'none'; continue; }
     const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
