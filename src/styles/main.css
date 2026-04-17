@@ -109,6 +109,9 @@ opacity:0.6}
 .pt.pt-s{font-size:24px;letter-spacing:4px}
 .pt.pt-xs{font-size:20px;letter-spacing:3px;line-height:1.05}
 .pa{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:15px;color:#5a3a15;letter-spacing:2px;margin-top:6px}
+/* Header row pairing dynasty box with author name, side by side */
+.pd-row{display:flex;flex-direction:row;align-items:center;gap:10px;margin-bottom:6px}
+.pd-row .pa{writing-mode:horizontal-tb;text-orientation:initial;margin-top:0;font-size:16px;white-space:nowrap}
 .pexc{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:12px;color:#8a4818;letter-spacing:2px;margin-top:4px;opacity:.75;font-style:italic}
 /* 卷轴内侧的滚动提示箭头 */
 .po-arr{position:absolute;top:50%;width:28px;height:56px;background:radial-gradient(ellipse at center,rgba(240,220,170,0.55),rgba(200,160,80,0.30));backdrop-filter:blur(4px);border:1px solid rgba(120,70,20,0.35);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .35s,background .25s,transform .25s;transform:translateY(-50%) scale(0.9);z-index:15;border-radius:3px;padding:0;box-shadow:0 2px 10px rgba(40,20,5,0.35)}

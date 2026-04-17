@@ -131,7 +131,9 @@ function selectLoc(i) {
     const tl = poem.t.length
     const titleCls = tl > 8 ? 'pt pt-xs' : (tl > 6 ? 'pt pt-s' : (tl > 4 ? 'pt pt-m' : 'pt'))
     const hlCls = (poem.hl === true || (poem.hl !== false && pi === 0)) ? ' hl' : ''
-    h += '<div class="pe' + hlCls + '"><div class="pm"><div class="ps">' + poem.d + '</div><div class="' + titleCls + '" data-pi="' + pi + '" title="点击朗读">' + poem.t + '</div><div class="pa">' + poem.a + '</div>'
+    h += '<div class="pe' + hlCls + '"><div class="pm">' +
+      '<div class="pd-row"><div class="ps">' + poem.d + '</div><div class="pa">' + poem.a + '</div></div>' +
+      '<div class="' + titleCls + '" data-pi="' + pi + '" title="点击朗读">' + poem.t + '</div>'
     if (poem.excerpt) h += '<div class="pexc">节选</div>'
     h += '</div><div class="pl">'
     poem.l.forEach((l, li) => { h += `<div class="pv" style="animation-delay:${(pi * .20 + li * .06 + .20).toFixed(2)}s">${l}</div>` })
