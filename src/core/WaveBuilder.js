@@ -74,8 +74,10 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
 // ═══════════════════════════════════════
 export function buildCoastWaves() {
   const grp = new THREE.Group();
-  const spacing = MOB ? 6 : 3.5;
-  const nLayers = MOB ? 2 : 3;
+  // 密度下调: 原 3.5 桌面端沿岸每隔 3.5 单位一波, 过密.
+  // 改为 6.0 (alongshore) + 2 层 (砍掉最外层 LC[2], 远海清爽)
+  const spacing = MOB ? 9 : 6.0;
+  const nLayers = MOB ? 2 : 2;
   const LC = [
     [0.3, 3.0, .30, .50, .12, .02],
     [2.0, 1.8, .48, .65, .35, .04],

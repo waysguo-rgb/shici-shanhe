@@ -96,7 +96,7 @@ export function mkRiver(coords, width, riverName) {
   cpts.forEach((p, i) => { p.y = smH[i]; });
 
   // Generate strip vertices
-  const verts = [], uvs = [], indices = [];
+  const verts = [], uvs = [], indices = [], colors = [];
   for (let i = 0; i < cpts.length; i++) {
     const p = cpts[i];
     let tx = 0, tz = 0;
@@ -110,25 +110,42 @@ export function mkRiver(coords, width, riverName) {
     let wScale = rw * (0.55 + 0.75 * tSourceMouth);
     wScale *= 0.97 + 0.05 * Math.sin(i * 0.11);  // tiny organic wobble
     // Estuary flare (last 22% of extended path widens into the sea)
+    // + per-vertex RGBA: color drifts toward sea-warm and alpha fades to 0 over
+    // the flare region, so the river "dissolves" into sea/background instead of
+    // ending in a hard line.
+    let rR = 1, rG = 1, rB = 1, rA = 1;
     if (isEstuary) {
-      const _t = i / (cpts.length - 1), _es = .78 * origLen / (cpts.length - 1);
-      if (_t > _es) { const _e = (_t - _es) / (1 - _es); wScale *= 1 + _e * _e * rw * 25; }
+      const _t = i / (cpts.length - 1), _es = .62 * origLen / (cpts.length - 1);
+      if (_t > _es) {
+        const _e = Math.min(1, (_t - _es) / (1 - _es));
+        wScale *= 1 + _e * _e * rw * 25;
+        // smooth cubic fade — starts gentle, accelerates at mouth
+        const fade = _e * _e * (3 - 2 * _e);
+        // warm tint toward sepia (0.66, 0.51, 0.31 = bg #a8824f) then alpha→0
+        rR = 1 - fade * 0.00;       // keep red channel high (silk stays luminous)
+        rG = 1 - fade * 0.18;       // dim green slightly
+        rB = 1 - fade * 0.48;       // drop blue so silk shifts to warm
+        rA = 1 - fade;              // alpha disappears
+      }
     }
     const half = wScale / 2;
     verts.push(p.x + nx * half, p.y, p.z + nz * half,
       p.x - nx * half, p.y, p.z - nz * half);
     const u = i / (cpts.length - 1) * 6;
     uvs.push(u, 0, u, 1);
+    colors.push(rR, rG, rB, rA, rR, rG, rB, rA);
     if (i < cpts.length - 1) { const b = i * 2; indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
   }
   const geo = new THREE.BufferGeometry();
   geo.setIndex(indices);
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
   geo.computeVertexNormals();
   const tex = mkSilkTex();
   const mat = new THREE.MeshBasicMaterial({
     map: tex,
+    vertexColors: true,     // enable the per-vertex RGBA fade at the estuary
     transparent: true,
     opacity: 1.0,
     side: THREE.DoubleSide,
