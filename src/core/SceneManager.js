@@ -8,6 +8,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { SSAOPass }      from 'three/examples/jsm/postprocessing/SSAOPass.js';
 import { makeInkWashPass } from './InkWashPass.js';
+import { initPetals, updatePetals } from './PetalParticles.js';
 // Real atmospheric sky (Rayleigh/Mie scattering)
 import { Sky }           from 'three/examples/jsm/objects/Sky.js';
 
@@ -30,7 +31,7 @@ import { cacheGet, cachePut, cacheKeyFor } from './TerrainCache.js';
 import { riverMeshes, mkRiver, buildRiverLabels, riverLabels } from './RiverBuilder.js';
 import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.js';
 import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
-import { cloudGroups, mkCloudCluster, mkMistBand, finalizeCloudOpacity } from './CloudBuilder.js';
+import { cloudGroups, mkCloudCluster, mkMistBand, mkDistantSilhouette, finalizeCloudOpacity } from './CloudBuilder.js';
 import { beamMeshes, mkLightBeam } from './BeamBuilder.js';
 import { makeWaterMaterial, waterMaterials } from './WaterMaterial.js';
 
@@ -161,7 +162,10 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // Scene
   scene = new THREE.Scene();
   scene.background = null;
-  scene.fog = new THREE.FogExp2(0x8c7040, 0.0012);
+  // Aerial perspective: fog color matches the warm scroll-paper background so
+  // distant terrain dissolves cleanly into the page. Density bumped from
+  // 0.0012 → 0.0020 for a more palpable atmospheric depth on overhead view.
+  scene.fog = new THREE.FogExp2(0xa8824f, 0.0020);
 
   // Camera
   let W = window.innerWidth, H = window.innerHeight;
@@ -471,6 +475,23 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     const y = Math.max(0.5, scaleH(isFinite(hm) ? hm : 200)) + 1.8 + Math.random() * 1.0;
     mkMistBand(x, y, z, mw, mh, scene);
   });
+
+  // ═══ Drifting blossom petals ═══
+  initPetals(scene, { count: MOB ? 50 : 110 });
+
+  // ═══ 远山剪影 — Distant silhouette bands framing the scroll ═══
+  // PW=130, PH=90; terrain center at X=8, Z=0. Place dark silhouettes just
+  // inside the far edges so they fade into the fog and read as "mountains
+  // continuing beyond the paper".
+  const SILHOUETTE_SITES = [
+    { x:  -58, z:  -38, w: 40, h: 7 },  // NW
+    { x:   75, z:  -32, w: 36, h: 7 },  // NE
+    { x:  -55, z:   40, w: 38, h: 6 },  // SW
+    { x:   70, z:   38, w: 34, h: 6 }   // SE
+  ];
+  SILHOUETTE_SITES.forEach(({ x, z, w: sw, h: sh }) => {
+    mkDistantSilhouette(x, 1.8 + Math.random() * 0.8, z, sw, sh, scene);
+  });
   if (prog) prog.style.width = '100%';
 
   // ═══ Start render loop ═══
@@ -644,6 +665,9 @@ function animate() {
       u.uCamPos.value.copy(camera.position);
     }
   }
+
+  // Drifting petals
+  updatePetals(t, dt);
 
   // LOD update
   if (terrainLOD) terrainLOD.update(camera);

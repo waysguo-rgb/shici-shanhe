@@ -98,6 +98,47 @@ export function mkMistBand(x, y, z, baseW, baseH, scene) {
   return group;
 }
 
+// ═══════════════════════════════════════
+// Distant-silhouette mist — wide, dark sepia band placed near the scene edges.
+// Reads as 远山如黛 (distant dark mountains fading into haze) framing the map.
+// Sits very low, spans wide, very translucent dark brown.
+// ═══════════════════════════════════════
+export function mkDistantSilhouette(x, y, z, baseW, baseH, scene) {
+  const group = new THREE.Group();
+  const sliceCount = 3 + Math.floor(Math.random() * 2);
+  for (let j = 0; j < sliceCount; j++) {
+    const tex = mkCloudTex(0.6 + Math.random() * 0.2);
+    // Dark sepia — warmer and more saturated than mist, cooler than terrain
+    const tint = new THREE.Color().setHSL(
+      0.08 + Math.random() * 0.02,  // brown-orange hue
+      0.35 + Math.random() * 0.10,  // more saturated
+      0.24 + Math.random() * 0.06   // quite dark
+    );
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex, color: tint, transparent: true, opacity: 0.28 + Math.random() * 0.10,
+      depthWrite: false, fog: true
+    }));
+    sprite.scale.set(baseW * (0.9 + Math.random() * 0.3), baseH * (0.55 + Math.random() * 0.2), 1);
+    sprite.position.set(
+      (j - (sliceCount - 1) / 2) * baseW * 0.45 + (Math.random() - 0.5) * 3,
+      (Math.random() - 0.5) * baseH * 0.2,
+      (Math.random() - 0.5) * baseH * 0.3
+    );
+    group.add(sprite);
+  }
+  group.position.set(x, y, z);
+  group.userData = {
+    baseY: y,
+    // Nearly still — these frame the scene, they shouldn't visibly drift
+    driftX: (Math.random() - 0.5) * 0.008,
+    driftZ: (Math.random() - 0.5) * 0.006,
+    phase: Math.random() * 6.28
+  };
+  scene.add(group);
+  cloudGroups.push(group);
+  return group;
+}
+
 // Store each cloud layer sprite's base opacity (called after init)
 export function finalizeCloudOpacity() {
   cloudGroups.forEach(cg => {
