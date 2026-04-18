@@ -202,74 +202,28 @@ def get_instruction(loc, title, author):
     return '请用从容优雅的语气朗读这首诗。'
 
 # ────────────────────────────────────────
-# 多音字 SSML 修正
-# ────────────────────────────────────────
-# Per-poem map of substring → space-separated tone-marked pinyin (e.g. 'fu2 ru2 he2').
-# Match is per-line: a substring is only replaced if it appears within a single line of the poem.
-# For a standalone single-character line (山坡羊·潼关怀古 的 兴), use the 1-char string as the key.
-# 豆包 Seed TTS 2.0 SSML: <phoneme alphabet="py" ph="...">字</phoneme>
-PHONEME_FIXES = {
-    '使至塞上':         {'燕然': 'yan1 ran2'},
-    '出塞':             {'不教': 'bu4 jiao4'},
-    '和张仆射塞下曲':   {'单于': 'chan2 yu2'},
-    '如梦令':           {'兴尽': 'xing4 jin4'},
-    '山坡羊·潼关怀古': {'兴': 'xing1'},
-    '早发白帝城':       {'朝辞': 'zhao1 ci2', '万重': 'wan4 chong2'},
-    '望岳':             {'夫如何': 'fu2 ru2 he2'},
-    '泊船瓜洲':         {'一水间': 'yi1 shui3 jian4'},
-    '淡黄柳':           {'强携酒': 'qiang3 xie2 jiu3'},
-    '渔家傲·秋思':     {'燕然': 'yan1 ran2'},
-    '秋思':             {'万重': 'wan4 chong2'},
-    '秋登兰山寄张五':   {'薄暮': 'bo2 mu4'},
-    '茅屋为秋风所破歌': {'三重': 'san1 chong2', '卷我': 'juan3 wo3'},
-    '蜀道难':           {'朝避': 'zhao1 bi4'},
-    '观猎':             {'角弓': 'jiao3 gong1'},
-    '邯郸冬至夜思家':   {'说着': 'shuo1 zhe5'},
-}
-
-def apply_phoneme_fixes(line, fixes):
-    """Replace polyphonic substrings in a single line with SSML <phoneme> tags."""
-    for sub, py in fixes.items():
-        if sub in line:
-            ssml = f'<phoneme alphabet="py" ph="{py}">{sub}</phoneme>'
-            line = line.replace(sub, ssml)
-    return line
-
-# ────────────────────────────────────────
 # 组装朗读文本
 # ────────────────────────────────────────
+# NOTE: 之前尝试过 <phoneme alphabet="py"> SSML 标注修正 16 处多音字,
+# 但 Seed TTS 2.0 不识别该标签, 反把 "phoneme alphabet py ph" 当英文念出来,
+# 已撤回. 若将来换支持 SSML 的 TTS 再恢复.
 def build_text(poem):
-    """组装文本; 含 SSML phoneme 修正; 返回 (text, has_ssml)."""
+    """组装纯文本, 情绪由 context_texts 控制."""
     title = poem['title']
     author = poem['author']
     dynasty = poem['dynasty']
     lines = poem['lines']
     dyn_text = dynasty if dynasty.endswith('代') else dynasty + '代'
-
-    fixes = PHONEME_FIXES.get(title, {})
-    has_ssml = False
-
     parts = [title, '。', dyn_text, '，', author, '。']
     for line in lines:
-        if fixes:
-            new_line = apply_phoneme_fixes(line, fixes)
-            if new_line != line:
-                has_ssml = True
-            parts.append(new_line)
-        else:
-            parts.append(line)
+        parts.append(line)
         parts.append('。')
-
-    text = ''.join(parts)
-    # SSML 模式需要 <speak> 包裹
-    if has_ssml:
-        text = f'<speak>{text}</speak>'
-    return text, has_ssml
+    return ''.join(parts)
 
 # ────────────────────────────────────────
 # Doubao TTS 2.0 HTTP Chunked API 调用
 # ────────────────────────────────────────
-def synthesize(text, voice, instruction, out_path, retries=6, ssml=False):
+def synthesize(text, voice, instruction, out_path, retries=6):
     headers = {
         'Content-Type': 'application/json',
         'X-Api-Key': API_KEY,
@@ -287,9 +241,6 @@ def synthesize(text, voice, instruction, out_path, retries=6, ssml=False):
         },
         'additions': json.dumps(additions, ensure_ascii=False),
     }
-    if ssml:
-        # 启用 SSML 解析以支持 <phoneme> 多音字标注
-        req_params['text_type'] = 'ssml'
     body = {
         'user': {'uid': 'poetry-map'},
         'req_params': req_params,
@@ -415,23 +366,19 @@ def main():
             print(f'[{i+1:3}/{total}] · 已存在: {loc_name}/{title}.mp3')
             continue
 
-        text, has_ssml = build_text(poem)
+        text = build_text(poem)
         instruction = get_instruction(loc_name, title, poem['author'])
 
         if args.dry_run:
-            tag = ' [SSML]' if has_ssml else ''
-            print(f'[{i+1:3}/{total}] · {loc_name}/{title}{tag}')
+            print(f'[{i+1:3}/{total}] · {loc_name}/{title}')
             print(f'          instruction: {instruction[:60]}')
-            if has_ssml:
-                print(f'          text: {text[:160]}...')
             continue
 
         try:
-            size = synthesize(text, voice, instruction, out_path, ssml=has_ssml)
+            size = synthesize(text, voice, instruction, out_path)
             ok += 1
             bytes_total += size
-            tag = ' [SSML]' if has_ssml else ''
-            print(f'[{i+1:3}/{total}] ✓ {loc_name}/{title}{tag} | {size//1024}KB')
+            print(f'[{i+1:3}/{total}] ✓ {loc_name}/{title} | {size//1024}KB')
         except Exception as e:
             fail += 1
             failures.append((loc_name, title, str(e)))
