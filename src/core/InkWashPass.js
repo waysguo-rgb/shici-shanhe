@@ -16,10 +16,11 @@ const InkWashShader = {
   uniforms: {
     tDiffuse:       { value: null },
     uRes:           { value: new THREE.Vector2(1, 1) },
-    uPaperStrength: { value: 0.085 },
-    uWarmth:        { value: 0.10  },
-    uDesat:         { value: 0.10  },
-    uVignette:      { value: 0.28  },
+    // 水墨感强化 (不动边缘墨线阈值/强度, 避免回到"脏"的状态).
+    uPaperStrength: { value: 0.115 },  // 宣纸纤维更可辨 (0.085 → 0.115)
+    uWarmth:        { value: 0.14  },  // 暖调更像绢本 (0.10 → 0.14)
+    uDesat:         { value: 0.14  },  // 向墨调收窄色阶 (0.10 → 0.14)
+    uVignette:      { value: 0.32  },  // 卷轴边缘压暗一点 (0.28 → 0.32)
     // Sobel ink stroke — threshold stays high (only real edges get ink, no
     // noise), but strength is the middle-ground 0.40: visible brushwork on
     // rivers/coastlines/ridges without descending into "dirty" density.

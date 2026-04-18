@@ -257,12 +257,15 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   dl.castShadow = true;
   dl.shadow.mapSize.set(MOB ? 1024 : 2048, MOB ? 1024 : 2048);
   // Orthographic shadow camera — covers the whole terrain plane (PW=130, PH=90)
-  dl.shadow.camera.left   = -95;
-  dl.shadow.camera.right  =  95;
-  dl.shadow.camera.top    =  75;
-  dl.shadow.camera.bottom = -75;
+  // 收紧 ortho frustum 到实际地形覆盖范围 (PW=130 PH=90, 中心 x=8):
+  //   原 190×150 → 160×116, shadowMap 2048² 每单位密度从 ~11 texel 升到 ~14,
+  //   阴影边缘更清晰 (shadowMap 分辨率不变, 画质不降). far 240→200 同理.
+  dl.shadow.camera.left   = -72;
+  dl.shadow.camera.right  =  88;
+  dl.shadow.camera.top    =  58;
+  dl.shadow.camera.bottom = -58;
   dl.shadow.camera.near   =   1;
-  dl.shadow.camera.far    = 240;
+  dl.shadow.camera.far    = 200;
   dl.shadow.bias       = -0.0008;
   dl.shadow.normalBias =  0.02;
   dl.shadow.radius     =  3;
