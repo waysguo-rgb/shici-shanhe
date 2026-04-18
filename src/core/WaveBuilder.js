@@ -93,9 +93,9 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
 // ═══════════════════════════════════════
 export function buildCoastWaves() {
   const grp = new THREE.Group();
-  // 密度再减: 新波形更大更圆, 不需要密集就能覆盖海岸.
-  // spacing 6 → 10, 层数 2 → 1 (只保留最贴岸层 LC[0])
-  const spacing = MOB ? 14 : 10;
+  // 国潮 line-art 波形视觉 weight 较轻, 密度略回调 (10 → 7).
+  // 保持单层, 避免堆叠时描边互相切割.
+  const spacing = MOB ? 10 : 7;
   const nLayers = 1;
   const LC = [
     [0.3, 3.0, .30, .50, .12, .02],
