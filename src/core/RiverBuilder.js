@@ -86,12 +86,14 @@ export function mkRiver(coords, width, riverName) {
     smH[i] = s / n + 0.12;
   }
 
-  // Estuary: force descent to sea level in last 18%
+  // Estuary: force descent to BELOW sea level in last 18% so the river tip
+  // tucks under the water surface (海平面 y=-0.04), 看起来像汇入海里而不是
+  // "漂在海面上". 末端 -0.08 比海面低 4 单位.
   if (isEstuary) {
     const _fs = Math.floor(origLen * .82), _sh = smH[_fs];
     for (let i = _fs; i < cpts.length; i++) {
       const t = (i - _fs) / (cpts.length - 1 - _fs || 1);
-      smH[i] = _sh * (1 - t) + (-0.02) * t;
+      smH[i] = _sh * (1 - t) + (-0.08) * t;
     }
   }
 

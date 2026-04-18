@@ -1,4 +1,5 @@
-// Wave sprites: strait wave patches + coast wave generation + animation
+// 海浪: 把原来的 Sprite billboard 换成"贴在水面"的水平 PlaneGeometry mesh,
+// 让从上往下俯视时浪花真的像铺在海面上, 而不是立在水面上空飘.
 import * as THREE from 'three';
 import { MOB, SX, SY } from '../data/constants.js';
 import { BD_MAIN } from '../data/boundaries.js';
@@ -10,30 +11,34 @@ export const waveMeshes = [];
 export const coastWaveData = [];
 
 // ═══════════════════════════════════════
-// Per-sprite color variation (淡蓝 → 青 → 浅灰蓝, 个别偏暖白)
-// 给每个浪沫 sprite 一点点不同的颜色, 避免完全一致显得呆板
+// Per-mesh tint 微调, 避免整片浪颜色完全一致
 // ═══════════════════════════════════════
 const _waveTints = [
-  new THREE.Color('#dfeff5'),  // 浅蓝白 (主调)
-  new THREE.Color('#cfe4ee'),  // 偏冷
-  new THREE.Color('#e6eef0'),  // 偏暖白
-  new THREE.Color('#bfdce7'),  // 中蓝
-  new THREE.Color('#d8e8ec'),  // 灰青
+  new THREE.Color('#dfeff5'),
+  new THREE.Color('#cfe4ee'),
+  new THREE.Color('#e6eef0'),
+  new THREE.Color('#bfdce7'),
+  new THREE.Color('#d8e8ec'),
 ];
-function _pickTint() {
-  return _waveTints[Math.floor(Math.random() * _waveTints.length)];
+function _pickTint() { return _waveTints[Math.floor(Math.random() * _waveTints.length)]; }
+
+// 预烘一个水平朝向的 plane geometry (只做一次, 后续共享实例化不同尺寸)
+// 水平放置: rotateX(-π/2) 之后 plane 的原 +Y 指向 world -Z.
+function _mkWaveGeo(w, h) {
+  const g = new THREE.PlaneGeometry(w, h);
+  g.rotateX(-Math.PI / 2);
+  return g;
 }
 
 // ═══════════════════════════════════════
-// Wave patch (strait / sea area sprites)
+// Strait wave patch — 海峡/浅海区浪花
+// 平铺多条水平浪, 各自独立 y-rotation, 轻微 opacity 呼吸
 // ═══════════════════════════════════════
 export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
-  const baseW = 3.8;
-  const baseH = baseW * 0.52;
+  const baseW = 3.8, baseH = baseW * 0.52;
   const group = new THREE.Group();
   const [ccx, ccz] = ll2s(loCen, laCen);
-  const areaW = loSpan * 1.6;
-  const areaH = laSpan * 1.8;
+  const areaW = loSpan * 1.6, areaH = laSpan * 1.8;
   const cols = Math.max(2, Math.floor(areaW / (baseW * 0.70)));
   const rows = Math.max(1, Math.floor(areaH / (baseH * 1.4)));
 
@@ -43,39 +48,33 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
       const px = -areaW / 2 + (co + 0.5) * areaW / cols + (r % 2 ? baseW * 0.3 : 0);
       const pz = -areaH / 2 + (r + 0.5) * areaH / rows;
       const layers = [
-        { dy: 0.08, scale: 1.00, op: 1.0, zOff: 0, depth: 0 },
-        { dy: 0.03, scale: 0.78, op: 0.85, zOff: -0.15, depth: 1 }
+        { op: 0.9,  scale: 1.00 },
+        { op: 0.65, scale: 0.78 },
       ];
       layers.forEach((L, idx) => {
-        const mat = new THREE.SpriteMaterial({
+        const jitter = 0.88 + Math.random() * 0.24;
+        const sw = baseW * L.scale * jitter;
+        const sh = baseH * L.scale * jitter;
+        const geo = _mkWaveGeo(sw, sh);
+        const mat = new THREE.MeshBasicMaterial({
           map: _sharedWaveTex,
           transparent: true,
           opacity: L.op,
           depthWrite: false,
-          color: _pickTint().clone()
+          color: _pickTint().clone(),
+          side: THREE.DoubleSide,
         });
-        const sp = new THREE.Sprite(mat);
-        const jitter = 0.88 + Math.random() * 0.24;
-        const sw = baseW * L.scale * jitter;
-        const sh = baseH * L.scale * jitter;
-        // 一半 sprite 镜像翻转 — 把符号烘进 baseW, 这样 animation 重写 scale 时也能保留
-        const flip = Math.random() < 0.5 ? -1 : 1;
-        const sw_signed = sw * flip;
-        sp.scale.set(sw_signed, sh, 1);
-        sp.position.set(px, L.dy + sh * 0.5, pz + L.zOff);
-        sp.renderOrder = 5 + L.depth;
+        const sp = new THREE.Mesh(geo, mat);
+        const baseAngle = Math.random() * Math.PI * 2;  // 朝向随机
+        sp.rotation.y = baseAngle;
+        // 非常贴近水面 y, 海面在 -0.04, 浪花比它高一点点
+        sp.position.set(px, 0.008 + idx * 0.002, pz);
+        sp.renderOrder = 5 + idx;
         sp.userData = {
-          baseX: px,
-          baseY: sp.position.y,
-          baseZ: sp.position.z,
-          baseW: sw_signed,
-          baseH: sh,
           baseOp: L.op,
+          baseAngle,
           phase: Math.random() * Math.PI * 2 + co * 0.4 + r * 0.3,
-          speed: 0.9 + Math.random() * 0.6,
-          swayAmp: 0.06 + Math.random() * 0.05,
-          bobAmp: 0.10 + Math.random() * 0.08,
-          rollSpeed: (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * 0.4)
+          speed: 0.5 + Math.random() * 0.4,
         };
         group.add(sp);
         sprites.push(sp);
@@ -89,18 +88,18 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
 }
 
 // ═══════════════════════════════════════
-// Coast waves: auto-placed along coastline
+// Coast waves — 沿海岸线自动布点
+// 每朵浪水平放置, y-rotation 对齐海岸外法向 (浪峰朝向外海)
 // ═══════════════════════════════════════
 export function buildCoastWaves() {
   const grp = new THREE.Group();
-  // 国潮 line-art 波形视觉 weight 较轻, 密度略回调 (10 → 7).
-  // 保持单层, 避免堆叠时描边互相切割.
   const spacing = MOB ? 10 : 7;
   const nLayers = 1;
+  // [outward offset, width, aspect ratio, opacity, -, -]
   const LC = [
-    [0.3, 3.0, .30, .50, .12, .02],
-    [2.0, 1.8, .48, .65, .35, .04],
-    [4.5, 2.2, .48, .50, .55, .05],
+    [0.3, 3.0, .30, .55],
+    [2.0, 1.8, .48, .65],
+    [4.5, 2.2, .48, .50],
   ];
   for (let i = 0; i < BD_MAIN.length; i++) {
     const j = (i + 1) % BD_MAIN.length;
@@ -130,24 +129,27 @@ export function buildCoastWaves() {
         const bW = c[1] * (.85 + Math.random() * .3);
         const bH = bW * c[2];
         const bOp = c[3];
-        const mat = new THREE.SpriteMaterial({
+        const geo = _mkWaveGeo(bW, bH);
+        const mat = new THREE.MeshBasicMaterial({
           map: _sharedWaveTex,
           transparent: true,
           opacity: bOp,
           depthWrite: false,
-          color: _pickTint().clone()
+          color: _pickTint().clone(),
+          side: THREE.DoubleSide,
         });
-        const sp = new THREE.Sprite(mat);
-        // 一半 sprite 镜像翻转, 朝向多样化
-        const flip = Math.random() < 0.5 ? -1 : 1;
-        sp.scale.set(bW * flip, bH, 1);
-        sp.position.set(wx, .06 + L * .02, wz);
-        sp.renderOrder = 7 - L;
+        const sp = new THREE.Mesh(geo, mat);
+        // 图像 "up" 默认指向 world -Z; 想让"浪峰"朝海外法向 (nx, nz)
+        // 需要 rotation.y = atan2(nx, -nz)
+        const baseAngle = Math.atan2(nx, -nz);
+        sp.rotation.y = baseAngle;
+        sp.position.set(wx, 0.006, wz);  // 紧贴海面 (海面 -0.04)
+        sp.renderOrder = 5;
         coastWaveData.push({
-          sp, nx, nz, bx: wx, bz: wz, by: .06 + L * .02, bW: bW * flip, bH, bOp,
+          sp, bx: wx, bz: wz, bW, bH, bOp,
+          baseAngle,
           ph: Math.random() * 6.28 + i * .3 + s * .5,
           spd: .45 + Math.random() * .4,
-          surge: c[4], bob: c[5] + Math.random() * .03
         });
         grp.add(sp);
       }
@@ -157,18 +159,33 @@ export function buildCoastWaves() {
 }
 
 // ═══════════════════════════════════════
-// Coast wave animation (called each frame)
+// 每帧动画: 轻微 opacity 呼吸 + 角度微摆 + 尺度脉冲
 // ═══════════════════════════════════════
 export function animateSea(t) {
   for (let i = 0; i < coastWaveData.length; i++) {
-    const d = coastWaveData[i], ph = t * d.spd + d.ph;
+    const d = coastWaveData[i];
+    const ph = t * d.spd + d.ph;
     const sv = Math.sin(ph);
-    d.sp.position.x = d.bx - d.nx * sv * d.surge;
-    d.sp.position.z = d.bz - d.nz * sv * d.surge;
-    d.sp.position.y = d.by + Math.max(0, sv) * d.bob * 2.5 + Math.sin(ph * .9) * d.bob * .4;
     const crest = Math.max(0, sv);
-    d.sp.scale.set(d.bW * (1 + crest * .12), d.bH * (1 + crest * .25), 1);
-    d.sp.material.opacity = d.bOp * (.35 + (sv + 1) * .325);
-    d.sp.material.rotation = Math.sin(ph * .4) * .06;
+    // opacity 呼吸
+    d.sp.material.opacity = d.bOp * (0.55 + (sv + 1) * 0.225);
+    // 角度微摆 (±3°)
+    d.sp.rotation.y = d.baseAngle + Math.sin(ph * 0.35) * 0.05;
+    // 尺度小脉冲 (浪峰时略鼓)
+    const sc = 1 + crest * 0.08;
+    d.sp.scale.set(sc, 1, sc);
+  }
+  // Strait patches 同样呼吸
+  for (let i = 0; i < waveMeshes.length; i++) {
+    const g = waveMeshes[i];
+    if (!g.userData.sprites) continue;
+    for (let k = 0; k < g.userData.sprites.length; k++) {
+      const sp = g.userData.sprites[k];
+      const u = sp.userData;
+      const ph = t * u.speed + u.phase;
+      const sv = Math.sin(ph);
+      sp.material.opacity = u.baseOp * (0.6 + (sv + 1) * 0.2);
+      sp.rotation.y = u.baseAngle + Math.sin(ph * 0.4) * 0.05;
+    }
   }
 }
