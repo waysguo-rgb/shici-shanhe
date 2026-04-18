@@ -24,15 +24,21 @@
     <div class="bar"><div class="fill" ref="prog"></div></div>
   </div>
 
-  <!-- 背景音乐按钮 (默认隐藏, 鼠标靠近右下角才浮现) -->
+  <!-- 背景音乐控件组 (默认半透明常驻, hover 变清晰) -->
   <audio ref="bgmRef" loop></audio>
-  <button id="bgm-btn" :class="{ vis: bgmVisible }" :title="bgmLabel" @click="cycleBgm">
-    <span class="bgm-icon">{{ bgmIcon }}</span>
-  </button>
+  <div id="bgm-controls">
+    <button class="bgm-btn" @click="toggleMute" :title="bgmMuted ? '取消静音' : '静音'">
+      {{ bgmMuted ? '🔇' : '🔊' }}
+    </button>
+    <button class="bgm-btn" @click="switchTrack" :title="'切换到《' + nextTrackName + '》'">
+      ⇄
+    </button>
+    <input type="range" id="bgm-volume" min="0" max="1" step="0.01" v-model.number="bgmVolume" :title="'音量 ' + Math.round(bgmVolume*100) + '%'">
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import * as THREE from 'three'
 import {
   init as initScene,
@@ -53,17 +59,14 @@ const activeIdx = ref(-1)
 
 // ═══ BGM state ═══
 const bgmRef = ref(null)
-// state: 0 = 云水禅心, 1 = 半月琴, 2 = 静音
-const bgmState = ref(0)
-const bgmVisible = ref(false)
+const bgmIdx = ref(0)           // 当前曲目索引
+const bgmMuted = ref(false)     // 是否静音
+const bgmVolume = ref(0.38)     // 0 ~ 1
 const BGM_TRACKS = [
   { name: '云水禅心', file: 'assets/bgm/' + encodeURIComponent('云水禅心') + '.mp3' },
   { name: '半月琴',   file: 'assets/bgm/' + encodeURIComponent('半月琴')   + '.mp3' },
 ]
-const bgmIcon  = computed(() => bgmState.value === 2 ? '🔇' : '♪')
-const bgmLabel = computed(() => bgmState.value === 2
-  ? '静音中 · 点击播放《云水禅心》'
-  : `正在播放《${BGM_TRACKS[bgmState.value].name}》· 点击切换`)
+const nextTrackName = computed(() => BGM_TRACKS[(bgmIdx.value + 1) % BGM_TRACKS.length].name)
 
 // ═══ Audio state ═══
 let currentAudio = null
@@ -130,12 +133,12 @@ onMounted(async () => {
 function setupBgm() {
   const bgm = bgmRef.value
   if (!bgm) return
-  bgm.src = BGM_TRACKS[0].file
-  bgm.volume = 0.38
+  bgm.src = BGM_TRACKS[bgmIdx.value].file
+  bgm.volume = bgmVolume.value
   bgm.play().catch(() => {
-    // Autoplay was blocked by browser policy. Resume on first user gesture.
+    // Autoplay blocked by browser policy. Resume on first user gesture.
     const resume = () => {
-      if (bgmState.value !== 2) bgm.play().catch(() => {})
+      if (!bgmMuted.value) bgm.play().catch(() => {})
       window.removeEventListener('click', resume)
       window.removeEventListener('keydown', resume)
       window.removeEventListener('touchstart', resume)
@@ -144,35 +147,35 @@ function setupBgm() {
     window.addEventListener('keydown', resume, { once: true })
     window.addEventListener('touchstart', resume, { once: true })
   })
-
-  // Show button when mouse is within 120px of bottom-right corner
-  const REVEAL = 140
-  window.addEventListener('mousemove', (e) => {
-    const dx = window.innerWidth  - e.clientX
-    const dy = window.innerHeight - e.clientY
-    bgmVisible.value = (dx < REVEAL && dy < REVEAL)
-  })
-  // Also reveal briefly on any touch (mobile)
-  window.addEventListener('touchstart', () => {
-    bgmVisible.value = true
-    setTimeout(() => { bgmVisible.value = false }, 2500)
-  })
 }
 
-function cycleBgm() {
+function toggleMute() {
   const bgm = bgmRef.value
   if (!bgm) return
-  // 0 → 1 → 2 → 0 (云水禅心 → 半月琴 → 静音 → 云水禅心)
-  const next = (bgmState.value + 1) % 3
-  bgmState.value = next
-  if (next === 2) {
-    bgm.pause()
-  } else {
-    bgm.src = BGM_TRACKS[next].file
-    bgm.currentTime = 0
+  bgmMuted.value = !bgmMuted.value
+  if (bgmMuted.value) bgm.pause()
+  else bgm.play().catch(() => {})
+}
+
+function switchTrack() {
+  const bgm = bgmRef.value
+  if (!bgm) return
+  bgmIdx.value = (bgmIdx.value + 1) % BGM_TRACKS.length
+  bgm.src = BGM_TRACKS[bgmIdx.value].file
+  bgm.currentTime = 0
+  if (!bgmMuted.value) bgm.play().catch(() => {})
+}
+
+// Slider ↔ audio.volume (also un-mutes if user drags volume up)
+watch(bgmVolume, (v) => {
+  const bgm = bgmRef.value
+  if (!bgm) return
+  bgm.volume = v
+  if (v > 0 && bgmMuted.value) {
+    bgmMuted.value = false
     bgm.play().catch(() => {})
   }
-}
+})
 
 // ═══ Label interaction ═══
 function onLabelClick(i) { selectLoc(i) }
