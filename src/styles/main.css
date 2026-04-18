@@ -199,3 +199,85 @@ opacity:0.6}
   width:13px;height:13px;border-radius:50%;
   background:#5a2e10;border:1px solid rgba(255,240,200,.6);cursor:pointer;
 }
+
+/* ═══ 右上角工具栏: 搜索 + 收藏 ═══ */
+#tools{position:fixed;top:22px;right:22px;z-index:950;display:flex;gap:7px;
+  padding:6px 8px;border-radius:24px;
+  background:linear-gradient(135deg,rgba(225,195,130,0.55),rgba(168,130,79,0.55));
+  border:1px solid rgba(70,40,15,0.30);
+  box-shadow:0 3px 10px rgba(40,20,5,0.25);
+  backdrop-filter:blur(5px);
+  opacity:.22;transition:opacity .35s ease;}
+#tools:hover,#tools:focus-within{opacity:.96}
+.tool-btn{width:34px;height:34px;border-radius:50%;padding:0;position:relative;
+  background:rgba(245,220,170,0.55);border:1px solid rgba(70,40,15,0.42);
+  color:#2a1408;font-size:16px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,transform .15s;}
+.tool-btn:hover{background:rgba(252,232,185,0.95);transform:scale(1.08)}
+.tool-btn:active{transform:scale(.94)}
+.tool-btn.open{background:rgba(252,232,185,0.95)}
+.tool-badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;
+  padding:0 4px;border-radius:8px;background:#9a2810;color:#fff2d0;
+  font-size:10px;font-weight:700;line-height:16px;text-align:center;
+  box-shadow:0 1px 3px rgba(40,20,5,.4)}
+
+/* ═══ 搜索弹层 ═══ */
+#search-pane,#favs-pane{position:fixed;inset:0;z-index:1100;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding-top:80px;
+  background:radial-gradient(ellipse at center,rgba(90,58,22,0.45) 0%,rgba(52,32,12,0.70) 100%);
+  backdrop-filter:blur(4px);
+  animation:paneIn .25s ease}
+@keyframes paneIn{from{opacity:0}to{opacity:1}}
+.search-box,.favs-box{width:min(560px,88vw);max-height:75vh;
+  background:rgba(240,218,170,0.97);border:1px solid rgba(70,40,15,0.4);
+  border-radius:8px;box-shadow:0 8px 40px rgba(30,15,4,0.55);
+  display:flex;flex-direction:column;overflow:hidden;
+  font-family:'Noto Serif SC',serif;color:#2a1408}
+.search-box input{width:100%;padding:14px 38px 14px 16px;border:none;outline:none;
+  background:transparent;font-size:17px;font-family:inherit;
+  border-bottom:1px solid rgba(70,40,15,0.25);color:#2a1408}
+.search-box input::placeholder{color:rgba(70,40,15,0.5)}
+.close-x{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;
+  border:none;background:rgba(70,40,15,0.1);color:#5a3010;
+  cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.close-x:hover{background:rgba(70,40,15,0.25)}
+.search-box{position:relative}
+.search-results{overflow-y:auto;flex:1}
+.search-empty,.favs-empty{padding:24px;text-align:center;color:#6a3f18;opacity:.7;font-size:14px}
+.search-hit{padding:10px 16px;border-bottom:1px solid rgba(70,40,15,0.12);cursor:pointer;transition:background .15s}
+.search-hit:hover{background:rgba(255,235,180,0.6)}
+.hit-main{font-size:15px;font-weight:600}
+.hit-title{color:#2a1408}
+.hit-author{color:#6a3f18;font-weight:400;margin-left:8px;font-size:13px}
+.hit-sub{font-size:12px;color:#6a3f18;opacity:.75;margin-top:2px}
+
+/* ═══ 收藏弹层 ═══ */
+.favs-hdr{padding:12px 16px;border-bottom:1px solid rgba(70,40,15,0.25);
+  display:flex;align-items:center;justify-content:space-between;
+  font-weight:700;position:relative;font-size:15px}
+.favs-hdr .close-x{position:static}
+.favs-list{overflow-y:auto;flex:1}
+.fav-item{padding:10px 44px 10px 16px;border-bottom:1px solid rgba(70,40,15,0.12);
+  cursor:pointer;position:relative;transition:background .15s}
+.fav-item:hover{background:rgba(255,235,180,0.6)}
+.fav-main{font-size:15px;font-weight:600;color:#2a1408}
+.fav-sub{font-size:12px;color:#6a3f18;opacity:.8;margin-top:2px}
+.fav-del{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;border-radius:50%;border:none;
+  background:transparent;color:#9a2810;cursor:pointer;opacity:0;transition:opacity .15s;font-size:12px}
+.fav-item:hover .fav-del{opacity:.8}
+.fav-del:hover{opacity:1;background:rgba(154,40,16,0.12)}
+
+/* ═══ 诗词上的收藏按钮 (心形) ═══ */
+.fav-toggle{position:absolute;top:4px;left:-2px;width:22px;height:22px;
+  border:none;background:transparent;cursor:pointer;padding:0;
+  color:rgba(154,40,16,0.42);font-size:16px;line-height:1;
+  transition:color .2s,transform .15s;z-index:3}
+.fav-toggle:hover{color:#9a2810;transform:scale(1.2)}
+.fav-toggle.on{color:#9a2810}
+
+/* 从搜索/收藏跳转时短暂高亮该诗词 */
+.pe.highlighted{animation:peHi 1.6s ease}
+@keyframes peHi{0%,100%{box-shadow:none}30%,60%{box-shadow:0 0 0 3px rgba(255,180,60,0.55),0 0 20px rgba(255,180,60,0.35)}}

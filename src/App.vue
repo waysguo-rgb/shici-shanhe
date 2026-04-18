@@ -24,6 +24,48 @@
     <div class="bar"><div class="fill" ref="prog"></div></div>
   </div>
 
+  <!-- 右上角工具栏: 搜索 + 收藏 -->
+  <div id="tools">
+    <button class="tool-btn" :class="{open: searchOpen}" @click="toggleSearch" :title="'搜索诗词'">🔍</button>
+    <button class="tool-btn" :class="{open: favsOpen, 'has-count': favs.length}" @click="toggleFavs" :title="'收藏夹'">
+      <span>★</span>
+      <span v-if="favs.length" class="tool-badge">{{ favs.length }}</span>
+    </button>
+  </div>
+
+  <!-- 搜索弹层 -->
+  <div id="search-pane" v-if="searchOpen" @click.self="searchOpen = false">
+    <div class="search-box">
+      <input ref="searchInput" v-model="searchQuery" type="text" placeholder="搜诗词 · 作者 · 地名 · 诗句" @keydown.escape="searchOpen = false">
+      <button class="close-x" @click="searchOpen = false">✕</button>
+      <div class="search-results" v-if="searchQuery.trim()">
+        <div v-if="searchResults.length === 0" class="search-empty">无匹配</div>
+        <div v-for="r in searchResults" :key="r.locIdx + '|' + r.pi" class="search-hit" @click="jumpToPoem(r.locIdx, r.pi)">
+          <div class="hit-main"><span class="hit-title">{{ r.poem.t }}</span><span class="hit-author">· {{ r.poem.a }} · {{ r.poem.d }}</span></div>
+          <div class="hit-sub">{{ r.locName }}{{ r.snippet ? ' · ' + r.snippet : '' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 收藏夹弹层 -->
+  <div id="favs-pane" v-if="favsOpen" @click.self="favsOpen = false">
+    <div class="favs-box">
+      <div class="favs-hdr">
+        <span>收藏夹 · {{ favs.length }}</span>
+        <button class="close-x" @click="favsOpen = false">✕</button>
+      </div>
+      <div class="favs-list" v-if="favs.length">
+        <div v-for="(f, idx) in favs" :key="f.locName + '|' + f.title" class="fav-item" @click="jumpToFav(f)">
+          <div class="fav-main"><span class="fav-title">{{ f.title }}</span></div>
+          <div class="fav-sub">{{ f.dynasty }} · {{ f.author }} · {{ f.locName }}</div>
+          <button class="fav-del" @click.stop="removeFav(idx)" title="移除收藏">✕</button>
+        </div>
+      </div>
+      <div v-else class="favs-empty">尚无收藏 · 打开诗词点 ♡ 即可收藏</div>
+    </div>
+  </div>
+
   <!-- 背景音乐控件组 (默认半透明常驻, hover 变清晰) -->
   <audio ref="bgmRef" loop></audio>
   <div id="bgm-controls">
@@ -56,6 +98,121 @@ const loadingOff = ref(false)
 const panelOpen = ref(false)
 const locations = ref([])
 const activeIdx = ref(-1)
+
+// ═══ Search + Favorites ═══
+const searchOpen = ref(false)
+const searchQuery = ref('')
+const searchInput = ref(null)
+const favsOpen = ref(false)
+const FAVS_KEY = 'poetry-favs-v1'
+const favs = ref(JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'))
+
+function toggleSearch() {
+  searchOpen.value = !searchOpen.value
+  if (searchOpen.value) {
+    favsOpen.value = false
+    nextTick(() => searchInput.value?.focus())
+  }
+}
+function toggleFavs() {
+  favsOpen.value = !favsOpen.value
+  if (favsOpen.value) searchOpen.value = false
+}
+
+// 搜索结果: 匹配 标题/作者/朝代/地名/诗句, 最多 30 条
+const searchResults = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return []
+  const hits = []
+  const locs = locations.value
+  for (let i = 0; i < locs.length; i++) {
+    const loc = locs[i]
+    const locNameLower = loc.n.toLowerCase()
+    for (let pi = 0; pi < loc.ps.length; pi++) {
+      const p = loc.ps[pi]
+      let snippet = ''
+      const inTitle  = p.t.toLowerCase().includes(q)
+      const inAuthor = p.a.toLowerCase().includes(q)
+      const inDyn    = p.d.toLowerCase().includes(q)
+      const inLoc    = locNameLower.includes(q)
+      let inLine = false
+      for (let k = 0; k < p.l.length; k++) {
+        if (p.l[k].toLowerCase().includes(q)) { snippet = p.l[k]; inLine = true; break }
+      }
+      if (inTitle || inAuthor || inDyn || inLoc || inLine) {
+        hits.push({ locIdx: i, locName: loc.n, pi, poem: p, snippet: inLine ? snippet : '' })
+        if (hits.length >= 30) return hits
+      }
+    }
+  }
+  return hits
+})
+
+function isFav(locName, title) {
+  return favs.value.some(f => f.locName === locName && f.title === title)
+}
+function addFav(locName, poem) {
+  if (isFav(locName, poem.t)) return
+  favs.value.push({ locName, title: poem.t, author: poem.a, dynasty: poem.d })
+  localStorage.setItem(FAVS_KEY, JSON.stringify(favs.value))
+}
+function toggleFav(locName, poem) {
+  const i = favs.value.findIndex(f => f.locName === locName && f.title === poem.t)
+  if (i >= 0) {
+    favs.value.splice(i, 1)
+  } else {
+    favs.value.push({ locName, title: poem.t, author: poem.a, dynasty: poem.d })
+  }
+  localStorage.setItem(FAVS_KEY, JSON.stringify(favs.value))
+  // Re-render to update heart icons in currently open panel
+  refreshFavButtons()
+}
+function removeFav(idx) {
+  favs.value.splice(idx, 1)
+  localStorage.setItem(FAVS_KEY, JSON.stringify(favs.value))
+  refreshFavButtons()
+}
+
+// Update all visible heart icons to match favs state (called after toggle)
+function refreshFavButtons() {
+  const nodes = document.querySelectorAll('.pe .fav-toggle')
+  nodes.forEach(btn => {
+    const loc = btn.dataset.loc, t = btn.dataset.title
+    btn.classList.toggle('on', isFav(loc, t))
+    btn.textContent = isFav(loc, t) ? '♥' : '♡'
+  })
+}
+
+async function jumpToPoem(locIdx, poemIdx) {
+  searchOpen.value = false
+  selectLoc(locIdx)
+  await nextTick()
+  await new Promise(r => setTimeout(r, 200))
+  // Scroll horizontally so the target poem sits in view
+  const pes = poContent.value?.querySelectorAll('.pe')
+  if (!pes || !pes[poemIdx]) return
+  const pe = pes[poemIdx]
+  const box = poBox.value
+  if (box && pe) {
+    const peRect = pe.getBoundingClientRect()
+    const boxRect = box.getBoundingClientRect()
+    // center the poem in the box view
+    const target = box.scrollLeft + (peRect.left - boxRect.left) - (boxRect.width - peRect.width) / 2
+    box.scrollTo({ left: target, behavior: 'smooth' })
+    pe.classList.add('highlighted')
+    setTimeout(() => pe.classList.remove('highlighted'), 1600)
+  }
+}
+
+async function jumpToFav(f) {
+  favsOpen.value = false
+  const locs = locations.value
+  const locIdx = locs.findIndex(l => l.n === f.locName)
+  if (locIdx < 0) return
+  const poemIdx = locs[locIdx].ps.findIndex(p => p.t === f.title)
+  if (poemIdx < 0) return
+  jumpToPoem(locIdx, poemIdx)
+}
 
 // ═══ BGM state ═══
 const bgmRef = ref(null)
@@ -205,10 +362,12 @@ function selectLoc(i) {
     const tl = poem.t.length
     const titleCls = tl > 8 ? 'pt pt-xs' : (tl > 6 ? 'pt pt-s' : (tl > 4 ? 'pt pt-m' : 'pt'))
     const hlCls = (poem.hl === true || (poem.hl !== false && pi === 0)) ? ' hl' : ''
+    const faved = isFav(loc.n, poem.t)
     h += '<div class="pe' + hlCls + '"><div class="pm">' +
       '<div class="pd-row"><div class="ps">' + poem.d + '</div><div class="pa">' + poem.a + '</div></div>' +
       '<div class="' + titleCls + '" data-pi="' + pi + '" title="点击朗读">' + poem.t + '</div>'
     if (poem.excerpt) h += '<div class="pexc">节选</div>'
+    h += '<button class="fav-toggle' + (faved ? ' on' : '') + '" data-pi="' + pi + '" data-loc="' + loc.n + '" data-title="' + poem.t + '" title="收藏">' + (faved ? '♥' : '♡') + '</button>'
     h += '</div><div class="pl">'
     poem.l.forEach((l, li) => { h += `<div class="pv" style="animation-delay:${(pi * .20 + li * .06 + .20).toFixed(2)}s">${l}</div>` })
     h += '</div></div>'
@@ -224,6 +383,16 @@ function selectLoc(i) {
       const pi = parseInt(el.dataset.pi, 10)
       const poem = loc.ps[pi]
       if (poem) { speakPoem(poem, el); pulseBeam(activeIdx.value) }
+    })
+  })
+
+  // Bind fav toggle (heart button) click
+  poContent.value.querySelectorAll('.fav-toggle').forEach(el => {
+    el.addEventListener('click', ev => {
+      ev.stopPropagation()
+      const pi = parseInt(el.dataset.pi, 10)
+      const poem = loc.ps[pi]
+      if (poem) toggleFav(loc.n, poem)
     })
   })
 

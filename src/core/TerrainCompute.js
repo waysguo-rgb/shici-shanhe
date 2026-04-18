@@ -250,7 +250,7 @@ export function computeTerrainArrays(sgwt, sght, hdData, K, report) {
       if (inL) {
         sy = scaleH(hm);
         const dCoast = dSea(lo, la);  // 0 = on sea coast, 999 = inland or far
-        const COAST_BAND = 0.55;
+        const COAST_BAND = 1.0;  // 更宽更缓的滩坡 (之前 0.55)
         if (dCoast < COAST_BAND) {
           const t = dCoast / COAST_BAND;
           const fade = t * t * (3 - 2 * t);
