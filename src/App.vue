@@ -218,7 +218,8 @@ async function jumpToFav(f) {
 const bgmRef = ref(null)
 const bgmIdx = ref(0)           // 当前曲目索引
 const bgmMuted = ref(false)     // 是否静音
-const bgmVolume = ref(0.38)     // 0 ~ 1
+const bgmVolume = ref(0.20)     // 用户默认 20% (朗读时侧链自动降到 10%)
+let _bgmDuckFade = null
 const BGM_TRACKS = [
   { name: '云水禅心', file: 'assets/bgm/' + encodeURIComponent('云水禅心') + '.mp3' },
   { name: '半月琴',   file: 'assets/bgm/' + encodeURIComponent('半月琴')   + '.mp3' },
@@ -327,12 +328,40 @@ function switchTrack() {
 watch(bgmVolume, (v) => {
   const bgm = bgmRef.value
   if (!bgm) return
-  bgm.volume = v
+  // 只有在未处于 ducked 状态时才把 slider 值直接写到 audio.volume
+  if (!_bgmDucked) bgm.volume = v
   if (v > 0 && bgmMuted.value) {
     bgmMuted.value = false
     bgm.play().catch(() => {})
   }
 })
+
+// ═══ BGM 侧链衰减 (朗读期间自动降噪) ═══
+let _bgmDucked = false
+function _animateBgmVolume(to, duration) {
+  const bgm = bgmRef.value
+  if (!bgm) return
+  if (_bgmDuckFade) cancelAnimationFrame(_bgmDuckFade)
+  const from = bgm.volume
+  const start = performance.now()
+  const step = (t) => {
+    const k = Math.min(1, (t - start) / duration)
+    bgm.volume = from + (to - from) * k
+    if (k < 1) _bgmDuckFade = requestAnimationFrame(step)
+    else _bgmDuckFade = null
+  }
+  _bgmDuckFade = requestAnimationFrame(step)
+}
+function duckBgm() {
+  if (_bgmDucked) return
+  _bgmDucked = true
+  _animateBgmVolume(Math.min(0.10, bgmVolume.value * 0.5), 350)
+}
+function unduckBgm() {
+  if (!_bgmDucked) return
+  _bgmDucked = false
+  _animateBgmVolume(bgmVolume.value, 700)
+}
 
 // ═══ Label interaction ═══
 function onLabelClick(i) { selectLoc(i) }
@@ -496,6 +525,7 @@ function stopSpeak() {
   if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null }
   if (currentSpeakEl) currentSpeakEl.classList.remove('pt-speaking')
   currentSpeakEl = null; speaking = false
+  unduckBgm()
 }
 
 function pickBestVoice() {
@@ -520,6 +550,7 @@ function speakPoem(poem, titleEl) {
   currentSpeakEl = titleEl
   if (titleEl) titleEl.classList.add('pt-speaking')
   speaking = true
+  duckBgm()
 
   const L = getLocations()
   const loc = activeIdx.value >= 0 ? L[activeIdx.value] : null
@@ -545,6 +576,7 @@ function speakPoem(poem, titleEl) {
       if (titleEl) titleEl.classList.remove('pt-speaking')
       currentAudio = null
       if (currentSpeakEl === titleEl) currentSpeakEl = null
+      unduckBgm()
     })
   }).catch(() => fallbackTTS())
 
@@ -563,6 +595,7 @@ function speakPoem(poem, titleEl) {
         speaking = false
         if (titleEl) titleEl.classList.remove('pt-speaking')
         if (currentSpeakEl === titleEl) currentSpeakEl = null
+        unduckBgm()
         return
       }
       const u = utterances[idx++]

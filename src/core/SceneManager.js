@@ -43,6 +43,8 @@ export let camera = null;
 export let renderer = null;
 export let controls = null;
 export let composer = null;
+// HD-geometry shadow-catcher overlay; gated by camera distance in animate()
+let shadowOverlayRef = null;
 // Sky cube texture — shared by water shader for reflections.
 export let skyCube = null;
 
@@ -194,7 +196,9 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // RenderPass → Bloom (selectively lifts light beams + water highlights)
   //            → SMAA (subpixel morphological AA, desktop only — mobile uses MSAA from WebGL)
   composer = new EffectComposer(renderer);
-  composer.setPixelRatio(renderer.getPixelRatio());
+  // 后期管线 pixelRatio 封顶 1.5, 避免高 DPR 显示屏上 4× 像素导致
+  // bloom/SMAA/InkWash 各 pass 代价翻倍. 主场景渲染还是 renderer 的原 DPR.
+  composer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1.5));
   composer.setSize(W, H);
   composer.addPass(new RenderPass(scene, camera));
 
@@ -244,7 +248,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // Moderate angle gives visible shadows without grazing pure-horizon blowout.
   dl.position.set(-45, 72, 35);
   dl.castShadow = true;
-  dl.shadow.mapSize.set(MOB ? 1024 : 2048, MOB ? 1024 : 2048);
+  // 2048 阴影贴图对实时渲染负担明显 (尤其 mac retina 上合成一遍), 1024 够柔且快.
+  dl.shadow.mapSize.set(MOB ? 512 : 1024, MOB ? 512 : 1024);
   // Orthographic shadow camera — covers the whole terrain plane (PW=130, PH=90)
   dl.shadow.camera.left   = -95;
   dl.shadow.camera.right  =  95;
@@ -352,10 +357,11 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // as a translucent cool-blue multiply. This gives us real shadows without
   // disturbing the existing baked vertex-color lighting on MeshBasicMaterial.
   // polygonOffset prevents z-fighting with the terrain underneath.
-  const shadowOverlay = new THREE.Mesh(
+  shadowOverlayRef = new THREE.Mesh(
     terrainHi.geometry,
     new THREE.ShadowMaterial({ color: 0x0a1a2c, opacity: 0.38, transparent: true })
   );
+  const shadowOverlay = shadowOverlayRef;
   // CRITICAL: depthWrite=false.
   // ShadowMaterial defaults to depthWrite=true. Our overlay uses HD terrain
   // geometry, but LOD often swaps to LO at camera distance > LOD_SWITCH_DIST.
@@ -690,6 +696,13 @@ function animate() {
 
   // LOD update
   if (terrainLOD) terrainLOD.update(camera);
+
+  // Perf: HD-geometry shadow overlay (2.6M verts) hidden when camera is far
+  // and LOD has switched to LO. Cuts ~40% vertex load during zoom/pan.
+  if (shadowOverlayRef) {
+    const dCam = camera.position.distanceTo(controls.target);
+    shadowOverlayRef.visible = dCam < (LOD_SWITCH_DIST + 15);
+  }
 
   if (composer) composer.render();
   else renderer.render(scene, camera);

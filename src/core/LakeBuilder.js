@@ -43,11 +43,10 @@ export function mkLake(lake) {
   const mat = new THREE.MeshBasicMaterial({
     map: tex,
     transparent: true,
-    opacity: 0.95,
+    // 0.95 → 0.78: 轻微透出下方地形色, 让湖泊和周围地形融合
+    opacity: 0.78,
     side: THREE.DoubleSide,
     depthWrite: false,
-    // depthTest ON: lakes must be occluded by mountains in front of them.
-    // (was false, which let us always see lakes even through terrain.)
     depthTest: true
   });
   const mesh = new THREE.Mesh(geo, mat);

@@ -175,6 +175,16 @@ export function mkLakeTex() {
   }
   cx.globalAlpha = 1;
 
+  // 径向 alpha 淡出 — 让贴图最外层约 18% 半径区域变透明,
+  // 配合 ShapeGeometry 投影到湖泊形状, 外缘能隐约透出地形色, 边界柔化.
+  const fadeG = cx.createRadialGradient(S/2, S/2, S*0.32, S/2, S/2, S*0.50);
+  fadeG.addColorStop(0, 'rgba(0,0,0,0)');
+  fadeG.addColorStop(1, 'rgba(0,0,0,1)');
+  cx.globalCompositeOperation = 'destination-out';
+  cx.fillStyle = fadeG;
+  cx.fillRect(0, 0, S, S);
+  cx.globalCompositeOperation = 'source-over';
+
   const t = new THREE.CanvasTexture(c);
   t.wrapS = THREE.RepeatWrapping;
   t.wrapT = THREE.RepeatWrapping;
