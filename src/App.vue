@@ -23,6 +23,12 @@
     <p>正在生成三维山河…</p>
     <div class="bar"><div class="fill" ref="prog"></div></div>
   </div>
+
+  <!-- 背景音乐按钮 (默认隐藏, 鼠标靠近右下角才浮现) -->
+  <audio ref="bgmRef" loop></audio>
+  <button id="bgm-btn" :class="{ vis: bgmVisible }" :title="bgmLabel" @click="cycleBgm">
+    <span class="bgm-icon">{{ bgmIcon }}</span>
+  </button>
 </template>
 
 <script setup>
@@ -44,6 +50,20 @@ const loadingOff = ref(false)
 const panelOpen = ref(false)
 const locations = ref([])
 const activeIdx = ref(-1)
+
+// ═══ BGM state ═══
+const bgmRef = ref(null)
+// state: 0 = 云水禅心, 1 = 半月琴, 2 = 静音
+const bgmState = ref(0)
+const bgmVisible = ref(false)
+const BGM_TRACKS = [
+  { name: '云水禅心', file: 'assets/bgm/' + encodeURIComponent('云水禅心') + '.mp3' },
+  { name: '半月琴',   file: 'assets/bgm/' + encodeURIComponent('半月琴')   + '.mp3' },
+]
+const bgmIcon  = computed(() => bgmState.value === 2 ? '🔇' : '♪')
+const bgmLabel = computed(() => bgmState.value === 2
+  ? '静音中 · 点击播放《云水禅心》'
+  : `正在播放《${BGM_TRACKS[bgmState.value].name}》· 点击切换`)
 
 // ═══ Audio state ═══
 let currentAudio = null
@@ -101,7 +121,58 @@ onMounted(async () => {
 
   // Setup scroll drag on panel
   setupScrollDrag()
+
+  // Start BGM + proximity-based button reveal
+  setupBgm()
 })
+
+// ═══ BGM control ═══
+function setupBgm() {
+  const bgm = bgmRef.value
+  if (!bgm) return
+  bgm.src = BGM_TRACKS[0].file
+  bgm.volume = 0.38
+  bgm.play().catch(() => {
+    // Autoplay was blocked by browser policy. Resume on first user gesture.
+    const resume = () => {
+      if (bgmState.value !== 2) bgm.play().catch(() => {})
+      window.removeEventListener('click', resume)
+      window.removeEventListener('keydown', resume)
+      window.removeEventListener('touchstart', resume)
+    }
+    window.addEventListener('click', resume, { once: true })
+    window.addEventListener('keydown', resume, { once: true })
+    window.addEventListener('touchstart', resume, { once: true })
+  })
+
+  // Show button when mouse is within 120px of bottom-right corner
+  const REVEAL = 140
+  window.addEventListener('mousemove', (e) => {
+    const dx = window.innerWidth  - e.clientX
+    const dy = window.innerHeight - e.clientY
+    bgmVisible.value = (dx < REVEAL && dy < REVEAL)
+  })
+  // Also reveal briefly on any touch (mobile)
+  window.addEventListener('touchstart', () => {
+    bgmVisible.value = true
+    setTimeout(() => { bgmVisible.value = false }, 2500)
+  })
+}
+
+function cycleBgm() {
+  const bgm = bgmRef.value
+  if (!bgm) return
+  // 0 → 1 → 2 → 0 (云水禅心 → 半月琴 → 静音 → 云水禅心)
+  const next = (bgmState.value + 1) % 3
+  bgmState.value = next
+  if (next === 2) {
+    bgm.pause()
+  } else {
+    bgm.src = BGM_TRACKS[next].file
+    bgm.currentTime = 0
+    bgm.play().catch(() => {})
+  }
+}
 
 // ═══ Label interaction ═══
 function onLabelClick(i) { selectLoc(i) }

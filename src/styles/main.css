@@ -158,3 +158,24 @@ opacity:0.6}
 .roller{width:24px}
 .roller-cap{height:14px}
 }
+
+/* ═══ 背景音乐浮动按钮 (右下角, 默认隐藏, 鼠标靠近才浮现) ═══ */
+#bgm-btn{
+  position:fixed;bottom:22px;right:22px;z-index:900;
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(225,195,130,0.82),rgba(168,130,79,0.82));
+  border:1.5px solid rgba(70,40,15,0.45);
+  color:#2a1408;font-size:22px;font-weight:700;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transform:translateY(6px) scale(.95);
+  transition:opacity .35s ease, transform .35s ease, background .2s;
+  box-shadow:0 3px 10px rgba(40,20,5,0.35), inset 0 0 8px rgba(255,245,220,0.4);
+  backdrop-filter:blur(6px);
+  font-family:'Ma Shan Zheng',serif;
+  text-shadow:0 1px 1px rgba(255,240,200,0.7);
+}
+#bgm-btn.vis{opacity:.92;pointer-events:auto;transform:translateY(0) scale(1);}
+#bgm-btn:hover{opacity:1;background:linear-gradient(135deg,rgba(235,210,150,0.92),rgba(178,140,89,0.92));transform:scale(1.08);}
+#bgm-btn:active{transform:scale(.96);}
+#bgm-btn .bgm-icon{margin-top:1px;}
