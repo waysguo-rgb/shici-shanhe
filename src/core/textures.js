@@ -143,56 +143,44 @@ export function mkLakeTex() {
   g.addColorStop(1, 'rgba(20,65,95,0.55)');
   cx.fillStyle = g; cx.fillRect(0, 0, S, S);
 
-  // 用多层柏林-like 噪声纹理代替规则散点, 避免 tile 接缝 + 规则排布形成网格
-  // 用大量细碎随机 stroke, 每条长短方向都有差异, 不会看出"行列"
-  for (let i = 0; i < 1200; i++) {
+  for (let i = 0; i < 350; i++) {
     const x = Math.random() * S;
     const y = Math.random() * S;
-    const rr = 0.3 + Math.random() * 1.0;
-    cx.fillStyle = `rgba(220,240,250,${0.10 + Math.random() * 0.22})`;
+    const rr = 0.4 + Math.random() * 1.3;
+    cx.fillStyle = `rgba(220,240,250,${0.35 + Math.random() * 0.55})`;
     cx.beginPath(); cx.arc(x, y, rr, 0, Math.PI * 2); cx.fill();
   }
-  // 少量柔和高光斑, 不规则大小
-  for (let i = 0; i < 35; i++) {
+  for (let i = 0; i < 60; i++) {
     const x = Math.random() * S;
     const y = Math.random() * S;
-    const rr = 3 + Math.random() * 5;
+    const rr = 2 + Math.random() * 3.5;
     const gg = cx.createRadialGradient(x, y, 0, x, y, rr);
-    gg.addColorStop(0, 'rgba(255,255,255,0.38)');
-    gg.addColorStop(0.6, 'rgba(200,230,245,0.15)');
+    gg.addColorStop(0, 'rgba(255,255,255,0.75)');
+    gg.addColorStop(0.5, 'rgba(200,230,245,0.30)');
     gg.addColorStop(1, 'rgba(180,220,240,0)');
     cx.fillStyle = gg;
     cx.beginPath(); cx.arc(x, y, rr, 0, Math.PI * 2); cx.fill();
   }
-  // 条状粼光, 方向随机
-  cx.globalAlpha = 0.22;
-  for (let i = 0; i < 36; i++) {
+  cx.globalAlpha = 0.32;
+  for (let i = 0; i < 24; i++) {
     const x = Math.random() * S;
     const y = Math.random() * S;
-    const wl = 15 + Math.random() * 65;
-    const ang = Math.random() * Math.PI;   // 每条朝向不同, 不是全部横的
-    const dx = Math.cos(ang) * wl, dy = Math.sin(ang) * wl;
-    const gg = cx.createLinearGradient(x, y, x + dx, y + dy);
+    const wl = 20 + Math.random() * 50;
+    const gg = cx.createLinearGradient(x, y, x + wl, y);
     gg.addColorStop(0, 'rgba(230,245,255,0)');
-    gg.addColorStop(0.5, 'rgba(230,245,255,0.75)');
+    gg.addColorStop(0.5, 'rgba(230,245,255,0.9)');
     gg.addColorStop(1, 'rgba(230,245,255,0)');
-    cx.strokeStyle = gg;
-    cx.lineWidth = 0.8 + Math.random() * 0.8;
-    cx.beginPath();
-    cx.moveTo(x, y); cx.lineTo(x + dx, y + dy);
-    cx.stroke();
+    cx.fillStyle = gg;
+    cx.fillRect(x, y - 0.6, wl, 1.2);
   }
   cx.globalAlpha = 1;
 
   const t = new THREE.CanvasTexture(c);
   t.wrapS = THREE.RepeatWrapping;
   t.wrapT = THREE.RepeatWrapping;
-  t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.minFilter = THREE.LinearFilter;
   t.magFilter = THREE.LinearFilter;
-  t.generateMipmaps = true;
-  // 不再 2×2 平铺 —— 每块湖用完整 1 份纹理, 消除重复接缝带来的"网格"
-  t.repeat.set(1, 1);
-  t.anisotropy = 4;
+  t.repeat.set(2, 2);
   return t;
 }
 
