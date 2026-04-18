@@ -364,10 +364,13 @@ function selectLoc(i) {
     const hlCls = (poem.hl === true || (poem.hl !== false && pi === 0)) ? ' hl' : ''
     const faved = isFav(loc.n, poem.t)
     h += '<div class="pe' + hlCls + '"><div class="pm">' +
-      '<div class="pd-row"><div class="ps">' + poem.d + '</div><div class="pa">' + poem.a + '</div></div>' +
+      '<div class="pd-row">' +
+        '<div class="ps">' + poem.d + '</div>' +
+        '<div class="pa">' + poem.a + '</div>' +
+        '<button class="fav-toggle' + (faved ? ' on' : '') + '" data-pi="' + pi + '" data-loc="' + loc.n + '" data-title="' + poem.t + '" title="收藏">' + (faved ? '♥' : '♡') + '</button>' +
+      '</div>' +
       '<div class="' + titleCls + '" data-pi="' + pi + '" title="点击朗读">' + poem.t + '</div>'
     if (poem.excerpt) h += '<div class="pexc">节选</div>'
-    h += '<button class="fav-toggle' + (faved ? ' on' : '') + '" data-pi="' + pi + '" data-loc="' + loc.n + '" data-title="' + poem.t + '" title="收藏">' + (faved ? '♥' : '♡') + '</button>'
     h += '</div><div class="pl">'
     poem.l.forEach((l, li) => { h += `<div class="pv" style="animation-delay:${(pi * .20 + li * .06 + .20).toFixed(2)}s">${l}</div>` })
     h += '</div></div>'

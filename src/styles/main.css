@@ -270,13 +270,14 @@ opacity:0.6}
 .fav-item:hover .fav-del{opacity:.8}
 .fav-del:hover{opacity:1;background:rgba(154,40,16,0.12)}
 
-/* ═══ 诗词上的收藏按钮 (心形) ═══ */
-.fav-toggle{position:absolute;top:4px;left:-2px;width:22px;height:22px;
-  border:none;background:transparent;cursor:pointer;padding:0;
-  color:rgba(154,40,16,0.42);font-size:16px;line-height:1;
-  transition:color .2s,transform .15s;z-index:3}
-.fav-toggle:hover{color:#9a2810;transform:scale(1.2)}
-.fav-toggle.on{color:#9a2810}
+/* ═══ 诗词上的收藏按钮 (心形, 与朝代/作者同排) ═══ */
+.fav-toggle{width:22px;height:22px;
+  border:none;background:transparent;cursor:pointer;padding:0;margin-left:2px;
+  color:#9a2810;font-size:18px;line-height:1;opacity:.58;
+  transition:opacity .2s,transform .15s,color .2s;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.fav-toggle:hover{opacity:1;transform:scale(1.2)}
+.fav-toggle.on{opacity:1;color:#c52820;text-shadow:0 0 4px rgba(197,40,32,0.35)}
 
 /* 从搜索/收藏跳转时短暂高亮该诗词 */
 .pe.highlighted{animation:peHi 1.6s ease}
