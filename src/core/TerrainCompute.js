@@ -244,7 +244,20 @@ export function computeTerrainArrays(sgwt, sght, hdData, K, report) {
       const hm = getHRaw(lo, la, hdData, K);
       heightsM[idx] = isFinite(hm) ? hm : 0;
       inLandArr[idx] = inL ? 1 : 0;
-      const sy = inL ? scaleH(hm) : 0;
+      // Coastal slope fade: within ~0.55° of the coast, blend terrain height
+      // smoothly down to sea level so land slopes into the sea instead of
+      // ending in a cliff.
+      let sy = 0;
+      if (inL) {
+        sy = scaleH(hm);
+        const dCoast = dBd(lo, la);  // 0 = on coastline, larger = inland
+        const COAST_BAND = 0.55;
+        if (dCoast < COAST_BAND) {
+          const t = dCoast / COAST_BAND;           // 0 at coast → 1 at band edge
+          const fade = t * t * (3 - 2 * t);        // smoothstep easing
+          sy = sy * fade;
+        }
+      }
       positions[idx * 3] = x;
       positions[idx * 3 + 1] = isFinite(sy) ? sy : 0;
       positions[idx * 3 + 2] = z;
