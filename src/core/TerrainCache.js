@@ -49,7 +49,8 @@ export async function cachePut(key, value) {
 // v5: R3 新增 8 条支流 (嘉陵/乌/丹/闽/钱塘/海/辽/松花)
 // v6: 去掉外圈河岸绿带, 只保留紧贴河道的淡蓝湿痕
 // v7: 海岸坡度平滑 (内陆最后 0.55° 高度 smoothstep 过渡到 0, 消除悬崖)
-const VERSION = 7;
+// v8: 上一条改用 dSea (仅沿海岸 bbox), 不再误压平内陆边境
+const VERSION = 8;
 export function cacheKeyFor(sgwt, sght) {
   return `terrain-${sgwt}x${sght}-v${VERSION}`;
 }

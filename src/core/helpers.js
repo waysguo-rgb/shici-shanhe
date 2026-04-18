@@ -86,6 +86,35 @@ export function dBd(lo, la) {
   return m;
 }
 
+// dSea — 类似 dBd, 但只统计"海岸段":
+// 片段中点位于中国东/南海岸 bbox 内才算 (lon 108–124, lat 18–41.5).
+// 内陆国境 (新疆/内蒙/东北俄朝段) 被过滤掉, 所以海岸坡度平滑不会波及内陆边境.
+function _isCoastalSeg(mLo, mLa) {
+  return mLo >= 108 && mLo <= 124.5 && mLa >= 18 && mLa <= 41.5;
+}
+export function dSea(lo, la) {
+  let m = 999;
+  for (let p = 0; p < BD_LIST.length; p++) {
+    const po = BD_LIST[p];
+    for (let i = 0; i < po.length; i++) {
+      const j = (i + 1) % po.length;
+      const [ax, ay] = po[i], [bx, by] = po[j];
+      const mLo = (ax + bx) * 0.5, mLa = (ay + by) * 0.5;
+      if (!_isCoastalSeg(mLo, mLa)) continue;
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+      if (l2 < 1e-9) {
+        const d = Math.sqrt((lo - ax) ** 2 + (la - ay) ** 2);
+        if (d < m) m = d;
+        continue;
+      }
+      const t = Math.max(0, Math.min(1, ((lo - ax) * dx + (la - ay) * dy) / l2));
+      const d = Math.sqrt((lo - (ax + t * dx)) ** 2 + (la - (ay + t * dy)) ** 2);
+      if (d < m) m = d;
+    }
+  }
+  return m;
+}
+
 // ═══════════════════════════════════════
 // Coordinate transforms
 // ═══════════════════════════════════════

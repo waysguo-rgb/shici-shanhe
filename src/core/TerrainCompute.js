@@ -1,6 +1,6 @@
 // Pure terrain compute — no THREE, no module state. Callable from main thread or Web Worker.
 // Operates on raw Float32Arrays / Uint8ClampedArrays to allow zero-copy transfer.
-import { n2d, fbm, gauss, smoothstep, ridge, inLand, dBd, s2ll } from './helpers.js';
+import { n2d, fbm, gauss, smoothstep, ridge, inLand, dBd, dSea, s2ll } from './helpers.js';
 
 // ═══ DEM sampling on raw Uint8Clamped buffer ═══
 function sampleDEMRaw(lo, la, hdData, Z, TX0, TY0, TS, MW, MH) {
@@ -244,17 +244,16 @@ export function computeTerrainArrays(sgwt, sght, hdData, K, report) {
       const hm = getHRaw(lo, la, hdData, K);
       heightsM[idx] = isFinite(hm) ? hm : 0;
       inLandArr[idx] = inL ? 1 : 0;
-      // Coastal slope fade: within ~0.55° of the coast, blend terrain height
-      // smoothly down to sea level so land slopes into the sea instead of
-      // ending in a cliff.
+      // Coastal slope fade: only applies to actual sea coast segments
+      // (lon 108-124.5, lat 18-41.5), leaves 新疆/内蒙/东北 land borders alone.
       let sy = 0;
       if (inL) {
         sy = scaleH(hm);
-        const dCoast = dBd(lo, la);  // 0 = on coastline, larger = inland
+        const dCoast = dSea(lo, la);  // 0 = on sea coast, 999 = inland or far
         const COAST_BAND = 0.55;
         if (dCoast < COAST_BAND) {
-          const t = dCoast / COAST_BAND;           // 0 at coast → 1 at band edge
-          const fade = t * t * (3 - 2 * t);        // smoothstep easing
+          const t = dCoast / COAST_BAND;
+          const fade = t * t * (3 - 2 * t);
           sy = sy * fade;
         }
       }
