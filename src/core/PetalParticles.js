@@ -1,16 +1,13 @@
-// Drifting blossom petals — tiny sprite particles that float across the scene
-// at varying speeds and angles. Adds a sense of time and breeze to the map,
-// evoking 落花 / 飞花 motifs from classical Chinese poetry.
+// Drifting blossom petals — instanced flat-quad system for 落花 / 飞花 motif.
 //
-// Performance budget: ~120 sprites max, CPU-updated once per frame. Each is
-// a tiny canvas-drawn petal. Total cost ≈ 0.1ms/frame on desktop.
+// 单 InstancedMesh 一次 draw call 容纳 ~100 片花瓣 (原来 N 个 Sprite 各自一次).
+// 每帧 CPU 更新每实例 Matrix4 + Color (instanceMatrix / instanceColor, 零 GC).
+// 手机 tile-based GPU 受益显著 (draw call 是瓶颈).
 import * as THREE from 'three';
 
-// Procedurally-painted petal texture (soft tear-drop shape, light pink)
 function mkPetalTex() {
   const c = document.createElement('canvas'); c.width = 32; c.height = 32;
   const cx = c.getContext('2d');
-  // Teardrop / almond shape
   cx.save();
   cx.translate(16, 16);
   cx.rotate(Math.PI / 5);
@@ -21,7 +18,6 @@ function mkPetalTex() {
   grad.addColorStop(1,    'rgba(246,184,188,0)');
   cx.fillStyle = grad;
   cx.beginPath();
-  // Simple petal: ellipse with one pointy end
   cx.moveTo(0, -13);
   cx.bezierCurveTo(8, -10, 8, 6, 0, 13);
   cx.bezierCurveTo(-8, 6, -8, -10, 0, -13);
@@ -32,76 +28,113 @@ function mkPetalTex() {
   return tex;
 }
 
-export const petalSprites = [];
+// Per-petal state (plain objects, zero garbage in hot loop)
+let _petals = [];          // array of { vx, vy, vz, swirlAmp, swirlFreq, phase, scale, baseOp, color }
+let _instanced = null;     // THREE.InstancedMesh
+let _xRange = [-70, 85];
+let _yRange = [0.5, 14];
+let _zRange = [-48, 48];
+
+// Reused temp objects (avoid per-frame allocations)
+const _pos = new THREE.Vector3();
+const _quat = new THREE.Quaternion();
+const _scl = new THREE.Vector3();
+const _mat = new THREE.Matrix4();
+const _col = new THREE.Color();
+const _euler = new THREE.Euler();
 
 export function initPetals(scene, { count = 100, xRange = [-70, 85], zRange = [-48, 48], yTop = 14, yBot = 0.5 } = {}) {
+  _xRange = xRange; _yRange = [yBot, yTop]; _zRange = zRange;
+
   const tex = mkPetalTex();
+  // Flat quad lying in the X-Z plane; geometry pre-rotated so +Y (up) is world +Y normal.
+  // This means petals appear as overhead dabs — works well for top-down map view.
+  const geo = new THREE.PlaneGeometry(1, 1);
+  geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    depthWrite: false,
+    fog: true,
+    side: THREE.DoubleSide,
+    vertexColors: false,   // InstancedMesh uses instanceColor instead
+  });
+
+  _instanced = new THREE.InstancedMesh(geo, mat, count);
+  _instanced.frustumCulled = false;   // petals scattered widely, skip cull test
+  // Enable per-instance color (three.js will upload instanceColor buffer)
+  _instanced.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
+  _instanced.renderOrder = 6;
+
+  // Seed per-petal state + initial matrices
+  _petals = new Array(count);
   for (let i = 0; i < count; i++) {
-    const mat = new THREE.SpriteMaterial({
-      map: tex,
-      transparent: true,
-      opacity: 0.55 + Math.random() * 0.25,
-      depthWrite: false,
-      fog: true,
-      color: new THREE.Color().setHSL(
-        0.96 + Math.random() * 0.03,  // pink/warm-white
-        0.35 + Math.random() * 0.25,
-        0.85 + Math.random() * 0.08
-      )
-    });
-    const sp = new THREE.Sprite(mat);
-    const scale = 0.18 + Math.random() * 0.25;
-    sp.scale.set(scale, scale, 1);
-    // Initial position — randomly distributed across the drift zone so we don't
-    // get a synchronized "first wave" falling from the top.
-    sp.position.set(
-      xRange[0] + Math.random() * (xRange[1] - xRange[0]),
-      yBot + Math.random() * (yTop - yBot),
-      zRange[0] + Math.random() * (zRange[1] - zRange[0])
-    );
-    sp.userData = {
-      // Per-petal drift: gentle down + sideways breeze + individual phase
+    const p = {
+      x: xRange[0] + Math.random() * (xRange[1] - xRange[0]),
+      y: yBot + Math.random() * (yTop - yBot),
+      z: zRange[0] + Math.random() * (zRange[1] - zRange[0]),
       vy: -0.12 - Math.random() * 0.18,
-      vx: (Math.random() - 0.4) * 0.25,   // bias slightly east
+      vx: (Math.random() - 0.4) * 0.25,
       vz: (Math.random() - 0.5) * 0.08,
       swirlAmp: 0.3 + Math.random() * 0.4,
       swirlFreq: 0.7 + Math.random() * 1.2,
       phase: Math.random() * Math.PI * 2,
-      xRange, zRange, yTop, yBot,
-      baseOp: mat.opacity
+      scale: 0.18 + Math.random() * 0.25,
+      baseOp: 0.55 + Math.random() * 0.25,
+      // store pink/white color once
+      hue: 0.96 + Math.random() * 0.03,
+      sat: 0.35 + Math.random() * 0.25,
+      lit: 0.85 + Math.random() * 0.08,
     };
-    scene.add(sp);
-    petalSprites.push(sp);
+    _petals[i] = p;
+    _writeInstance(i, p, 1);
   }
+  _instanced.instanceMatrix.needsUpdate = true;
+  _instanced.instanceColor.needsUpdate = true;
+  scene.add(_instanced);
 }
 
-// Called every frame from animate()
-export function updatePetals(t, dt) {
-  for (let i = 0; i < petalSprites.length; i++) {
-    const sp = petalSprites[i];
-    const u = sp.userData;
-    // Swirl: cheap sinusoidal lateral wobble so petals don't fall straight
-    sp.position.x += (u.vx + Math.sin(t * u.swirlFreq + u.phase) * u.swirlAmp * 0.02) * dt;
-    sp.position.y += u.vy * dt;
-    sp.position.z += (u.vz + Math.cos(t * u.swirlFreq * 0.7 + u.phase) * u.swirlAmp * 0.015) * dt;
-    // Gentle rotation of sprite
-    sp.material.rotation = Math.sin(t * u.swirlFreq + u.phase) * 0.6;
+function _writeInstance(i, p, opMul) {
+  _euler.set(0, p.rot || 0, 0);
+  _quat.setFromEuler(_euler);
+  _pos.set(p.x, p.y, p.z);
+  _scl.set(p.scale, p.scale, p.scale);
+  _mat.compose(_pos, _quat, _scl);
+  _instanced.setMatrixAt(i, _mat);
+  // Color includes opacity multiplier baked in (alpha channel via lightness scaling
+  // is approximate; since petals are already semi-transparent texture, we just
+  // modulate color toward dark to simulate fade near boundaries).
+  const finalOp = p.baseOp * opMul;
+  _col.setHSL(p.hue, p.sat, p.lit * (0.5 + 0.5 * finalOp));
+  _instanced.setColorAt(i, _col);
+}
 
-    // Fade near top/bottom for soft spawn/despawn feel
-    const spanY = u.yTop - u.yBot;
-    const frac = (sp.position.y - u.yBot) / spanY;
+// Called every frame from animate(). No allocations here.
+export function updatePetals(t, dt) {
+  if (!_instanced || _petals.length === 0) return;
+  const [xMin, xMax] = _xRange, [yMin, yMax] = _yRange, [zMin, zMax] = _zRange;
+  const ySpan = yMax - yMin;
+  for (let i = 0; i < _petals.length; i++) {
+    const p = _petals[i];
+    p.x += (p.vx + Math.sin(t * p.swirlFreq + p.phase) * p.swirlAmp * 0.02) * dt;
+    p.y += p.vy * dt;
+    p.z += (p.vz + Math.cos(t * p.swirlFreq * 0.7 + p.phase) * p.swirlAmp * 0.015) * dt;
+    p.rot = Math.sin(t * p.swirlFreq + p.phase) * 0.6;
+    // Spawn/despawn soft fade
+    const frac = (p.y - yMin) / ySpan;
     let opMul = 1;
     if (frac < 0.15) opMul = Math.max(0, frac / 0.15);
     else if (frac > 0.85) opMul = Math.max(0, (1 - frac) / 0.15);
-    sp.material.opacity = u.baseOp * opMul;
-
-    // Recycle petals that fell off the bottom or drifted out
-    if (sp.position.y < u.yBot ||
-        sp.position.x < u.xRange[0] - 5 || sp.position.x > u.xRange[1] + 5 ||
-        sp.position.z < u.zRange[0] - 5 || sp.position.z > u.zRange[1] + 5) {
-      sp.position.x = u.xRange[0] + Math.random() * (u.xRange[1] - u.xRange[0]);
-      sp.position.y = u.yTop - Math.random() * 2;
-      sp.position.z = u.zRange[0] + Math.random() * (u.zRange[1] - u.zRange[0]);
+    // Recycle if out of zone
+    if (p.y < yMin ||
+        p.x < xMin - 5 || p.x > xMax + 5 ||
+        p.z < zMin - 5 || p.z > zMax + 5) {
+      p.x = xMin + Math.random() * (xMax - xMin);
+      p.y = yMax - Math.random() * 2;
+      p.z = zMin + Math.random() * (zMax - zMin);
     }
+    _writeInstance(i, p, opMul);
   }
+  _instanced.instanceMatrix.needsUpdate = true;
+  if (_instanced.instanceColor) _instanced.instanceColor.needsUpdate = true;
 }

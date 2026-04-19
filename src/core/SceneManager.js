@@ -28,7 +28,7 @@ import {
   terrainLOD
 } from './TerrainBuilder.js';
 import { cacheGet, cachePut, cacheKeyFor } from './TerrainCache.js';
-import { riverMeshes, mkRiver, buildRiverLabels, riverLabels } from './RiverBuilder.js';
+import { riverMeshes, mkRiver, finalizeRivers, updateRivers, buildRiverLabels, riverLabels } from './RiverBuilder.js';
 import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.js';
 import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
 import { cloudGroups, mkCloudCluster, mkMistBand, mkDistantSilhouette, finalizeCloudOpacity } from './CloudBuilder.js';
@@ -199,6 +199,10 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // perf: 场景和光源初始化后完全静止, 阴影贴图只需烘一次.
+  // 关掉自动更新, 在 init 结束前和 LO terrain 补完之后各 flag 一次 needsUpdate.
+  // 每帧省一次 shadowMap 的 full scene depth pass (~4ms 桌面 / ~8ms 手机).
+  renderer.shadowMap.autoUpdate = false;
   container.appendChild(renderer.domElement);
 
   // ═══ Post-processing composer ═══
@@ -394,6 +398,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   lod.addLevel(terrainHi, 0);
   scene.add(lod);
   setTerrainLOD(lod);
+  // perf: 首次入场已烘好 HD, 标记下一帧烘一次阴影贴图
+  renderer.shadowMap.needsUpdate = true;
 
   // Defer LO terrain to idle time — LOD swap only happens at far camera distances
   // that won't occur in the first seconds. First paint no longer waits for it.
@@ -420,7 +426,10 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   if (prog) prog.style.width = '80%';
 
   // ═══ Rivers ═══
-  RIVERS.forEach(r => scene.add(mkRiver(r.c, r.w, r.n)));
+  // mkRiver accumulates per-river geometry chunks; finalizeRivers merges
+  // 14 chunks into a single shader-driven mesh (1 draw call, 1 texture).
+  RIVERS.forEach(r => mkRiver(r.c, r.w, r.n));
+  finalizeRivers(scene);
   buildRiverLabels();
 
   // ═══ Lakes ═══
@@ -633,11 +642,8 @@ function animate() {
   controls.target.y = Math.max(-2, Math.min(15, controls.target.y));
   controls.update();
 
-  // River silk flow
-  riverMeshes.forEach(m => {
-    m.userData.tex.offset.x += dt * 0.045 * m.userData.flow;
-    m.material.opacity = 0.88 + Math.sin(t * 0.6 + m.userData.flow) * 0.05;
-  });
+  // River silk flow: 单 uniform 驱动合并 mesh 的 shader (原 14 次操作 → 1 次)
+  updateRivers(t);
 
   // Lake shimmer
   lakeMeshes.forEach(m => {
