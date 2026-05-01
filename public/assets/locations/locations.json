@@ -148,7 +148,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "渭城",
@@ -193,7 +194,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "终南山",
@@ -256,7 +258,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "华山",
@@ -298,7 +301,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "蓝关",
@@ -343,7 +347,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "秦州",
@@ -375,7 +380,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "汉中",
@@ -449,7 +455,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "潼关",
@@ -510,7 +517,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "洛阳",
@@ -570,7 +578,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "鹳雀楼",
@@ -628,7 +637,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "汴京",
@@ -717,7 +727,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "许昌",
@@ -819,7 +830,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "太原",
@@ -865,7 +877,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "延州",
@@ -916,7 +929,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "幽州",
@@ -971,7 +985,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "凉州",
@@ -1026,7 +1041,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "阳关",
@@ -1079,7 +1095,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "泰山",
@@ -1147,7 +1164,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "密州",
@@ -1245,7 +1263,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "彭城",
@@ -1307,7 +1326,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "金陵",
@@ -1415,7 +1435,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "扬州",
@@ -1502,7 +1523,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "镇江",
@@ -1582,7 +1604,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "苏州",
@@ -1656,7 +1679,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "杭州",
@@ -1774,7 +1798,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "越州",
@@ -1849,7 +1874,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "滁州",
@@ -1887,7 +1913,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "宣城",
@@ -1945,7 +1972,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "池州",
@@ -1990,7 +2018,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "合肥",
@@ -2027,7 +2056,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "庐山",
@@ -2102,7 +2132,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "浔阳",
@@ -2143,7 +2174,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "黄鹤楼",
@@ -2205,7 +2237,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "黄州",
@@ -2295,7 +2328,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "荆门",
@@ -2327,7 +2361,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "襄阳",
@@ -2393,7 +2428,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "岳阳",
@@ -2471,7 +2507,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "潭州",
@@ -2551,7 +2588,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "永州",
@@ -2625,7 +2663,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "郴州",
@@ -2677,7 +2716,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "南昌",
@@ -2737,7 +2777,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "赣州",
@@ -2782,7 +2823,8 @@
         "hl": false,
         "excerpt": true
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "吉州",
@@ -2854,7 +2896,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "桂林",
@@ -2899,7 +2942,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "柳州",
@@ -2943,7 +2987,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "泉州",
@@ -2985,7 +3030,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "福州",
@@ -3027,7 +3073,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "建州",
@@ -3068,7 +3115,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "成都",
@@ -3177,7 +3225,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "剑门",
@@ -3218,7 +3267,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "阆中",
@@ -3268,7 +3318,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "白帝城",
@@ -3340,7 +3391,8 @@
         "hl": false,
         "excerpt": true
       }
-    ]
+    ],
+    "tier": 1
   },
   {
     "name": "峨眉山",
@@ -3386,7 +3438,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "梓州",
@@ -3434,7 +3487,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "巴山",
@@ -3479,7 +3533,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "天姥山",
@@ -3565,7 +3620,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "荆州",
@@ -3593,7 +3649,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "玉门关",
@@ -3638,7 +3695,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 2
   },
   {
     "name": "大散关",
@@ -3679,7 +3737,8 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   },
   {
     "name": "邯郸",
@@ -3707,6 +3766,7 @@
         "hl": false,
         "excerpt": false
       }
-    ]
+    ],
+    "tier": 3
   }
 ]

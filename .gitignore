@@ -43,3 +43,17 @@ legacy/
 
 # 微信小程序 (独立子项目)
 miniprogram/
+
+# 外部 corpus (~400MB, 由 tools/enrich_quantangshi.py 等离线处理用, 不入库)
+chinese-poetry-master/
+
+# git worktree (Claude Code 自动产生的隔离工作区, 元数据 git 已管理, 工作目录不入主仓库)
+.claude/worktrees/
+
+# 用户私人 Excel 资料
+*.xlsx
+
+# tools/ 调试/中间产物 (诗词正文核对生成的临时文件, 重新跑 extract 即可)
+tools/_pending_*.json
+tools/miss_report.json
+tools/probed_lines.json

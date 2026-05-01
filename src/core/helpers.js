@@ -46,6 +46,34 @@ export function ridge(lo, la, x0, y0, x1, y1, w, h) {
   return h * Math.exp(-.5 * (d / w) ** 2);
 }
 
+// 多段 spline 山脉 — 沿一条折线 (ctrl points) 驱动 elevation, 加破碎感
+// pts: [[lo,la],...]; w 横向衰减; h 峰高; breakNoise: 0-1, 沿线起伏破碎度
+export function ridgeChain(lo, la, pts, w, h, breakNoise = 0.0) {
+  if (!pts || pts.length < 2) return 0;
+  let best = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const v = ridge(lo, la, pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], w, h);
+    if (v > best) best = v;
+  }
+  if (breakNoise > 0 && best > 0) {
+    // 沿山脊加 noise 破碎 (横断山脉风格)
+    const wave = Math.sin((lo - la) * 1.8) * 0.4 + Math.cos((lo + la) * 2.3) * 0.4;
+    best *= (1 - breakNoise * 0.5) + wave * breakNoise * 0.5;
+  }
+  return Math.max(0, best);
+}
+
+// 河谷凹陷 — 沿 spline 减高度. depth = 凹陷深度 (米)
+export function riverChannel(lo, la, pts, w, depth) {
+  if (!pts || pts.length < 2) return 0;
+  let best = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const v = ridge(lo, la, pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], w, depth);
+    if (v > best) best = v;
+  }
+  return -best;   // 负值, 加到 height 上即"凹陷"
+}
+
 // ═══════════════════════════════════════
 // Geometry helpers: boundary, point-in-polygon
 // ═══════════════════════════════════════

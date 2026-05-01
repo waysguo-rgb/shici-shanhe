@@ -325,13 +325,15 @@ def main():
 
     only_set = set(args.only.split(',')) if args.only else None
 
+    # (loc, title, author) 三元组 dedup — 同地点同题不同作者都生成
+    # 统一命名: 全部 `{title}·{author}.mp3`, 和 App.vue speakPoem 查找逻辑对齐
     seen = set()
     tasks = []
     for loc in locations:
         if only_set and loc['name'] not in only_set:
             continue
         for p in loc['poems']:
-            key = (loc['name'], p['title'])
+            key = (loc['name'], p['title'], p['author'])
             if key in seen:
                 continue
             seen.add(key)
@@ -359,18 +361,20 @@ def main():
 
     for i, (loc_name, poem) in enumerate(tasks):
         title = poem['title']
-        out_path = AUDIO_DIR / loc_name / f'{title}.mp3'
+        author = poem['author']
+        filename = f'{title}·{author}.mp3'
+        out_path = AUDIO_DIR / loc_name / filename
 
         if out_path.exists() and not args.force:
             skip += 1
-            print(f'[{i+1:3}/{total}] · 已存在: {loc_name}/{title}.mp3')
+            print(f'[{i+1:3}/{total}] · 已存在: {loc_name}/{filename}')
             continue
 
         text = build_text(poem)
         instruction = get_instruction(loc_name, title, poem['author'])
 
         if args.dry_run:
-            print(f'[{i+1:3}/{total}] · {loc_name}/{title}')
+            print(f'[{i+1:3}/{total}] · {loc_name}/{filename}')
             print(f'          instruction: {instruction[:60]}')
             continue
 
@@ -378,11 +382,11 @@ def main():
             size = synthesize(text, voice, instruction, out_path)
             ok += 1
             bytes_total += size
-            print(f'[{i+1:3}/{total}] ✓ {loc_name}/{title} | {size//1024}KB')
+            print(f'[{i+1:3}/{total}] ✓ {loc_name}/{filename} | {size//1024}KB')
         except Exception as e:
             fail += 1
-            failures.append((loc_name, title, str(e)))
-            print(f'[{i+1:3}/{total}] ✗ {loc_name}/{title} | {e}')
+            failures.append((loc_name, filename, str(e)))
+            print(f'[{i+1:3}/{total}] ✗ {loc_name}/{filename} | {e}')
 
         time.sleep(0.5)
 

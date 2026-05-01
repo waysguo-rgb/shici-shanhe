@@ -43,6 +43,8 @@ export function mkCloudCluster(x, y, z, baseW, baseH, scene) {
     }));
     sprite.scale.set(baseW * sc, baseH * sc * 0.5, 1);
     sprite.position.set((Math.random() - .5) * baseW * 0.4, yOff, (Math.random() - .5) * baseH * 0.4);
+    // sprite 在 group 内位置不变, 关 matrixAutoUpdate 省每帧 local matrix 重算
+    sprite.matrixAutoUpdate = false; sprite.updateMatrix();
     group.add(sprite);
   }
   group.position.set(x, y, z);
@@ -83,6 +85,7 @@ export function mkMistBand(x, y, z, baseW, baseH, scene) {
       (Math.random() - 0.5) * baseH * 0.3,
       (Math.random() - 0.5) * baseH * 0.4
     );
+    sprite.matrixAutoUpdate = false; sprite.updateMatrix();
     group.add(sprite);
   }
   group.position.set(x, y, z);
@@ -124,6 +127,7 @@ export function mkDistantSilhouette(x, y, z, baseW, baseH, scene) {
       (Math.random() - 0.5) * baseH * 0.2,
       (Math.random() - 0.5) * baseH * 0.3
     );
+    sprite.matrixAutoUpdate = false; sprite.updateMatrix();
     group.add(sprite);
   }
   group.position.set(x, y, z);

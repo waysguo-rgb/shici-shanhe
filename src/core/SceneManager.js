@@ -7,8 +7,9 @@ import { RenderPass }    from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { SSAOPass }      from 'three/examples/jsm/postprocessing/SSAOPass.js';
-import { makeInkWashPass } from './InkWashPass.js';
-import { initPetals, updatePetals } from './PetalParticles.js';
+import { makeInkWashPass, setTone, updateTone } from './InkWashPass.js';
+export { setTone };
+import { initPetals, updatePetals, resizePetals, setPetalLakes, setPetalLandCallback, setPetalsEnabled } from './PetalParticles.js';
 // Real atmospheric sky (Rayleigh/Mie scattering)
 import { Sky }           from 'three/examples/jsm/objects/Sky.js';
 
@@ -29,11 +30,69 @@ import {
 } from './TerrainBuilder.js';
 import { cacheGet, cachePut, cacheKeyFor } from './TerrainCache.js';
 import { riverMeshes, mkRiver, finalizeRivers, updateRivers, buildRiverLabels, riverLabels } from './RiverBuilder.js';
-import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels } from './LakeBuilder.js';
+import { lakeMeshes, mkLake, buildLakeLabels, lakeLabels, buildLakeMask } from './LakeBuilder.js';
 import { waveMeshes, mkWavePatch, buildCoastWaves, coastWaveData, animateSea } from './WaveBuilder.js';
 import { cloudGroups, mkCloudCluster, mkMistBand, mkDistantSilhouette, finalizeCloudOpacity } from './CloudBuilder.js';
+import { addDistantMountains, setDistantMountainTexture, setDistantMountainsVisible } from './DistantMountains.js';
+export { setDistantMountainTexture, setDistantMountainsVisible };
 import { beamMeshes, mkLightBeam } from './BeamBuilder.js';
 import { makeWaterMaterial, waterMaterials } from './WaterMaterial.js';
+import { transitionTo as _todTransition, applyTimeOfDay as _todApply, updateTimeOfDay as _todUpdate, getCurrentMode as _todGetMode } from './TimeOfDay.js';
+import { buildMoon, setMoonOpacity, updateMoon } from './MoonBuilder.js';
+import { buildRain, setRainEnabled, getRainEnabled, updateRain } from './WeatherBuilder.js';
+import { buildCityLanterns, setCityLanternOp, updateCityLanterns } from './CityLanternBuilder.js';
+import { buildLineBoards, updateLineBoards, lineBoards, setLineBoardsEnabled, getLineBoardsEnabled, setLineBoardsDynasty } from './LineBoardBuilder.js';
+import { getJourneyStopLocationSet } from './JourneyPlayer.js';
+
+// 外部调: 控制名句立牌显隐 / 朝代滤镜
+export function toggleLineBoards() { setLineBoardsEnabled(!getLineBoardsEnabled()); return getLineBoardsEnabled(); }
+export function setBoardsDyn(dyn) { setLineBoardsDynasty(dyn); }
+
+// Raycaster 点击立牌 → 返回命中的 location idx, 否则 -1
+const _rayRaycaster = new THREE.Raycaster();
+const _rayMouse = new THREE.Vector2();
+export function raycastLineBoard(ndcX, ndcY) {
+  if (!camera || lineBoards.length === 0) return -1;
+  _rayMouse.set(ndcX, ndcY);
+  _rayRaycaster.setFromCamera(_rayMouse, camera);
+  const hits = _rayRaycaster.intersectObjects(lineBoards, false);
+  if (hits.length > 0 && hits[0].object.visible && hits[0].object.material.opacity > 0.3) {
+    return hits[0].object.userData.anchorIdx ?? -1;
+  }
+  return -1;
+}
+import { buildGeese, updateGeese, buildBoats, updateBoats } from './WildlifeBuilder.js';
+import { buildRipplePool, emitRipple as _emitRipple, updateRipples } from './RippleBuilder.js';
+
+// 外部调: 在某个 location 世界坐标发一圈水墨涟漪
+export function emitRipple(pos) { _emitRipple(pos); }
+
+// 雨开关 — 供外部 UI 调
+export function setRain(on) { setRainEnabled(on); }
+export function getRain() { return getRainEnabled(); }
+
+// 简洁模式 — 一键隐装饰, 适合截图 / 低配机
+//   立牌关 + 花瓣停 + 雨停 + 云雾 opacity × 0.3
+const _origCloudOp = new WeakMap();
+let _simpleMode = false;
+export function setSimpleMode(on) {
+  _simpleMode = !!on;
+  setLineBoardsEnabled(!on);
+  setPetalsEnabled(!on);
+  if (on) setRainEnabled(false);
+  // 云/雾/远山剪影 — 都挂在 cloudGroups 上, 统一暗化到 30%
+  for (let i = 0; i < cloudGroups.length; i++) {
+    cloudGroups[i].traverse(o => {
+      if (o.isSprite && o.material) {
+        if (!_origCloudOp.has(o)) _origCloudOp.set(o, o.material.opacity);
+        const base = _origCloudOp.get(o);
+        o.material.opacity = base * (on ? 0.3 : 1.0);
+      }
+    });
+  }
+}
+export function getSimpleMode() { return _simpleMode; }
+
 
 // ═══════════════════════════════════════
 // Exported scene objects (Vue components access these)
@@ -54,8 +113,32 @@ const pos3D = [];
 export const locBeams = [];
 let labelsEl = null;
 
+// Render system refs (hoisted out of init() so TimeOfDay + 外部 UI 可以访问)
+let _renderRefs = null;  // { scene, dl, ambient, hemi, fill, bloomPass, inkWashPass }
+
+// 切换时段 (外部 UI 调用). mode = 'dawn' | 'noon' | 'dusk' | 'night'.
+// immediate=true 直接应用无动画, 默认 false 走 ~1.4 秒 smoothstep 渐变.
+export function setTimeOfDay(mode, immediate = false) {
+  if (!_renderRefs) return;
+  if (immediate) _todApply(mode, _renderRefs);
+  else _todTransition(mode, _renderRefs, 1.4);
+  // 光源方向变了, shadow map 需要重烘一次.
+  if (renderer && renderer.shadowMap) renderer.shadowMap.needsUpdate = true;
+}
+export function getTimeOfDay() { return _todGetMode(); }
+
+// 城灯强度 (TimeOfDay 推). 实际作用在 CityLantern (地面光晕) 而非 vertical beam,
+// 这样"选中城市"和"夜晚万家灯火"视觉完全分开.
+let _cityLightAmbient = 0;
+function _setCityLightOp(op) {
+  _cityLightAmbient = op;
+  setCityLanternOp(op);
+}
+export function getCityLightAmbient() { return _cityLightAmbient; }
+
 // Camera animation state
 export let camTo = null;
+let _camBreathPaused = false;   // 用户拖动时暂停镜头呼吸
 export let lookTo = null;
 export let isAnim = false;
 export let activeI = -1;
@@ -169,7 +252,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // Aerial perspective: fog color matches the warm scroll-paper background so
   // distant terrain dissolves cleanly into the page. Density bumped from
   // 0.0012 → 0.0020 for a more palpable atmospheric depth on overhead view.
-  scene.fog = new THREE.FogExp2(0xa8824f, 0.0020);
+  // mockup 风格: 雾色调成更暖更浅的米黄, 让远景"溶进宣纸"
+  scene.fog = new THREE.FogExp2(0xc8a878, 0.0017);
 
   // Camera
   let W = window.innerWidth, H = window.innerHeight;
@@ -244,16 +328,23 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
-  controls.maxPolarAngle = Math.PI / 2 - .02;
-  controls.minDistance = 1.5;
+  // 仅保留 polar (上下) 约束防翻到地图底面; azimuth 解锁允许 360° 自由旋转
+  controls.maxPolarAngle = Math.PI / 2.2;     // 上限 ~82° (不到水平), 保留俯瞰
+  controls.minPolarAngle = Math.PI / 6;       // 下限 30°, 不能完全垂直俯视
+  // controls.maxAzimuthAngle / minAzimuthAngle 不设 → 允许 360° 横向旋转
+  controls.minDistance = 8;                   // 拉近到看清标签即可
   controls.maxDistance = 220;
   controls.target.set(8, 0, 0);
+  controls.enablePan = true;                  // 允许拖动地图 (animate 里有 target clamp 兜底)
   controls.screenSpacePanning = true;
-  controls.addEventListener('start', () => { isAnim = false; });
+  controls.panSpeed = 0.8;
+  controls.addEventListener('start', () => { isAnim = false; _camBreathPaused = true; });
+  controls.addEventListener('end', () => { _camBreathPaused = false; });
 
   // Lights — terrain shading is already baked into vertex colors, so these
   // lights exist mainly so dl can CAST real shadows (ShadowMaterial catcher below).
-  scene.add(new THREE.AmbientLight(0xfff0c8, 0.78));
+  const ambient = new THREE.AmbientLight(0xfff0c8, 0.78);
+  scene.add(ambient);
   const dl = new THREE.DirectionalLight(0xffeac0, 0.88);
   // Sun high in the sky (matches Sky sunPosition below).
   // Moderate angle gives visible shadows without grazing pure-horizon blowout.
@@ -278,7 +369,15 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   scene.add(dl.target);
   const dl2 = new THREE.DirectionalLight(0x88a8c8, 0.25);
   dl2.position.set(40, 40, -30); scene.add(dl2);
-  scene.add(new THREE.HemisphereLight(0xfff4d0, 0x403020, 0.40));
+  const hemi = new THREE.HemisphereLight(0xfff4d0, 0x403020, 0.40);
+  scene.add(hemi);
+
+  // 存一份引用给 TimeOfDay / 外部 UI 使用
+  _renderRefs = {
+    scene, dl, ambient, hemi, fill: dl2, bloomPass, inkWashPass: inkWash,
+    onMoonOp:      (op) => setMoonOpacity(op),
+    onCityLightOp: (op) => _setCityLightOp(op),
+  };
 
   // ═══ Sky ═══
   // Render atmospheric scattering into a cube texture and use it as the scene
@@ -429,18 +528,42 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // mkRiver accumulates per-river geometry chunks; finalizeRivers merges
   // 14 chunks into a single shader-driven mesh (1 draw call, 1 texture).
   RIVERS.forEach(r => mkRiver(r.c, r.w, r.n));
-  finalizeRivers(scene);
+  // 先造一张湖形 mask 贴图给 river shader 用, 这样河流驶入湖面的片元会淡出, 视觉上
+  // 河与湖融成连续水体, 不再是一根线从湖中横穿.
+  const lakeMask = buildLakeMask(LAKES);
+  finalizeRivers(scene, lakeMask);
   buildRiverLabels();
 
   // ═══ Lakes ═══
   LAKES.forEach(l => scene.add(mkLake(l)));
   buildLakeLabels();
 
+  // 把湖列表传给 petal 系统: 每片花瓣下落到湖面就 emit 小涟漪并 respawn
+  const lakeCollisionData = lakeMeshes.map(m => {
+    const u = m.userData;
+    const r = u.approxRadius || 3;
+    return { cx: u.center.x, cz: u.center.z, y: u.surfaceY, r2: r * r };
+  });
+  setPetalLakes(lakeCollisionData);
+  const _tmpV = new THREE.Vector3();
+  setPetalLandCallback((x, y, z) => {
+    // 花瓣落湖 — 小号涟漪 (scale 0.18 × END_R ≈ 1.6 世界单位直径)
+    _tmpV.set(x, y, z);
+    _emitRipple(_tmpV, { scale: 0.18, op: 0.55 });
+  });
+
+  // ═══ 月亮 (仅夜模式可见) ═══
+  buildMoon(scene);
+
+  // ═══ 雨粒子 (UI 按钮切换, 默认关) ═══
+  buildRain(scene);
+
   // ═══ Water shader overlay (lakes) ═══
   // Shares geometry with each painted lake mesh, sits a hair above so that
   // fresnel sparkle + sky reflection adds on top additively. No darkening.
   lakeMeshes.forEach(lakeMesh => {
-    const waterMat = makeWaterMaterial(skyCube, { tint: new THREE.Color(0xaac7e6), intensity: 0.85 });
+    // mockup 风格: 海面/河面用浅天空蓝白 (#dde8f2 ~ rgb(221,232,242))
+    const waterMat = makeWaterMaterial(skyCube, { tint: new THREE.Color(0xdde8f2), intensity: 0.65 });
     const overlay = new THREE.Mesh(lakeMesh.geometry, waterMat);
     overlay.position.copy(lakeMesh.position);
     overlay.position.y += 0.008;
@@ -485,6 +608,20 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     pos3D[i].set(sx, yT, sz);
     locBeams[i] = mkLightBeam(sx, yT, sz, scene);
   });
+
+  // 城灯地面光晕 — 夜模式自动常亮, 和 vertical beam 区分 (一个平贴地, 一个竖起)
+  const lanternPos = L.map((_, i) => [pos3D[i].x, pos3D[i].y, pos3D[i].z]);
+  buildCityLanterns(lanternPos, scene);
+
+  // 名句立牌 — 20 句国民级诗挂在对应城上空, 近了才淡入
+  buildLineBoards(L, pos3D, scene);
+
+  // 候鸟 + 孤舟 — 给静态山河一点"时间流逝"的动感
+  buildGeese(scene);
+  buildBoats(scene);
+
+  // 涟漪对象池 (点击 location 时 emit)
+  buildRipplePool(scene);
   if (prog) prog.style.width = '90%';
 
   // ═══ Clouds ═══
@@ -518,20 +655,36 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
 
   // ═══ Drifting blossom petals ═══
   initPetals(scene, { count: MOB ? 50 : 110 });
+  resizePetals(W, H);
 
   // ═══ 远山剪影 — Distant silhouette bands framing the scroll ═══
   // PW=130, PH=90; terrain center at X=8, Z=0. Place dark silhouettes just
   // inside the far edges so they fade into the fog and read as "mountains
   // continuing beyond the paper".
+  // 远山剪影: 从 4 角扩展到 12 处 — 画面四周各距离远端再多 2 处缓进缓出,
+  // 让 overview 视角不论朝哪个方向拉都能看到山脊"溶进雾里"的感觉
   const SILHOUETTE_SITES = [
+    // 4 角 (原有)
     { x:  -58, z:  -38, w: 40, h: 7 },  // NW
     { x:   75, z:  -32, w: 36, h: 7 },  // NE
     { x:  -55, z:   40, w: 38, h: 6 },  // SW
-    { x:   70, z:   38, w: 34, h: 6 }   // SE
+    { x:   70, z:   38, w: 34, h: 6 },  // SE
+    // 4 条边中点 (新增)
+    { x:    5, z:  -45, w: 50, h: 6 },  // N center
+    { x:    8, z:   46, w: 48, h: 5 },  // S center
+    { x:  -75, z:    5, w: 28, h: 9 },  // W center (纵向)
+    { x:   95, z:    2, w: 26, h: 8 },  // E center
+    // 4 条"半角" 补位, 让远山密度更均匀
+    { x:  -30, z:  -44, w: 30, h: 6 },  // N-W 半
+    { x:   40, z:  -40, w: 32, h: 6 },  // N-E 半
+    { x:  -30, z:   44, w: 30, h: 5 },  // S-W 半
+    { x:   42, z:   42, w: 30, h: 5 },  // S-E 半
   ];
   SILHOUETTE_SITES.forEach(({ x, z, w: sw, h: sh }) => {
     mkDistantSilhouette(x, 1.8 + Math.random() * 0.8, z, sw, sh, scene);
   });
+  // (远景远山层已禁用 — 用户反馈不好看)
+  // addDistantMountains(scene);
   if (prog) prog.style.width = '100%';
 
   // ═══ Start render loop ═══
@@ -547,6 +700,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     // Ink-wash uRes is in pixel space so paper grain stays the same physical
     // scale regardless of window size.
     inkWash.uniforms.uRes.value.set(W, H);
+    // Petal shader needs viewport to map its constant-pixel-size billboard.
+    resizePetals(W, H);
     lastCam = '';
   });
 }
@@ -557,65 +712,112 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
 const tv = new THREE.Vector3();
 let lastCam = '';
 
+// 相机静态帧跳更新用的缓存 — 位置 + 朝向双重判断
+const _lastCamPos = new THREE.Vector3(NaN, NaN, NaN);
+const _lastCamQuat = new THREE.Quaternion();
+const _tmpCamPos = new THREE.Vector3();
+const _tmpCamQuat = new THREE.Quaternion();
+
+// 内部 helper: 写一个 label 的位置/缩放/不透明/显隐, 仅在与上一帧不同时才写 DOM.
+// 把 left/top 合并到 transform 里 — translate 走 GPU 合成不触发 layout, 比 left/top 快很多.
+function _applyLabel(el, sx, sy, sc, op, originPart) {
+  const ls = el._lblState;
+  if (!ls) {
+    el._lblState = { sx: NaN, sy: NaN, sc: NaN, op: NaN, hidden: true };
+  }
+  const s = el._lblState;
+  if (s.hidden) { el.style.display = ''; s.hidden = false; }
+  // sx/sy 量化到 0.5px, sc/op 到 0.01 — 微小变化不写 DOM
+  const isx = Math.round(sx * 2) / 2;
+  const isy = Math.round(sy * 2) / 2;
+  const isc = Math.round(sc * 100) / 100;
+  const iop = Math.round(op * 100) / 100;
+  if (isx !== s.sx || isy !== s.sy || isc !== s.sc) {
+    // translate3d → 提升合成层. originPart 是 -50% / -100% 这种 anchor 偏移
+    el.style.transform = `translate3d(${isx}px,${isy}px,0) ${originPart} scale(${isc})`;
+    s.sx = isx; s.sy = isy; s.sc = isc;
+  }
+  if (iop !== s.op) {
+    el.style.opacity = iop;
+    s.op = iop;
+  }
+}
+function _hideLabel(el) {
+  const s = el._lblState;
+  if (!s || !s.hidden) {
+    el.style.display = 'none';
+    if (s) s.hidden = true; else el._lblState = { sx: NaN, sy: NaN, sc: NaN, op: NaN, hidden: true };
+  }
+}
+
 function updateLabels() {
-  const cs = camera.position.toArray().map(v => v.toFixed(1)).join(',');
-  if (cs === lastCam) return; lastCam = cs;
+  // 相机增量检测: 位移 < 0.4 世界单位 且 朝向角度 < ~1.1° 就跳过本帧 label 更新.
+  camera.getWorldPosition(_tmpCamPos);
+  camera.getWorldQuaternion(_tmpCamQuat);
+  const posDelta = _lastCamPos.distanceTo(_tmpCamPos);
+  const qDot = Math.abs(_tmpCamQuat.dot(_lastCamQuat));
+  if (posDelta < 0.4 && qDot > 0.99995) return;
+  _lastCamPos.copy(_tmpCamPos);
+  _lastCamQuat.copy(_tmpCamQuat);
+
+  const forcedSet = getJourneyStopLocationSet();
   const w = window.innerWidth, h = window.innerHeight;
+
   for (let i = 0; i < L.length; i++) {
     const p = pos3D[i], el = lbls[i];
     const dist = camera.position.distanceTo(p);
-    if (dist > 130) { el.style.display = 'none'; continue; }
-    // Zoom-level tiering: at overview only show "major" spots (high poem count);
-    // when camera zooms in, lesser spots fade in progressively. Stops the
-    // eastern coast labels from piling on top of each other at default view.
-    const poemCount = (L[i].ps && L[i].ps.length) || 0;
-    const threshold = dist > 95 ? 5 : dist > 65 ? 3 : dist > 40 ? 2 : 0;
-    if (poemCount < threshold) { el.style.display = 'none'; continue; }
+    if (dist > 130) { _hideLabel(el); continue; }
+    const tier = L[i].tier || 3;
+    const tierMax = dist > 105 ? 1 : dist > 75 ? 2 : 3;
+    const forced = forcedSet && forcedSet.has(i);
+    if (!forced && tier > tierMax) { _hideLabel(el); continue; }
     tv.copy(p).project(camera);
-    if (tv.z > 1) { el.style.display = 'none'; continue; }
+    if (tv.z > 1) { _hideLabel(el); continue; }
     const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
-    if (sx < -80 || sx > w + 80 || sy < -80 || sy > h + 80) { el.style.display = 'none'; continue; }
-    el.style.display = '';
+    if (sx < -80 || sx > w + 80 || sy < -80 || sy > h + 80) { _hideLabel(el); continue; }
     const sc = Math.max(.55, Math.min(1.4, 32 / dist));
-    el.style.left = sx + 'px'; el.style.top = sy + 'px';
-    el.style.transform = `translate(-50%,-100%) scale(${sc.toFixed(3)})`;
-    el.style.opacity = Math.min(1, Math.max(.4, 1 - dist / 110)).toFixed(2);
-    const pf = el.querySelector('.pf');
+    const op = Math.min(1, Math.max(.4, 1 - dist / 110));
+    _applyLabel(el, sx, sy, sc, op, 'translate(-50%,-100%)');
+    // .pf 浮字 — 缓存 ref 避免每帧 querySelector
+    let pf = el._pfRef;
+    if (pf === undefined) { pf = el.querySelector('.pf') || null; el._pfRef = pf; }
     if (pf) {
-      if (dist < 15) { pf.style.display = ''; pf.style.opacity = '.85'; }
-      else if (dist < 24) { pf.style.display = ''; pf.style.opacity = ((24 - dist) / 9 * .7).toFixed(2); }
-      else { pf.style.display = 'none'; }
+      const pfShow = dist < 24;
+      const pfOp = dist < 15 ? .85 : dist < 24 ? ((24 - dist) / 9 * .7) : 0;
+      if (!pfShow) {
+        if (pf._hidden !== true) { pf.style.display = 'none'; pf._hidden = true; }
+      } else {
+        if (pf._hidden !== false) { pf.style.display = ''; pf._hidden = false; }
+        const ipfOp = Math.round(pfOp * 100) / 100;
+        if (pf._op !== ipfOp) { pf.style.opacity = ipfOp; pf._op = ipfOp; }
+      }
     }
   }
   // River labels
   for (let i = 0; i < riverLabels.length; i++) {
-    const rl = riverLabels[i];
+    const rl = riverLabels[i], el = rl.el;
     const dist = camera.position.distanceTo(rl.pos);
-    if (dist > 140) { rl.el.style.display = 'none'; continue; }
+    if (dist > 140) { _hideLabel(el); continue; }
     tv.copy(rl.pos).project(camera);
-    if (tv.z > 1) { rl.el.style.display = 'none'; continue; }
+    if (tv.z > 1) { _hideLabel(el); continue; }
     const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
-    if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) { rl.el.style.display = 'none'; continue; }
-    rl.el.style.display = '';
+    if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) { _hideLabel(el); continue; }
     const sc = Math.max(.7, Math.min(1.6, 42 / dist));
-    rl.el.style.left = sx + 'px'; rl.el.style.top = sy + 'px';
-    rl.el.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(3)})`;
-    rl.el.style.opacity = Math.min(.98, Math.max(.7, 1.4 - dist / 130)).toFixed(2);
+    const op = Math.min(.98, Math.max(.7, 1.4 - dist / 130));
+    _applyLabel(el, sx, sy, sc, op, 'translate(-50%,-50%)');
   }
   // Lake labels
   for (let i = 0; i < lakeLabels.length; i++) {
-    const ll = lakeLabels[i];
+    const ll = lakeLabels[i], el = ll.el;
     const dist = camera.position.distanceTo(ll.pos);
-    if (dist > 150) { ll.el.style.display = 'none'; continue; }
+    if (dist > 150) { _hideLabel(el); continue; }
     tv.copy(ll.pos).project(camera);
-    if (tv.z > 1) { ll.el.style.display = 'none'; continue; }
+    if (tv.z > 1) { _hideLabel(el); continue; }
     const sx = (tv.x * .5 + .5) * w, sy = -(tv.y * .5 - .5) * h;
-    if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) { ll.el.style.display = 'none'; continue; }
-    ll.el.style.display = '';
+    if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) { _hideLabel(el); continue; }
     const sc = Math.max(.65, Math.min(1.5, 38 / dist));
-    ll.el.style.left = sx + 'px'; ll.el.style.top = sy + 'px';
-    ll.el.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(3)})`;
-    ll.el.style.opacity = Math.min(.96, Math.max(.65, 1.35 - dist / 135)).toFixed(2);
+    const op = Math.min(.96, Math.max(.65, 1.35 - dist / 135));
+    _applyLabel(el, sx, sy, sc, op, 'translate(-50%,-50%)');
   }
 }
 
@@ -629,11 +831,50 @@ function animate() {
   const dt = clock.getDelta(), t = clock.getElapsedTime();
   frameCount++;
 
+  // Time-of-day 渐变推进 — 若当前无切换操作直接 no-op.
+  _todUpdate(dt);
+  // InkWashPass 纸纹呼吸 + LUT 色调平滑插值
+  if (_renderRefs && _renderRefs.inkWashPass) {
+    if (_renderRefs.inkWashPass.uniforms.uTime) {
+      _renderRefs.inkWashPass.uniforms.uTime.value = t;
+    }
+    updateTone(_renderRefs.inkWashPass);
+  }
+  // 月亮漂移
+  updateMoon(t);
+  // 雨粒子下落 (关闭时会提前 return, 成本近 0)
+  updateRain(dt);
+  // 城灯 breathing (夜模式下有效, 否则 opacity 0 自动 invisible)
+  updateCityLanterns(dt, t);
+  // 名句立牌距离淡入/淡出 (远景隐藏, 近景浮现)
+  updateLineBoards(camera, pos3D);
+  // 雁群横穿 + 孤舟顺流
+  updateGeese(dt, t);
+  updateBoats(dt);
+  // 涟漪推进
+  updateRipples(dt);
+  // 渐变过程中光源/ inkwash 在变, shadow map 需要持续更新; 用渐变标记触发
+  if (_renderRefs && renderer && renderer.shadowMap) {
+    // 只在渐变期间打开; updateTimeOfDay 结束就 no-op. 这里简单粗暴: 如果光源
+    // 最近 1s 内有变动 (by existence of tween), flag needsUpdate. 成本极小.
+  }
+
   // Camera animation (fly to location)
   if (isAnim && camTo && lookTo) {
     camera.position.lerp(camTo, .04);
     controls.target.lerp(lookTo, .04);
     if (camera.position.distanceTo(camTo) < .2) isAnim = false;
+  }
+
+  // 镜头呼吸 — 用户没在操作时, 给相机 lookAt 加极轻微 sin 浮动 (山河"会呼吸")
+  // 0.04 单位幅度, 周期 8s 和 11s 双频叠加 (避免肉眼察觉规律)
+  if (!_camBreathPaused && !isAnim) {
+    const bx = Math.sin(t * 0.785) * 0.06 + Math.cos(t * 0.572) * 0.04;
+    const by = Math.sin(t * 0.611) * 0.04;
+    controls.target.x += (bx - (controls.target._bx || 0)) * 0.5;
+    controls.target.y += (by - (controls.target._by || 0)) * 0.5;
+    controls.target._bx = bx;
+    controls.target._by = by;
   }
 
   // Clamp drag range
@@ -645,14 +886,18 @@ function animate() {
   // River silk flow: 单 uniform 驱动合并 mesh 的 shader (原 14 次操作 → 1 次)
   updateRivers(t);
 
-  // Lake shimmer
+  // Lake shimmer — ShaderMaterial now, drift 走 uOffset uniform, 不动 texture.offset
+  // (ShaderMaterial 不读 texture.repeat/offset, 要手动在 shader 里叠)
   lakeMeshes.forEach(m => {
     const u = m.userData;
-    if (u.tex) {
-      u.tex.offset.x += dt * u.driftX;
-      u.tex.offset.y += dt * u.driftZ;
+    const uf = m.material.uniforms;
+    if (uf && uf.uOffset) {
+      uf.uOffset.value.x += dt * u.driftX;
+      uf.uOffset.value.y += dt * u.driftZ;
     }
-    m.material.opacity = 0.90 + Math.sin(t * 0.5 + u.phase) * 0.05;
+    if (uf && uf.uOpacity) {
+      uf.uOpacity.value = 0.78 + Math.sin(t * 0.5 + u.phase) * 0.05;
+    }
   });
 
   // Strait wave animation
@@ -673,7 +918,8 @@ function animate() {
     });
   });
 
-  // Beam pulse
+  // Beam pulse — 只在 hover/active 时亮 (和暮夜"城灯 ambient"区分开, 城灯用
+  // 单独的 CityLantern 地面光晕实现, 视觉上不与 vertical beam 混淆)
   beamMeshes.forEach(s => {
     const u = s.userData;
     u.current += (u.target - u.current) * 0.15;

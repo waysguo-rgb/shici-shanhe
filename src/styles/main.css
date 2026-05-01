@@ -3,52 +3,119 @@
 
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;touch-action:none}
-body{font-family:'Noto Serif SC',serif;color:#f0e0b8;
+body{font-family:'Noto Serif SC',serif;color:#2a1408;
   background:
-    radial-gradient(ellipse 85% 80% at 50% 50%,#b8a068 0%,#a89058 30%,#8c7040 60%,#6e5428 88%,#4a3620 100%),
-    #3a2810;
+    radial-gradient(ellipse 85% 80% at 50% 50%,#f0e0c0 0%,#e8d5b0 30%,#d8c098 60%,#c8a878 88%,#a88858 100%),
+    #d8b888;
   background-attachment:fixed}
 #cv{position:fixed;inset:0;z-index:0;background:transparent}
 #ui{position:fixed;inset:0;z-index:10;pointer-events:none}
 #hdr{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:30;pointer-events:none}
-#hdr-in{background:rgba(240,220,170,0.82);backdrop-filter:blur(6px);padding:11px 38px;border-radius:2px;border:1px solid rgba(120,80,35,0.55);text-align:center;box-shadow:0 4px 22px rgba(60,35,10,0.5),inset 0 0 22px rgba(180,130,60,0.25)}
-#hdr h1{font-family:'Ma Shan Zheng',cursive;font-size:36px;color:#2a1a08;letter-spacing:8px;text-shadow:0 1px 1px rgba(255,240,200,0.9),0 0 8px rgba(255,220,150,0.4)}
-#hdr p{font-size:11px;font-weight:600;color:#5a3a15;letter-spacing:3px}
+#hdr-in{background:rgba(248,232,190,0.85);backdrop-filter:blur(7px);padding:11px 52px 12px;border-radius:3px;border:1px solid rgba(120,80,35,0.55);text-align:center;box-shadow:0 4px 18px rgba(60,35,10,0.40),inset 0 0 26px rgba(180,130,60,0.18)}
+#hdr h1{font-family:'Ma Shan Zheng','Noto Serif SC',serif;font-size:42px;color:#1a0a04;letter-spacing:8px;text-shadow:0 1px 1px rgba(255,240,200,0.85);display:inline-flex;align-items:center;gap:6px;line-height:1;white-space:nowrap;font-weight:900;position:relative}
+/* 标题旁的红印 — 像一方"山河"小篆印章 */
+#hdr .hdr-mini-seal{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;line-height:1;
+  font-family:'Long Cang','Ma Shan Zheng',cursive;
+  font-size:9px;letter-spacing:0;
+  background:#9a2918;color:#fdf1d4;
+  border:1px solid rgba(255,225,180,0.55);border-radius:2px;
+  text-shadow:none;font-weight:700;
+  margin-left:2px;transform:translateY(-12px) rotate(2deg);
+  box-shadow:0 1px 3px rgba(60,20,8,0.4);
+  letter-spacing:0;writing-mode:vertical-rl;text-orientation:upright;
+  padding:1px 2px;
+}
+#hdr p{font-size:11px;font-weight:600;color:#5a3a15;letter-spacing:4px;margin-top:8px}
 #labels{position:absolute;inset:0;z-index:15;pointer-events:none}
 .lb{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto;transition:opacity .3s;will-change:transform}
-.loc-n{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;text-orientation:upright;font-size:21px;color:#2a1208;letter-spacing:4px;padding:3px 2px;font-weight:700;text-shadow:0 0 7px rgba(252,238,205,1),0 0 3px rgba(252,238,205,1),0 0 2px rgba(252,238,205,1),0 1px 2px rgba(255,245,220,0.95);transition:all .3s}
-.lb:hover .loc-n{color:#8a1a08;text-shadow:0 0 10px rgba(255,240,200,1),0 0 5px rgba(255,240,200,1),0 0 3px rgba(255,240,200,1)}
+/* 地名: 细瘦宋体/楷体 (参考图风格 — 印刷体感) */
+/* 地名 — 水墨风格: 楷书 + 暖墨黑字 + 宣纸晕染 (text-shadow 多层米黄外晕模拟墨在纸上的晕开) */
+.loc-n{font-family:'LXGW WenKai','ZCOOL XiaoWei','Noto Serif SC',serif;
+  writing-mode:vertical-rl;text-orientation:upright;
+  font-size:19px;color:#1a1208;letter-spacing:3px;padding:3px 2px;font-weight:600;
+  /* 不用 stroke (太硬), 改用三层 shadow 营造墨晕 */
+  text-shadow:
+    0 0 5px rgba(252,242,210,0.92),
+    0 0 10px rgba(250,230,190,0.55),
+    0 1px 1px rgba(80,40,15,0.30);
+  transition:color .25s, font-size .25s, text-shadow .25s;line-height:1.05}
+/* hover: 浅胭脂墨 (像被指尖触碰即化开的旧墨) */
+.lb:hover .loc-n{color:#5c2010;
+  text-shadow:
+    0 0 6px rgba(255,240,210,0.95),
+    0 0 12px rgba(250,225,180,0.60),
+    0 1px 2px rgba(100,20,10,0.35)}
 .loc-dot{display:none}
-.lb.on .loc-n{font-size:24px;color:#a82010;text-shadow:0 0 12px rgba(255,245,210,1),0 0 6px rgba(255,245,210,1),0 0 3px rgba(255,245,210,1),0 1px 2px rgba(255,245,220,0.95)}
+/* 激活: 朱砂红 — 印章被钤在地图上的感觉 */
+.lb.on .loc-n{font-size:23px;color:#9a1810;font-weight:700;
+  text-shadow:
+    0 0 8px rgba(255,242,210,0.95),
+    0 0 16px rgba(255,225,180,0.60),
+    0 0 24px rgba(255,210,150,0.30),
+    0 1px 2px rgba(120,30,10,0.45)}
 #rlbls{position:absolute;inset:0;z-index:13;pointer-events:none}
-.rlb{position:absolute;font-family:'Ma Shan Zheng',cursive;font-size:21px;color:#0e2a48;letter-spacing:6px;text-shadow:0 0 8px rgba(255,248,215,1),0 0 5px rgba(255,248,215,1),0 0 3px rgba(255,248,215,1),0 1px 2px rgba(255,245,220,0.95);writing-mode:vertical-rl;text-orientation:upright;font-weight:700;transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap}
-.llb{position:absolute;font-family:'ZCOOL XiaoWei','Ma Shan Zheng',serif;font-size:18px;color:#0a2338;letter-spacing:2px;text-shadow:0 0 7px rgba(235,245,255,1),0 0 4px rgba(235,245,255,1),0 1px 2px rgba(220,235,250,0.95);font-weight:700;transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap;pointer-events:none}
+/* 河流: 深墨黑细瘦宋体 (参考图大江大河样式, 不是蓝字) */
+.rlb{position:absolute;font-family:'Noto Serif SC','Source Han Serif SC','Songti SC','STSong','SimSun',serif;
+  font-size:20px;color:#1a0a04;letter-spacing:4px;font-weight:700;
+  writing-mode:vertical-rl;text-orientation:upright;
+  -webkit-text-stroke:0.3px rgba(245,232,200,0.85);
+  text-shadow:0 0 6px rgba(255,248,215,0.95),0 0 3px rgba(255,248,215,1),0 1px 1px rgba(255,245,220,0.85);
+  transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap}
+/* 湖泊: 深墨黑细瘦宋体 (与河流同体系) */
+.llb{position:absolute;font-family:'Noto Serif SC','Source Han Serif SC','Songti SC','STSong','SimSun',serif;
+  font-size:17px;color:#1a0a04;letter-spacing:1px;font-weight:600;
+  -webkit-text-stroke:0.3px rgba(245,250,238,0.85);
+  text-shadow:0 0 5px rgba(248,252,240,0.95),0 0 3px rgba(248,252,240,1),0 1px 1px rgba(235,245,225,0.85);
+  transform:translate(-50%,-50%);transition:opacity .3s;will-change:transform;white-space:nowrap;pointer-events:none}
 .pf{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:5px;margin-bottom:8px;pointer-events:none}
 .pf-t{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:15px;color:rgba(30,18,8,0.92);letter-spacing:2px;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,242,210,0.98),0 0 7px rgba(255,230,180,0.8);animation:incense 7s ease-in-out infinite;font-weight:700}
 .pf-a{font-family:'ZCOOL XiaoWei',serif;writing-mode:vertical-rl;text-orientation:upright;font-size:10px;color:rgba(70,40,15,0.88);letter-spacing:1px;margin-top:4px;text-shadow:0 0 3px rgba(255,242,210,1),0 1px 1px rgba(255,240,200,0.95)}
 .pf-l{font-family:'Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:14px;color:rgba(30,18,8,0.88);letter-spacing:2px;line-height:1.5;text-shadow:0 0 5px rgba(255,242,210,1),0 1px 2px rgba(255,240,200,0.98);opacity:0;animation:smokeIn 2.5s ease-out forwards,incense 9s ease-in-out infinite;font-weight:700}
 @keyframes incense{0%,100%{transform:translateY(0)}30%{transform:translateY(-2px) translateX(.5px)}60%{transform:translateY(-3px) translateX(-.5px)}90%{transform:translateY(-1px)}}
-@keyframes smokeIn{from{opacity:0;transform:translateY(8px);filter:blur(3px)}to{opacity:.55;transform:translateY(0);filter:blur(0)}}
-#po{position:fixed;inset:0;z-index:100;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px}
+/* smokeIn 简化: 去掉 filter:blur — GPU filter pass 在 60+ 元素上同时跑代价大. 仅 opacity + translate 已是纯 GPU 合成动画 */
+@keyframes smokeIn{from{opacity:0;transform:translateY(8px)}to{opacity:.55;transform:translateY(0)}}
+/* 卷轴: 参考图风格 — 底部漂浮的横长卷, 加 perspective 让木轴有圆柱倾斜感 */
+#po{position:fixed;left:0;right:0;bottom:60px;top:auto;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:flex-end;gap:10px;padding:0;pointer-events:none;perspective:1400px}
 #po.vis{display:flex}
-#po-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(90,58,22,0.55) 0%,rgba(52,32,12,0.72) 100%);backdrop-filter:blur(6px);cursor:pointer}
-#po-wrap{position:relative;display:flex;align-items:center;max-width:86vw;height:min(38vh,440px);min-height:280px;animation:unfurl 1.1s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:right center}
+#po-bg{position:fixed;inset:0;background:transparent;backdrop-filter:none;cursor:pointer;pointer-events:auto;z-index:-1}
+
+/* 诗人游记模式: 卷轴尺寸不变 (参考图本来就是底部漂浮风格) */
+#po.journey-on #po-bg{background:transparent;backdrop-filter:none}
+#po.journey-on #po-wrap{height:min(28vh,300px);min-height:200px}
+#po-wrap{position:relative;display:flex;align-items:center;max-width:min(960px,80vw);height:min(30vh,320px);min-height:240px;animation:unfurl 1.1s cubic-bezier(.22,.08,.28,1) forwards;transform-origin:center bottom;pointer-events:auto;
+  /* 像铺在桌面上 — 整体大角度俯视倾斜 */
+  transform:rotateX(22deg);transform-style:preserve-3d}
+/* hover 不再改变倾角, 始终保持 22° 像平铺在桌面 */
 @keyframes unfurl{
   0%{max-width:50px;opacity:.3}
   15%{opacity:.85}
   100%{max-width:86vw;opacity:1}
 }
+/* 卷起闭合: unfurl 反向 + clipReveal 反向, 约 600ms 后 panelOpen 才置 false */
+#po.closing #po-wrap{animation:rollUp .58s cubic-bezier(.55,.05,.7,.95) forwards}
+#po.closing #po-box{animation:clipHide .58s cubic-bezier(.55,.05,.7,.95) forwards}
+@keyframes rollUp{
+  0%{max-width:86vw;opacity:1}
+  85%{opacity:.85}
+  100%{max-width:50px;opacity:.3}
+}
+@keyframes clipHide{
+  0%{clip-path:inset(0 0 0 0)}
+  100%{clip-path:inset(0 0 0 100%)}
+}
 /* 卷轴轴柄：紫檀木主体 + 青玉端头 + 铜箍铜丝 (精致古韵) */
 .roller{width:40px;height:calc(100% + 60px);flex-shrink:0;position:relative;z-index:5}
-/* 紫檀木主体: 深褐红 + 侧面明暗渐变 + 细密竖向纹理 */
+/* 紫檀木主体: 暖红木色 (参考图风格) — 中间最亮, 两侧渐暗 + 细密竖向纹理 */
 .roller-wood{position:absolute;left:10px;right:10px;top:26px;bottom:26px;background:
-  repeating-linear-gradient(0deg,transparent 0,transparent 2.5px,rgba(0,0,0,0.22) 2.5px,rgba(0,0,0,0.22) 3px),
-  linear-gradient(90deg,#0e0502 0%,#1f0a04 10%,#3a130a 28%,#5c220f 48%,#6a2a14 50%,#5c220f 52%,#3a130a 72%,#1f0a04 90%,#0e0502 100%);
+  repeating-linear-gradient(0deg,transparent 0,transparent 2.5px,rgba(0,0,0,0.16) 2.5px,rgba(0,0,0,0.16) 3px),
+  linear-gradient(90deg,#3a1808 0%,#5c2210 12%,#7a3018 32%,#9a4020 48%,#a84628 50%,#9a4020 52%,#7a3018 68%,#5c2210 88%,#3a1808 100%);
 background-blend-mode:multiply,normal;border-radius:1px;box-shadow:
-  inset 0 0 5px rgba(0,0,0,0.7),
-  inset -1px 0 0 rgba(255,180,130,0.06),
-  inset 1px 0 0 rgba(255,180,130,0.04),
-  0 3px 15px rgba(0,0,0,0.55)}
+  inset 0 0 4px rgba(40,12,4,0.55),
+  inset -1px 0 0 rgba(255,200,150,0.10),
+  inset 1px 0 0 rgba(255,200,150,0.08),
+  0 3px 12px rgba(60,20,8,0.45)}
 /* 铜箍 (木与玉之间的金属环, 上下各一对) */
 .roller-band{position:absolute;left:3px;right:3px;height:4px;background:
   linear-gradient(180deg,#d8a856 0%,#b88438 25%,#8a5820 50%,#b88438 75%,#d8a856 100%);
@@ -92,15 +159,165 @@ box-shadow:
 #po-box::before{content:'';position:absolute;inset:0;pointer-events:none;background:
   repeating-linear-gradient(0deg,transparent 0,transparent 80px,rgba(110,70,30,0.015) 80px,rgba(110,70,30,0.015) 81px);
 opacity:0.6}
+
+/* ═══ 卷轴单首三段式 (mockup 风格) ═══ */
+#po-c{display:flex;flex-direction:row;align-items:stretch;gap:0;height:100%;padding:0;position:relative;z-index:2;width:100%;box-sizing:border-box}
+
+/* 印章标题块 (HTML 顺序最后, 显示在右侧) — 加宽避免词牌裁切 */
+.po-stamp{
+  flex:0 0 116px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:14px 6px 14px;
+  background:linear-gradient(180deg,#962a18 0%,#a83020 50%,#7c200f 100%);
+  color:#fdf1d4;
+  border-left:1px solid rgba(40,10,5,0.45);
+  box-shadow:inset 3px 0 6px rgba(40,10,5,0.45),inset 0 0 30px rgba(255,200,150,0.12);
+  position:relative;
+  border-radius:1px;
+  cursor:pointer;transition:filter .2s, box-shadow .2s;
+}
+.po-stamp:hover{filter:brightness(1.10);box-shadow:inset 3px 0 6px rgba(40,10,5,0.45),inset 0 0 30px rgba(255,200,150,0.20),0 0 12px rgba(255,180,140,0.4)}
+.po-stamp[data-disabled="1"]{cursor:not-allowed;filter:grayscale(0.4) brightness(0.85)}
+.po-stamp[data-disabled="1"]:hover{filter:grayscale(0.4) brightness(0.85);box-shadow:inset 3px 0 6px rgba(40,10,5,0.45),inset 0 0 30px rgba(255,200,150,0.12)}
+.po-stamp::before{content:'';position:absolute;inset:6px;border:1px solid rgba(255,225,180,0.30);pointer-events:none;border-radius:1px}
+.po-stamp-title{
+  writing-mode:vertical-rl;text-orientation:upright;
+  font-family:'Long Cang','Ma Shan Zheng',cursive;
+  font-size:24px;letter-spacing:4px;line-height:1.2;
+  font-weight:700;
+  text-shadow:0 1px 2px rgba(40,5,2,0.6),0 0 6px rgba(255,200,150,0.25);
+  flex:1 1 auto;
+  width:100%;          /* 撑满 stamp 宽度给多列空间 */
+  text-align:center;padding:6px 2px;
+  /* 标题超长时自动分列 (竖排下: 一列竖排满了进右一列, 形成"换行") */
+  column-count:2;
+  column-gap:6px;
+  column-fill:auto;
+  max-height:100%;overflow:hidden;
+  word-break:keep-all;
+}
+/* 超长 (>10 字) 用 3 列容纳, 字号略小; 用 data-len 区分档位 */
+.po-stamp-title[data-len="long"]{font-size:22px;letter-spacing:3px}
+.po-stamp-title[data-len="xlong"]{font-size:20px;letter-spacing:2px;column-count:3;column-gap:4px}
+.po-stamp-meta{
+  writing-mode:horizontal-tb;
+  font-family:'ZCOOL XiaoWei',serif;
+  font-size:13px;letter-spacing:4px;opacity:0.88;
+  margin:6px 0 2px;text-align:center;
+}
+.po-stamp-seal{
+  font-family:'Long Cang','Ma Shan Zheng',cursive;
+  font-size:14px;line-height:1.05;font-weight:700;
+  padding:7px 5px;min-width:32px;
+  border:1.5px solid rgba(255,235,200,0.85);
+  color:#fdf1d4;letter-spacing:1px;text-align:center;
+  background:rgba(255,225,180,0.10);
+  margin-top:6px;
+  writing-mode:vertical-rl;text-orientation:upright;
+  word-break:keep-all;
+  text-shadow:0 1px 1px rgba(40,5,2,0.6);
+}
+
+/* 中央诗文 + 简笔山水 */
+.po-body{
+  flex:1;display:flex;flex-direction:row-reverse;align-items:stretch;
+  padding:14px 18px 14px 26px;
+  min-width:0;position:relative;
+  background:transparent;
+}
+.po-verses{
+  display:flex;flex-direction:row-reverse;flex-wrap:nowrap;
+  gap:14px;cursor:pointer;
+  flex:1;align-items:flex-start;justify-content:flex-start;
+  padding-right:8px;
+}
+.po-verses .pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:28px;color:#2a1408;letter-spacing:5px;line-height:1.5;font-weight:700;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);max-height:100%;opacity:0;animation:li .7s ease forwards}
+.po-verses-stub{cursor:default}
+.po-verses-stub .pv-stub{opacity:0.55;font-style:italic;font-size:0.85em}
+.po-verses:hover .pv{color:#1a0a04}
+.po-verses:not(.po-verses-stub):hover{opacity:0.92}
+
+/* 简笔山水 (SVG) */
+.po-paint{
+  flex:0 0 35%;max-width:240px;align-self:flex-end;
+  margin-right:0;opacity:0.78;
+  pointer-events:none;
+}
+.po-paint svg{display:block;width:100%;height:auto;max-height:100%}
+
+/* 右元信息列 */
+.po-meta{
+  flex:0 0 175px;display:flex;flex-direction:column;
+  padding:18px 16px;gap:10px;
+  background:rgba(245,225,180,0.45);
+  border-left:1px solid rgba(120,75,30,0.22);
+  font-family:'ZCOOL XiaoWei','Noto Serif SC',serif;
+}
+/* 创作信息标题行 (带"贰" 朱红印章字) */
+.pm-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-bottom:8px;border-bottom:1.5px solid rgba(120,75,30,0.4)}
+.pm-hdr-t{font-family:'Long Cang','Ma Shan Zheng',cursive;font-size:15px;font-weight:700;color:#3a1808;letter-spacing:3px}
+.pm-hdr-seal{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;font-size:13px;line-height:1;
+  font-family:'Long Cang',cursive;
+  background:linear-gradient(135deg,#9a2918,#7c200f);color:#fdf1d4;
+  border:1px solid rgba(255,225,180,0.65);border-radius:1px;
+  font-weight:700;text-shadow:0 1px 1px rgba(40,5,2,0.5);
+  box-shadow:0 1px 3px rgba(60,20,8,0.4);
+}
+.pm-row{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#3a1808}
+.pm-k{font-size:10px;color:#7a4818;letter-spacing:1.5px;opacity:0.85;font-weight:500}
+.pm-v{font-size:12.5px;color:#1a0a04;font-weight:600;letter-spacing:0.5px;line-height:1.4;padding-left:11px}
+.pm-pageinfo{margin-top:auto;font-size:11px;color:#6a3818;letter-spacing:2px;opacity:0.75;text-align:center;border-top:1px dashed rgba(120,75,30,0.3);padding-top:8px}
+.pm-actions{display:flex;gap:8px;margin-top:6px;justify-content:flex-end}
+.po-play{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#1a1208,#3a2810);
+  color:#fdf1d4;font-size:11px;line-height:1;cursor:pointer;
+  border:1px solid rgba(0,0,0,0.6);
+  box-shadow:0 2px 6px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,220,180,0.18);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,filter .15s;
+  padding-left:2px;
+}
+.po-fav{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(252,242,218,0.85);color:#9a2918;font-size:16px;line-height:1;cursor:pointer;
+  border:1px solid rgba(154,40,24,0.55);
+  box-shadow:0 1px 4px rgba(60,20,8,0.25);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,background .15s;
+}
+.po-play:hover,.po-fav:hover{transform:scale(1.08);filter:brightness(1.12)}
+.po-play.disabled{opacity:0.45;cursor:not-allowed}
+.po-play.disabled:hover{transform:none;filter:none}
+.po-fav.on{background:linear-gradient(135deg,#c8442a,#9a2810);color:#fdf1d4}
+
+/* 卷轴整体高亮 (从搜索/收藏跳转) */
+#po-box.highlighted{animation:peHi 1.6s ease}
 /* 标题点击朗读 */
 .pt{cursor:pointer;transition:color .25s,text-shadow .25s,transform .25s}
 .pt:hover{color:#8a1a08;text-shadow:0 0 10px rgba(255,180,100,0.75),0 1px 2px rgba(255,240,200,0.95)}
 .pt.pt-speaking{color:#b42a08;text-shadow:0 0 14px rgba(255,160,60,0.9),0 0 8px rgba(255,200,100,0.75);animation:ptPulse 1.4s ease-in-out infinite}
 @keyframes ptPulse{0%,100%{text-shadow:0 0 10px rgba(255,160,60,0.75),0 0 5px rgba(255,200,100,0.55),0 1px 2px rgba(255,240,200,0.95)}50%{text-shadow:0 0 16px rgba(255,170,60,1),0 0 10px rgba(255,210,120,0.85),0 1px 2px rgba(255,240,200,0.98)}}
-#po-c{display:flex;flex-direction:row-reverse;align-items:stretch;justify-content:flex-start;gap:42px;height:100%;padding:6px 30px 6px 10px;position:relative;z-index:2;width:max-content;min-width:100%}
 .ph{display:flex;flex-direction:column;align-items:center;gap:12px;margin:0;padding:0 14px;border:none;min-width:70px}
 .ps{width:36px;height:36px;border:2px solid #8a2818;color:#8a2818;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:0 0 10px rgba(138,40,24,0.35),inset 0 0 10px rgba(255,245,220,0.4);flex-shrink:0;background:rgba(255,245,220,0.35);border-radius:3px;font-family:'Ma Shan Zheng',cursive}
+/* 年份徽章 — 紧跟作者后 */
+.py{font-family:'LXGW WenKai','ZCOOL XiaoWei',serif;font-size:11px;color:#6a3f18;letter-spacing:1px;margin-top:2px;padding:1px 6px;border-radius:9px;background:rgba(255,235,180,0.5);border:1px solid rgba(120,75,30,0.22);white-space:nowrap}
+/* 排序切换按钮 — 屏幕正上方悬浮条, 仅面板激活时显示 (由 v-if 控制) */
+.po-sort{position:relative;display:flex;gap:6px;z-index:110;pointer-events:auto;
+  padding:4px 8px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(235,210,170,0.88),rgba(200,165,115,0.88));
+  border:1px solid rgba(70,40,15,0.35);
+  box-shadow:0 3px 10px rgba(40,20,5,0.3);
+  backdrop-filter:blur(4px);
+}
+.po-sort-btn{padding:4px 10px;border-radius:14px;background:rgba(235,210,170,0.75);border:1px solid rgba(70,40,15,0.3);color:#2a1408;font-family:'LXGW WenKai','ZCOOL XiaoWei',serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s}
+.po-sort-btn:hover{background:rgba(255,235,180,0.95)}
+.po-sort-btn.on{background:linear-gradient(135deg,#8b2c18,#b03020);color:#fdf1d4;border-color:rgba(70,15,5,0.6)}
+/* 意境标签 (滑到某诗时出现, 左上 header 区) */
+.po-mood{position:absolute;top:22px;left:18px;padding:3px 10px;border-radius:12px;background:rgba(70,40,15,0.75);color:#fdf1d4;font-family:'LXGW WenKai','ZCOOL XiaoWei',serif;font-size:11px;letter-spacing:2px;border:1px solid rgba(255,220,160,0.4);box-shadow:0 2px 5px rgba(20,10,3,0.35);z-index:5;transition:opacity .3s}
 .pln{font-family:'Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:50px;color:#2a1408;letter-spacing:8px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 14px rgba(255,220,150,0.5);line-height:1;font-weight:700}
+.pln-sub{font-size:22px;color:#8b3c20;letter-spacing:4px;font-weight:500;margin-top:14px;display:inline-block}
 .pms{display:flex;flex-direction:row-reverse;align-items:stretch;gap:38px;flex:0 0 auto;min-height:100%}
 .pe{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:22px;padding:0;min-height:100%;flex:0 0 auto}
 .pm{display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;padding-top:6px}
@@ -131,7 +348,7 @@ opacity:0.6}
 .pl{display:flex;flex-direction:row-reverse;gap:22px;flex-wrap:nowrap;padding-right:6px;cursor:pointer;height:100%;align-items:flex-start}
 /* 竖排诗句; max-height 控制一列到容器高度时自动换到左侧下一列 (vertical-rl 默认行为),
    去掉 white-space:nowrap 让长句可以优雅换列而不是往外溢出横向滚动. */
-.pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:28px;color:#2a1408;letter-spacing:5px;line-height:1.5;opacity:0;animation:li .7s ease forwards;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);max-height:100%}
+.pv{font-family:'Liu Jian Mao Cao','Long Cang','Ma Shan Zheng',cursive;writing-mode:vertical-rl;font-size:28px;color:#2a1408;letter-spacing:5px;line-height:1.5;opacity:0;animation:li .7s ease forwards;text-shadow:0 1px 2px rgba(255,240,200,0.8),0 0 6px rgba(255,230,180,0.4);max-height:100%;font-weight:700}
 /* Readable mode: click any poem body to switch to Noto Serif SC for clarity */
 #po-c.readable .pv{font-family:'Noto Serif SC','Songti SC',serif;font-size:26px;letter-spacing:4px;font-weight:600}
 @keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -139,6 +356,39 @@ opacity:0.6}
 #ld{position:fixed;inset:0;z-index:1000;background:radial-gradient(ellipse at center,#b89060 0%,#503820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .8s}
 #ld.off{opacity:0;pointer-events:none}
 #ld p{font-family:'Ma Shan Zheng',cursive;color:#2a1408;font-size:22px;letter-spacing:6px;text-shadow:0 1px 2px rgba(255,240,200,0.9),0 0 10px rgba(255,220,150,0.5)}
+
+/* 开场书法题字: Ma Shan Zheng 毛笔字体 + 从左到右的"笔尖扫过"mask 动画.
+   思路是让每个字像被毛笔从左到右写出: 左 45% 区域全黑 (已写), 中间一段淡化 (墨湿),
+   右侧透明 (未写). mask-position 从 100% 移到 0%, 字就"显影". */
+#ld .ld-title{display:flex;gap:22px;margin-bottom:14px;align-items:flex-end}
+#ld .ld-char{
+  display:inline-block;
+  font-family:'Ma Shan Zheng','ZCOOL XiaoWei','Noto Serif SC',cursive;
+  font-size:96px;font-weight:700;line-height:1;color:#140a04;
+  letter-spacing:0;
+  text-shadow:
+    0 0 0.4px rgba(18,10,5,0.95),
+    0 0 1.4px rgba(40,22,10,0.55),
+    0 0 6px   rgba(90,55,25,0.22),
+    0 1px 2px rgba(255,240,200,0.75);
+  -webkit-mask-image:linear-gradient(to right,#000 0%,#000 42%,rgba(0,0,0,0.55) 48%,rgba(0,0,0,0) 54%,transparent 100%);
+          mask-image:linear-gradient(to right,#000 0%,#000 42%,rgba(0,0,0,0.55) 48%,rgba(0,0,0,0) 54%,transparent 100%);
+  -webkit-mask-size:260% 100%;
+          mask-size:260% 100%;
+  -webkit-mask-position:100% 0;
+          mask-position:100% 0;
+  -webkit-mask-repeat:no-repeat;
+          mask-repeat:no-repeat;
+  animation:brushSweep 1.1s cubic-bezier(.35,.08,.35,1) forwards;
+}
+#ld .ld-char-1{animation-delay:0.15s}
+#ld .ld-char-2{animation-delay:0.85s}
+#ld .ld-char-3{animation-delay:1.55s}
+#ld .ld-char-4{animation-delay:2.25s}
+@keyframes brushSweep{
+  from{-webkit-mask-position:100% 0;mask-position:100% 0}
+  to  {-webkit-mask-position:0% 0;  mask-position:0% 0}
+}
 #ld .bar{width:220px;height:3px;background:rgba(60,35,10,0.3);border-radius:2px;overflow:hidden}
 #ld .fill{height:100%;background:#5a2e10;border-radius:2px;transition:width .3s}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#4a5553;border-radius:2px}
@@ -148,67 +398,281 @@ opacity:0.6}
 #hdr-in{padding:6px 18px}
 .loc-n{font-size:14px;letter-spacing:3px}
 .pf-t{font-size:11px}.pf-l{font-size:10px}
-#po-wrap{height:60vh;max-width:94vw}
-#po-box{padding:20px 30px}
-.pln{font-size:32px;letter-spacing:5px}
-.pt{font-size:24px;letter-spacing:4px}
-.pv{font-size:22px;letter-spacing:5px}
-.pms{gap:20px}
-.pe{gap:14px}
-.pl{gap:14px}
-#po-c{gap:18px;padding:6px 20px}
+#po-wrap{height:40vh;max-width:96vw}
+#po-box{padding:0}
+.po-stamp{flex:0 0 100px;padding:12px 6px}
+.po-stamp-title{font-size:22px;letter-spacing:4px}
+.po-stamp-title[data-len="long"]{font-size:20px;letter-spacing:3px}
+.po-stamp-title[data-len="xlong"]{font-size:18px;letter-spacing:2px;column-count:3}
+.po-meta{flex:0 0 130px;padding:12px}
+.pm-v{font-size:12px}
+.po-verses .pv{font-size:20px;letter-spacing:5px}
+.po-paint{display:none}
+#po-c{gap:0;padding:0}
 .roller{width:24px}
 .roller-cap{height:14px}
 }
 
-/* ═══ 背景音乐控件组 (右下角常驻, 默认很透明, hover/focus 清晰) ═══ */
-#bgm-controls{
-  position:fixed;bottom:22px;right:22px;z-index:900;
-  display:flex;align-items:center;gap:7px;
-  padding:6px 10px;border-radius:24px;
+/* ═══ Time-of-day 切换 (晨/昼/暮/夜) ═══ */
+/* 注: position:fixed 虽然能跳出 #ui 的绝对定位, 但 pointer-events 还是会继承.
+   #ui 设了 pointer-events:none 让鼠标穿到 canvas, 所以这里要显式 auto. */
+#tod-controls{
+  position:fixed;top:22px;left:22px;z-index:900;
+  display:flex;gap:5px;
+  padding:5px 8px;border-radius:22px;
   background:linear-gradient(135deg,rgba(225,195,130,0.55),rgba(168,130,79,0.55));
-  border:1px solid rgba(70,40,15,0.30);
-  box-shadow:0 3px 10px rgba(40,20,5,0.25);
+  border:1px solid rgba(70,40,15,0.28);
+  box-shadow:0 3px 10px rgba(40,20,5,0.22);
   backdrop-filter:blur(5px);
-  opacity:.22;                              /* 默认很透明, 能看见但不抢眼 */
-  transition:opacity .35s ease;
+  opacity:.35;transition:opacity .35s ease;
+  pointer-events:auto;
 }
-#bgm-controls:hover,
-#bgm-controls:focus-within{opacity:.96}
-#bgm-controls .bgm-btn{
-  width:32px;height:32px;border-radius:50%;padding:0;
+#tod-controls:hover{opacity:.96}
+#tod-controls button{
+  width:30px;height:30px;border-radius:50%;padding:0;
   background:rgba(245,220,170,0.55);
   border:1px solid rgba(70,40,15,0.42);
-  color:#2a1408;font-size:15px;line-height:1;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:background .2s, transform .15s;
+  color:#2a1408;font-size:13px;font-weight:500;
+  cursor:pointer;
+  transition:background .2s, transform .15s, color .25s;
 }
-#bgm-controls .bgm-btn:hover{background:rgba(252,232,185,0.95);transform:scale(1.08)}
-#bgm-controls .bgm-btn:active{transform:scale(.94)}
-#bgm-volume{
-  -webkit-appearance:none;appearance:none;
-  width:82px;height:4px;
-  background:rgba(70,40,15,0.35);
-  border-radius:4px;outline:none;cursor:pointer;margin:0 2px;
+#tod-controls button:hover{background:rgba(255,235,185,0.88);transform:scale(1.08)}
+#tod-controls button.active{
+  background:linear-gradient(135deg,#8b2c18,#b03020);
+  color:#fdf1d4;border-color:rgba(70,15,5,0.65);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.30);
 }
-#bgm-volume::-webkit-slider-thumb{
-  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
-  background:#5a2e10;cursor:pointer;border:1px solid rgba(255,240,200,.6);
-}
-#bgm-volume::-moz-range-thumb{
-  width:13px;height:13px;border-radius:50%;
-  background:#5a2e10;border:1px solid rgba(255,240,200,.6);cursor:pointer;
+#tod-controls .tod-sep{
+  width:1px;height:20px;background:rgba(70,40,15,0.25);margin:5px 2px;
 }
 
-/* ═══ 右上角工具栏: 搜索 + 收藏 ═══ */
-#tools{position:fixed;top:22px;right:22px;z-index:950;display:flex;gap:7px;
-  padding:6px 8px;border-radius:24px;
+/* 顶部朝代条作为快速 5 朝代切换 (mockup 左上小条 "唐 / 唐宋元明清"); 底部是完整 8 朝代时间轴 */
+/* ═══ 朝代滤镜 (左上 tod-controls 右侧) ═══ */
+#dyn-controls{
+  position:fixed;top:22px;left:300px;z-index:900;
+  display:flex;gap:4px;
+  padding:5px 8px;border-radius:22px;
   background:linear-gradient(135deg,rgba(225,195,130,0.55),rgba(168,130,79,0.55));
-  border:1px solid rgba(70,40,15,0.30);
-  box-shadow:0 3px 10px rgba(40,20,5,0.25);
+  border:1px solid rgba(70,40,15,0.28);
+  box-shadow:0 3px 10px rgba(40,20,5,0.22);
   backdrop-filter:blur(5px);
-  opacity:.22;transition:opacity .35s ease;}
-#tools:hover,#tools:focus-within{opacity:.96}
+  opacity:.35;transition:opacity .35s ease;
+  pointer-events:auto;
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+}
+#dyn-controls:hover{opacity:.96}
+#dyn-controls button{
+  width:26px;height:26px;border-radius:50%;padding:0;
+  background:rgba(245,220,170,0.55);
+  border:1px solid rgba(70,40,15,0.42);
+  color:#2a1408;font-size:12px;font-weight:500;
+  cursor:pointer;
+  transition:background .2s, transform .15s, color .25s;
+}
+#dyn-controls button:hover{background:rgba(255,235,185,0.88);transform:scale(1.08)}
+#dyn-controls button.active{
+  background:linear-gradient(135deg,#2f5a7c,#3e7b9e);
+  color:#fdf1d4;border-color:rgba(20,50,90,0.55);
+}
+
+.lb.dynasty-dim{opacity:0.18 !important;filter:grayscale(0.5)}
+
+/* ═══ 朱红印章 (左下角, 点击切换名句立牌显隐, 重做成 mockup style 大正方形) ═══ */
+#seal{
+  position:fixed;left:22px;bottom:22px;z-index:905;
+  width:60px;height:60px;
+  background:linear-gradient(135deg,#9c1e16,#7c1610);
+  border:2px solid rgba(255,235,200,0.35);
+  border-radius:2px;
+  box-shadow:
+    0 4px 12px rgba(90,15,10,0.55),
+    inset 0 0 6px rgba(50,5,3,0.45),
+    inset 0 1px 0 rgba(255,180,160,0.20);
+  display:flex;align-items:center;justify-content:center;
+  transform:rotate(-2deg);
+  pointer-events:auto;cursor:pointer;
+  opacity:0.92;
+  transition:opacity .25s, transform .25s, filter .25s;
+}
+#seal::before{
+  content:'';position:absolute;inset:4px;
+  border:1px solid rgba(255,225,180,0.45);
+  border-radius:1px;pointer-events:none;
+}
+#seal:hover{opacity:1;transform:rotate(-2deg) scale(1.06)}
+#seal.off{filter:grayscale(0.75) brightness(0.72);opacity:0.55}
+#seal.off:hover{opacity:0.85;filter:grayscale(0.55) brightness(0.85)}
+/* "诗·词·山·河" 2x2 网格排列, 篆书体 */
+#seal span{
+  color:#fdf5e1;
+  font-family:'Long Cang','Ma Shan Zheng','ZCOOL XiaoWei',cursive;
+  font-weight:700;font-size:18px;line-height:1.0;
+  letter-spacing:0;text-align:center;
+  text-shadow:0 1px 1px rgba(50,5,3,0.7),0 0 3px rgba(255,210,180,0.20);
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  gap:2px;width:44px;height:44px;align-items:center;justify-items:center;
+}
+#seal span i{font-style:normal;font-size:18px;line-height:1;font-weight:700}
+
+/* ═══ 诗人游记 (左上角, 在 tod-controls 下方, 避免和右上 #tools 重叠) ═══ */
+#journey-controls{
+  position:fixed;top:68px;left:22px;z-index:900;
+  display:flex;gap:6px;align-items:flex-start;
+  pointer-events:auto;
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+}
+.journey-toggle{
+  padding:7px 14px;border-radius:20px;
+  background:linear-gradient(135deg,rgba(225,195,130,0.60),rgba(168,130,79,0.60));
+  border:1px solid rgba(70,40,15,0.30);
+  box-shadow:0 3px 10px rgba(40,20,5,0.22);
+  backdrop-filter:blur(5px);
+  color:#2a1408;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  transition:background .2s;
+}
+.journey-toggle:hover{background:linear-gradient(135deg,rgba(245,215,150,0.85),rgba(185,145,90,0.85))}
+.journey-toggle.active{
+  background:linear-gradient(135deg,#6b2816,#8b3c20);
+  color:#fdf1d4;border-color:rgba(70,15,5,0.55);
+}
+.journey-toggle .caret{font-size:10px;opacity:0.7}
+.journey-menu{
+  position:absolute;top:44px;left:0;
+  width:240px;max-height:60vh;overflow-y:auto;
+  background:linear-gradient(135deg,rgba(250,240,215,0.96),rgba(235,210,170,0.96));
+  border:1px solid rgba(70,40,15,0.30);border-radius:10px;
+  box-shadow:0 6px 22px rgba(40,20,5,0.35);
+  backdrop-filter:blur(6px);
+  padding:6px 0;
+}
+.journey-item{
+  padding:9px 14px;cursor:pointer;
+  border-bottom:1px solid rgba(120,75,30,0.15);
+  transition:background .15s;
+}
+.journey-item:last-child{border-bottom:none}
+.journey-item:hover{background:rgba(255,225,170,0.5)}
+.journey-item.selected{background:rgba(180,110,50,0.25)}
+.journey-item .j-name{font-size:15px;font-weight:700;color:#2a1208}
+.journey-item .j-name .j-dyn{
+  display:inline-block;padding:1px 6px;margin-left:6px;
+  font-size:11px;background:#8b2c18;color:#fdf1d4;border-radius:3px;font-weight:500;
+}
+.journey-item .j-desc{font-size:11px;color:#5a3815;margin-top:3px;line-height:1.45}
+
+.journey-actions{display:flex;gap:4px}
+.journey-actions button{
+  padding:7px 12px;border-radius:18px;
+  background:rgba(245,220,170,0.72);
+  border:1px solid rgba(70,40,15,0.35);
+  color:#2a1408;font-size:12px;font-weight:500;cursor:pointer;
+  transition:background .18s;
+}
+.journey-actions button:hover{background:rgba(255,235,185,0.95)}
+.journey-actions button.playing{
+  background:linear-gradient(135deg,#6b2816,#8b3c20);color:#fdf1d4;
+}
+
+/* 诗人游记激活态下的 location label 强调/淡化 */
+.lb.journey-dim{opacity:0.12 !important;filter:grayscale(0.6)}
+.lb.journey-stop{
+  opacity:1 !important;
+  text-shadow:0 0 8px rgba(230,192,90,0.6),0 1px 2px rgba(60,30,10,0.6);
+}
+
+/* ═══ 背景音乐控件组 (右下角胶囊条, 高度 ≈ 40px 与底部 bottom-bar 对齐) ═══ */
+#bgm-controls{
+  position:fixed;bottom:14px;right:24px;z-index:900;
+  display:flex;align-items:center;gap:8px;
+  padding:6px 12px;border-radius:24px;
+  background:linear-gradient(135deg,rgba(232,210,165,0.86),rgba(208,182,135,0.86));
+  border:1px solid rgba(70,40,15,0.32);
+  box-shadow:0 3px 10px rgba(40,20,5,0.25), inset 0 1px 0 rgba(255,240,210,0.35);
+  backdrop-filter:blur(6px);
+  opacity:.82;
+  transition:opacity .3s ease;
+}
+#bgm-controls:hover,
+#bgm-controls:focus-within{opacity:1}
+
+/* 曲名 — 楷体, 深棕 */
+#bgm-controls .bgm-name{
+  font-family:'ZCOOL XiaoWei','Noto Serif SC',serif;
+  font-size:13px;color:#2a1408;letter-spacing:1.5px;
+  padding:0 2px;white-space:nowrap;font-weight:500;
+}
+
+/* 5-bar 波形 — 朱红, 播放时跳动 */
+#bgm-controls .bgm-wave{
+  display:inline-flex;align-items:flex-end;gap:2.5px;
+  height:16px;margin:0 2px;
+}
+#bgm-controls .bgm-wave i{
+  display:block;width:2.5px;height:13px;
+  background:#b73622;border-radius:1.5px;opacity:0.92;
+  transform:scaleY(0.35);transform-origin:bottom;
+}
+#bgm-controls.playing .bgm-wave i{animation:bgmWave 0.9s ease-in-out infinite}
+#bgm-controls.playing .bgm-wave i:nth-child(2){animation-delay:0.12s;animation-duration:1.05s}
+#bgm-controls.playing .bgm-wave i:nth-child(3){animation-delay:0.24s;animation-duration:0.85s}
+#bgm-controls.playing .bgm-wave i:nth-child(4){animation-delay:0.06s;animation-duration:1.15s}
+#bgm-controls.playing .bgm-wave i:nth-child(5){animation-delay:0.18s;animation-duration:0.95s}
+@keyframes bgmWave{
+  0%,100%{transform:scaleY(0.35)}
+  20%{transform:scaleY(0.90)}
+  40%{transform:scaleY(0.55)}
+  60%{transform:scaleY(1.0)}
+  80%{transform:scaleY(0.45)}
+}
+
+/* 圆形按钮 — 浅米黄底, 深棕图标 (compact: 26px) */
+#bgm-controls .bgm-btn{
+  width:26px;height:26px;border-radius:50%;padding:0;
+  background:rgba(248,228,180,0.85);
+  border:1px solid rgba(70,40,15,0.42);
+  color:#2a1408;font-size:12px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,250,225,0.6), 0 1px 2px rgba(40,20,5,0.15);
+  transition:background .2s, transform .15s;
+}
+#bgm-controls .bgm-btn:hover{background:rgba(255,238,195,0.96);transform:scale(1.08)}
+#bgm-controls .bgm-btn:active{transform:scale(.94)}
+
+/* 音量条 (compact) */
+#bgm-volume{
+  -webkit-appearance:none;appearance:none;
+  width:70px;height:4px;
+  background:rgba(80,45,15,0.30);
+  border-radius:4px;outline:none;cursor:pointer;margin:0 2px 0 4px;
+}
+#bgm-volume::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #7a3a14, #4a2008);
+  cursor:pointer;border:1px solid rgba(255,240,200,.65);
+  box-shadow:0 1px 2px rgba(40,20,5,0.30);
+}
+#bgm-volume::-moz-range-thumb{
+  width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #7a3a14, #4a2008);
+  border:1px solid rgba(255,240,200,.65);cursor:pointer;
+  box-shadow:0 1px 2px rgba(40,20,5,0.30);
+}
+
+/* ═══ 右上角工具栏: 搜索 + 收藏 + 图谱 + 简洁 (mockup 风格: 圆按钮+下方小字) ═══ */
+#tools{position:fixed;top:22px;right:22px;z-index:950;display:flex;gap:8px;
+  padding:8px 10px 6px;border-radius:24px;
+  background:linear-gradient(135deg,rgba(252,242,218,0.85),rgba(238,212,170,0.85));
+  border:1px solid rgba(120,80,35,0.35);
+  box-shadow:0 4px 14px rgba(60,30,10,0.25);
+  backdrop-filter:blur(6px);
+  opacity:.92;transition:opacity .35s ease;
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+}
+#tools:hover,#tools:focus-within{opacity:1}
+.tool-cell{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tool-cell .tool-l{font-size:9px;color:#5a3815;letter-spacing:0.5px;line-height:1;white-space:nowrap}
+.tool-btn{width:30px!important;height:30px!important;font-size:13px!important}
 .tool-btn{width:34px;height:34px;border-radius:50%;padding:0;position:relative;
   background:rgba(245,220,170,0.55);border:1px solid rgba(70,40,15,0.42);
   color:#2a1408;font-size:16px;line-height:1;cursor:pointer;
@@ -222,13 +686,50 @@ opacity:0.6}
   font-size:10px;font-weight:700;line-height:16px;text-align:center;
   box-shadow:0 1px 3px rgba(40,20,5,.4)}
 
-/* ═══ 搜索弹层 ═══ */
-#search-pane,#favs-pane{position:fixed;inset:0;z-index:1100;
+/* ═══ 搜索 / 收藏 / 图谱 弹层共用容器 ═══ */
+#search-pane,#favs-pane,#graph-pane{position:fixed;inset:0;z-index:1100;
   display:flex;align-items:flex-start;justify-content:center;
   padding-top:80px;
   background:radial-gradient(ellipse at center,rgba(90,58,22,0.45) 0%,rgba(52,32,12,0.70) 100%);
   backdrop-filter:blur(4px);
   animation:paneIn .25s ease}
+/* ═══ 诗词图谱 ═══ */
+#graph-pane{padding-top:40px;align-items:center}
+.graph-box{width:min(94vw,1400px);height:min(85vh,820px);
+  background:rgba(244,230,195,0.98);border:1px solid rgba(70,40,15,0.4);
+  border-radius:8px;box-shadow:0 8px 40px rgba(30,15,4,0.55);
+  display:flex;flex-direction:column;overflow:hidden;
+  font-family:'LXGW WenKai','Noto Serif SC',serif;color:#2a1408;
+  position:relative}
+.graph-hdr{padding:12px 16px;border-bottom:1px solid rgba(70,40,15,0.25);
+  font-size:13px;color:#6a3f18;display:flex;align-items:center;justify-content:space-between;
+  font-weight:500}
+.graph-canvas{flex:1;width:100%;height:100%;cursor:crosshair;display:block}
+/* 3D 图谱挂载点: PoetGraph3D 模块在此 div 里建 webgl renderer */
+.graph-3d-mount{flex:1;width:100%;height:100%;position:relative;overflow:hidden;cursor:grab}
+.graph-3d-mount canvas{display:block;width:100%;height:100%}
+.graph-tip{position:absolute;pointer-events:none;
+  padding:8px 12px;border-radius:6px;
+  background:rgba(40,20,5,0.92);color:#fdf1d4;
+  font-family:'LXGW WenKai','Noto Serif SC',serif;
+  font-size:13px;min-width:180px;max-width:280px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  z-index:10}
+.gt-title{font-size:16px;font-weight:700;color:#ffd890;margin-bottom:2px}
+.gt-dyn{font-size:11px;color:#c89860;font-weight:400}
+.gt-sub{font-size:11px;color:#d0b080;letter-spacing:1px}
+.gt-rel{font-size:11px;color:#ffb858;margin-top:4px}
+.gt-peers{margin-top:6px;padding-top:5px;border-top:1px dashed rgba(220,180,120,0.30)}
+.gt-peers-hdr{font-size:11px;color:#ffb858;letter-spacing:1px;margin-bottom:4px}
+.gt-peer{font-size:11px;margin-bottom:5px;line-height:1.4}
+.gt-peer-name{color:#ffd890;font-weight:600}
+.gt-peer-cnt{color:#a88858;margin-left:6px;font-size:10px}
+.gt-peer-evid{color:#d8b890;font-size:10.5px;margin-top:1px;letter-spacing:0.5px}
+.gt-more{color:#a88858;margin-left:3px}
+/* 边 hover tip 内的具体诗对证据 */
+.gt-edge .gt-title{color:#ffe0a0}
+.gt-evid{font-size:11px;color:#e0c89a;margin-top:5px;line-height:1.5;letter-spacing:0.3px;padding-left:4px;border-left:2px solid rgba(220,170,90,0.45)}
+.gt-evid-loc{color:#a88858;margin-left:4px;font-size:10.5px}
 @keyframes paneIn{from{opacity:0}to{opacity:1}}
 .search-box,.favs-box{width:min(560px,88vw);max-height:75vh;
   background:rgba(240,218,170,0.97);border:1px solid rgba(70,40,15,0.4);
@@ -246,8 +747,26 @@ opacity:0.6}
 .search-box{position:relative}
 .search-results{overflow-y:auto;flex:1}
 .search-empty,.favs-empty{padding:24px;text-align:center;color:#6a3f18;opacity:.7;font-size:14px}
-.search-hit{padding:10px 16px;border-bottom:1px solid rgba(70,40,15,0.12);cursor:pointer;transition:background .15s}
+.search-hit{padding:10px 16px;border-bottom:1px solid rgba(70,40,15,0.12);cursor:pointer;transition:background .15s;display:flex;gap:10px;align-items:center}
 .search-hit:hover{background:rgba(255,235,180,0.6)}
+/* 作者首字头像 silhouette — 用 data-a 属性画一个石刻圆印式的首字 */
+.hit-avatar{
+  width:36px;height:36px;flex-shrink:0;position:relative;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,230,195,0.95) 0%, rgba(235,200,145,0.85) 45%, rgba(180,130,75,0.75) 100%),
+    #c99b5f;
+  box-shadow:inset 0 0 3px rgba(90,50,15,0.55),0 1px 2px rgba(60,30,5,0.25);
+}
+.hit-avatar::before{
+  content:attr(data-a);
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'LXGW WenKai','Ma Shan Zheng',serif;
+  font-size:20px;font-weight:700;color:#3a1a06;
+  text-shadow:0 1px 1px rgba(255,230,180,0.55);
+}
+.hit-body{flex:1;min-width:0}
 .hit-main{font-size:15px;font-weight:600}
 .hit-title{color:#2a1408}
 .hit-author{color:#6a3f18;font-weight:400;margin-left:8px;font-size:13px}
@@ -271,14 +790,252 @@ opacity:0.6}
 .fav-del:hover{opacity:1;background:rgba(154,40,16,0.12)}
 
 /* ═══ 诗词上的收藏按钮 (心形, 与朝代/作者同排) ═══ */
-.fav-toggle{width:22px;height:22px;
+.fav-toggle{width:22px;height:22px;position:relative;
   border:none;background:transparent;cursor:pointer;padding:0;margin-left:2px;
   color:#9a2810;font-size:18px;line-height:1;opacity:.58;
   transition:opacity .2s,transform .15s,color .2s;
-  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+  overflow:visible}
 .fav-toggle:hover{opacity:1;transform:scale(1.2)}
-.fav-toggle.on{opacity:1;color:#c52820;text-shadow:0 0 4px rgba(197,40,32,0.35)}
+/* on: 朱墨心 + 弹跳脉冲 + 一滴朱墨从心中滴落 (::after) */
+.fav-toggle.on{opacity:1;color:#c52820;text-shadow:0 0 4px rgba(197,40,32,0.35);
+  animation:favPulse .55s cubic-bezier(.2,1.4,.5,1) 1}
+.fav-toggle.on::after{
+  content:'';position:absolute;top:55%;left:50%;
+  width:5px;height:5px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#d83428 0%,#8b1812 75%,rgba(90,15,10,0) 100%);
+  transform:translate(-50%,-50%) scale(0.3);
+  opacity:0;pointer-events:none;
+  animation:inkDrop .7s ease-out .12s 1;
+}
+@keyframes favPulse{
+  0%{transform:scale(1)}
+  45%{transform:scale(1.55)}
+  70%{transform:scale(.92)}
+  100%{transform:scale(1)}
+}
+@keyframes inkDrop{
+  0%  {transform:translate(-50%,-40%) scale(0.3);opacity:0.0}
+  25% {transform:translate(-50%,-10%) scale(1.0);opacity:0.95}
+  60% {transform:translate(-50%,120%) scale(1.2);opacity:0.75}
+  100%{transform:translate(-50%,240%) scale(1.8);opacity:0}
+}
 
 /* 从搜索/收藏跳转时短暂高亮该诗词 */
 .pe.highlighted{animation:peHi 1.6s ease}
 @keyframes peHi{0%,100%{box-shadow:none}30%,60%{box-shadow:0 0 0 3px rgba(255,180,60,0.55),0 0 20px rgba(255,180,60,0.35)}}
+
+/* ═══ 诗人档案抽屉 (左侧滑入, 由"诗人档案"按钮触发) ═══ */
+#poet-drawer{
+  position:fixed;top:0;left:0;bottom:0;
+  width:380px;max-width:88vw;z-index:920;
+  pointer-events:auto;
+  display:flex;align-items:stretch;
+}
+.drawer-panel{
+  flex:1;display:flex;flex-direction:column;
+  background:linear-gradient(135deg,rgba(252,242,218,0.97),rgba(238,212,170,0.97));
+  border-right:1px solid rgba(70,40,15,0.30);
+  box-shadow:6px 0 24px rgba(40,20,5,0.30);
+  backdrop-filter:blur(8px);
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+  color:#2a1408;
+}
+.drawer-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 18px 10px;
+  border-bottom:1px solid rgba(120,75,30,0.25);
+}
+.drawer-hdr .dh-title{font-size:15px;font-weight:700}
+.drawer-hdr .dh-cnt{font-size:11px;color:#6a4015;flex:1}
+.drawer-hdr .close-x{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(70,40,15,0.10);border:none;
+  color:#3a1808;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.drawer-hdr .close-x:hover{background:rgba(70,40,15,0.22)}
+
+.poet-chips{
+  padding:10px 14px;max-height:32vh;overflow-y:auto;
+  display:flex;flex-wrap:wrap;gap:6px;
+  border-bottom:1px solid rgba(120,75,30,0.20);
+  background:rgba(255,235,200,0.30);
+}
+.poet-chip{
+  padding:5px 10px;border-radius:14px;
+  background:rgba(245,220,170,0.55);
+  border:1px solid rgba(70,40,15,0.20);
+  color:#3a1808;font-size:12px;font-family:inherit;
+  cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+  transition:background .15s,transform .12s;
+}
+.poet-chip:hover{background:rgba(255,235,185,0.95);transform:translateY(-1px)}
+.poet-chip.on{
+  background:linear-gradient(135deg,#6b2816,#8b3c20);
+  color:#fdf1d4;border-color:rgba(70,15,5,0.55);
+}
+.poet-chip.journey .chip-mark{font-size:10px;opacity:0.85}
+.poet-chip .chip-cnt{
+  font-size:10px;opacity:0.65;margin-left:2px;
+  background:rgba(70,40,15,0.14);
+  padding:0 5px;border-radius:8px;
+}
+.poet-chip.on .chip-cnt{background:rgba(255,235,185,0.30);color:#fdf1d4;opacity:0.85}
+
+.poet-archive{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.poet-hdr{padding:12px 18px 8px;border-bottom:1px solid rgba(120,75,30,0.18)}
+.poet-hdr .ph-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.poet-hdr .ph-name{font-size:18px;font-weight:700;letter-spacing:1px}
+.poet-hdr .ph-dyn{
+  font-size:11px;background:#8b2c18;color:#fdf1d4;
+  padding:1px 7px;border-radius:3px;font-weight:500;
+}
+.poet-hdr .ph-life{font-size:11px;color:#5a3815}
+.poet-hdr .ph-desc{font-size:12px;color:#5a3815;margin-top:5px;line-height:1.5}
+
+.poet-poems{flex:1;overflow-y:auto;padding:6px 0 14px}
+.dp-row{
+  padding:7px 18px;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px dashed rgba(120,75,30,0.14);
+  transition:background .12s;
+}
+.dp-row:hover{background:rgba(255,225,170,0.45)}
+.dp-row .dp-year{
+  flex:0 0 50px;font-size:11px;color:#7a4a18;font-variant-numeric:tabular-nums;
+}
+.dp-row .dp-title{flex:1;font-size:13px;color:#2a1208;font-weight:500}
+.dp-row .dp-loc{font-size:11px;color:#7a4a18}
+.dp-row .dp-loc.dim{opacity:0.55;font-style:italic}
+.dp-row.noloc .dp-title{color:#5a3818}
+.dp-row.nolines .dp-title::after{content:' ·';opacity:0.4}
+
+.drawer-hint{padding:30px 18px;text-align:center;color:#6a4015;font-size:12px;opacity:0.7}
+
+/* 抽屉滑入动画 */
+.drawer-slide-enter-active,.drawer-slide-leave-active{transition:transform .28s ease-out,opacity .28s ease-out}
+.drawer-slide-enter-from,.drawer-slide-leave-to{transform:translateX(-100%);opacity:0.4}
+
+/* 卷轴里"正文未录入"占位行的样式 */
+.pv.pv-stub{opacity:0.55;font-style:italic;font-size:0.85em}
+
+/* ═══ 左侧诗人档案浮动小卡片 (mockup style) ═══ */
+#poet-card{
+  position:fixed;left:22px;top:170px;z-index:880;
+  width:240px;
+  background:linear-gradient(135deg,rgba(252,242,218,0.95),rgba(238,212,170,0.95));
+  border:1px solid rgba(120,80,35,0.45);
+  border-radius:6px;
+  box-shadow:0 6px 22px rgba(60,30,10,0.30);
+  padding:12px 14px 14px;
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+  color:#2a1408;
+  pointer-events:auto;
+  backdrop-filter:blur(6px);
+}
+.pc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;border-bottom:1px dashed rgba(120,75,30,0.30)}
+.pc-title{font-size:13px;font-weight:600;letter-spacing:2px;color:#5a3815}
+.pc-close{background:none;border:none;color:#7a4a18;cursor:pointer;font-size:14px;padding:0 4px;opacity:0.6}
+.pc-close:hover{opacity:1;color:#9a2918}
+.pc-body{display:flex;gap:12px;align-items:flex-start}
+.pc-avatar{
+  width:54px;height:54px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#d4a878,#a0744a);
+  color:#fdf1d4;font-family:'Long Cang','Ma Shan Zheng',cursive;
+  font-size:28px;display:flex;align-items:center;justify-content:center;
+  border:2px solid rgba(255,225,180,0.65);
+  box-shadow:0 2px 6px rgba(60,30,10,0.30),inset 0 -2px 4px rgba(40,20,5,0.25);
+  font-weight:700;
+}
+.pc-info{flex:1;min-width:0}
+.pc-name{font-family:'Long Cang','Ma Shan Zheng',cursive;font-size:22px;font-weight:700;color:#1a0a04;letter-spacing:3px;line-height:1}
+.pc-life{font-size:11px;color:#7a4818;margin-top:4px;letter-spacing:1px}
+.pc-school{font-size:11px;color:#5a3815;margin-top:3px;letter-spacing:1px}
+.pc-tags{font-size:10px;color:#8a4818;margin-top:4px;font-style:italic;letter-spacing:1px}
+.pc-stats{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin:10px 0 8px;padding:6px 0;
+  border-top:1px dashed rgba(120,75,30,0.30);
+  border-bottom:1px dashed rgba(120,75,30,0.30);
+  font-size:11px;color:#5a3815;letter-spacing:1px;
+}
+.pc-stats b{font-family:'Long Cang','Ma Shan Zheng',cursive;font-size:16px;color:#9a2918;font-weight:700;margin:0 3px}
+.pc-sep{width:1px;height:14px;background:rgba(120,75,30,0.35)}
+.pc-detail{
+  display:block;width:100%;padding:7px 10px;
+  background:linear-gradient(135deg,rgba(154,40,24,0.12),rgba(154,40,24,0.06));
+  border:1px solid rgba(154,40,24,0.40);color:#9a2918;
+  font-family:inherit;font-size:12px;letter-spacing:2px;cursor:pointer;
+  border-radius:3px;transition:background .2s;
+}
+.pc-detail:hover{background:linear-gradient(135deg,rgba(154,40,24,0.22),rgba(154,40,24,0.12))}
+
+/* ═══ 右侧竖排导航 (mockup style) ═══ */
+#side-nav{
+  position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:880;
+  display:flex;flex-direction:column;gap:8px;
+  padding:10px 8px;
+  background:linear-gradient(135deg,rgba(252,242,218,0.85),rgba(238,212,170,0.85));
+  border:1px solid rgba(120,80,35,0.35);
+  border-radius:24px;
+  box-shadow:0 4px 14px rgba(60,30,10,0.25);
+  backdrop-filter:blur(5px);
+  pointer-events:auto;
+}
+.sn-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:42px;height:48px;padding:4px 0;
+  background:transparent;border:none;cursor:pointer;
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+  color:#3a1808;border-radius:12px;
+  transition:background .18s, color .18s;
+}
+.sn-btn:hover{background:rgba(255,235,180,0.65)}
+.sn-btn.on{background:linear-gradient(135deg,#9a2918,#7c200f);color:#fdf1d4}
+.sn-btn .sn-ico{font-size:16px;line-height:1;font-weight:700;margin-bottom:3px}
+.sn-btn .sn-l{font-size:10px;letter-spacing:1px;line-height:1}
+
+/* ═══ 底部条: 卷轴模式开关 + 朝代时间轴 ═══ */
+#bottom-bar{
+  position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:870;
+  display:flex;align-items:center;gap:18px;
+  padding:8px 18px;
+  background:linear-gradient(135deg,rgba(252,242,218,0.88),rgba(238,212,170,0.88));
+  border:1px solid rgba(120,80,35,0.40);
+  border-radius:30px;
+  box-shadow:0 4px 14px rgba(60,30,10,0.25);
+  backdrop-filter:blur(6px);
+  font-family:'Noto Serif SC','ZCOOL XiaoWei',serif;
+  pointer-events:auto;
+  white-space:nowrap;
+}
+.bb-section{display:flex;align-items:center;gap:8px}
+.bb-mode .bb-icon{font-size:14px;opacity:0.7}
+.bb-mode .bb-label{font-size:12px;color:#3a1808;letter-spacing:1.5px}
+.bb-toggle{
+  position:relative;width:34px;height:18px;border-radius:9px;border:none;cursor:pointer;
+  background:rgba(120,75,30,0.30);transition:background .2s;padding:0;
+}
+.bb-toggle .bb-toggle-knob{
+  position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:#fdf5e1;box-shadow:0 1px 2px rgba(40,20,5,0.5);
+  transition:transform .2s,background .2s;
+}
+.bb-toggle.on{background:linear-gradient(135deg,#9a2918,#7c200f)}
+.bb-toggle.on .bb-toggle-knob{transform:translateX(16px)}
+.bb-dyn{padding-left:14px;border-left:1px solid rgba(120,75,30,0.35);gap:4px}
+.bb-dyn-btn{
+  padding:6px 12px;border-radius:18px;
+  background:transparent;border:none;
+  color:#3a1808;font-family:inherit;font-size:12px;letter-spacing:2px;cursor:pointer;
+  transition:all .18s;
+}
+.bb-dyn-btn:hover{background:rgba(255,235,180,0.65)}
+.bb-dyn-btn.on{background:linear-gradient(135deg,#9a2918,#7c200f);color:#fdf1d4;font-weight:600;box-shadow:0 2px 6px rgba(154,40,24,0.4)}
+/* 朝代轴上加细分隔点 (mockup 风格) */
+.bb-dyn-btn:not(:last-child)::after{
+  content:'';display:inline-block;width:1px;height:10px;
+  background:rgba(120,75,30,0.25);margin-left:14px;vertical-align:middle;
+  position:absolute;
+}

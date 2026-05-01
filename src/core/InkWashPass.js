@@ -123,3 +123,9 @@ const InkWashShader = {
 export function makeInkWashPass() {
   return new ShaderPass(InkWashShader);
 }
+
+// === stub: SceneManager 仍 import setTone/updateTone (主仓库版有, worktree 版没有).
+//     worktree 版 shader 不含 tone uniforms, 所以这里两个函数都做 no-op.
+//     效果: 色调使用 worktree 默认 (无运行时切换), 但 SceneManager 调用不会报错.
+export function setTone(name, lerpSpeed = 0.04) { /* no-op */ }
+export function updateTone(inkWashPass) { /* no-op */ }
