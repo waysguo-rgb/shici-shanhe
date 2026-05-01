@@ -14,27 +14,74 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-// ── 朝代分层 (Y 高度) ──
+// ── 朝代色带 (画在底面参考用, X 时间轴) ──
 const ERA_LAYERS = [
-  { name: '先秦', from: -1000, to: -221, y: -20, color: 0x8c98a0 },
-  { name: '汉',   from: -206,  to: 220,  y: -12, color: 0xa58258 },
-  { name: '魏晋', from: 220,   to: 420,  y: -6,  color: 0x788e98 },
-  { name: '南北朝', from: 420, to: 589,  y: -3,  color: 0x8385a8 },
-  { name: '隋',   from: 581,   to: 618,  y: -1,  color: 0xa58e6a },
-  { name: '唐',   from: 618,   to: 907,  y: 0,   color: 0xd0a050 },
-  { name: '五代', from: 907,   to: 960,  y: 4,   color: 0xa88e6a },
-  { name: '宋',   from: 960,   to: 1279, y: 8,   color: 0x6ea890 },
-  { name: '元',   from: 1271,  to: 1368, y: 14,  color: 0x8e8eb0 },
-  { name: '明',   from: 1368,  to: 1644, y: 18,  color: 0xb08698 },
-  { name: '清',   from: 1644,  to: 1912, y: 22,  color: 0xa89880 },
+  { name: '先秦', from: -1000, to: -221, color: 0x8c98a0 },
+  { name: '汉',   from: -206,  to: 220,  color: 0xa58258 },
+  { name: '魏晋', from: 220,   to: 420,  color: 0x788e98 },
+  { name: '南北朝', from: 420, to: 589,  color: 0x8385a8 },
+  { name: '隋',   from: 581,   to: 618,  color: 0xa58e6a },
+  { name: '唐',   from: 618,   to: 907,  color: 0xd0a050 },
+  { name: '五代', from: 907,   to: 960,  color: 0xa88e6a },
+  { name: '宋',   from: 960,   to: 1279, color: 0x6ea890 },
+  { name: '元',   from: 1271,  to: 1368, color: 0x8e8eb0 },
+  { name: '明',   from: 1368,  to: 1644, color: 0xb08698 },
+  { name: '清',   from: 1644,  to: 1912, color: 0xa89880 },
 ];
 const YEAR_MIN = -1000, YEAR_MAX = 1912;
 const X_RANGE = 55;
 const yearToX = (y) => ((y - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * (X_RANGE * 2) - X_RANGE;
 const eraOf = (year) => {
   for (const e of ERA_LAYERS) if (year >= e.from && year <= e.to) return e;
-  return ERA_LAYERS[5];   // fallback 唐
+  return ERA_LAYERS[5];
 };
+
+// ── 风格/流派分层 (Y 高度) + 颜色 ──
+// 每个流派占一个 Y 层, 节点颜色 = 流派色. 旋转视角能看出诗人风格簇的立体分组.
+const STYLE_LAYERS = [
+  { name: '豪放',     y:  18, color: 0xb8362a, key: 'haofang' },
+  { name: '现实',     y:  12, color: 0x3470a8, key: 'realist' },
+  { name: '边塞',     y:   8, color: 0xa8702c, key: 'frontier' },
+  { name: '浪漫',     y:   4, color: 0x7a3a9c, key: 'romantic' },
+  { name: '山水田园', y:   0, color: 0x4a8a4e, key: 'landscape' },
+  { name: '婉约',     y:  -4, color: 0xc8587a, key: 'wanyue' },
+  { name: '怀古咏史', y:  -8, color: 0xc87a30, key: 'huaigu' },
+  { name: '花间',     y: -12, color: 0xa86890, key: 'huajian' },
+  { name: '理学哲思', y: -16, color: 0x3a8c8c, key: 'lixue' },
+  { name: '初唐四杰', y:  22, color: 0x7a98c0, key: 'chutang' },
+  { name: '其他',     y: -20, color: 0x7a7060, key: 'misc' },
+];
+const STYLE_BY_KEY = {};
+STYLE_LAYERS.forEach(s => { STYLE_BY_KEY[s.key] = s; });
+
+// 作者 → 流派 key 主流派 (有些诗人跨流派, 取代表作的流派)
+const AUTHOR_STYLE = {
+  // 豪放
+  '苏轼':'haofang','辛弃疾':'haofang','岳飞':'haofang','文天祥':'haofang','陆游':'haofang','张孝祥':'haofang','苏舜钦':'haofang','贺铸':'haofang',
+  // 现实
+  '杜甫':'realist','白居易':'realist','元稹':'realist','张籍':'realist','王建':'realist','聂夷中':'realist','皮日休':'realist','陆龟蒙':'realist',
+  // 边塞
+  '高适':'frontier','岑参':'frontier','王昌龄':'frontier','王之涣':'frontier','王翰':'frontier','李颀':'frontier','卢纶':'frontier','陈陶':'frontier','畅当':'frontier',
+  // 浪漫飘逸
+  '李白':'romantic','李贺':'romantic','李商隐':'romantic',
+  // 山水田园
+  '王维':'landscape','孟浩然':'landscape','储光羲':'landscape','常建':'landscape','韦应物':'landscape','柳宗元':'landscape','陶渊明':'landscape','范成大':'landscape','杨万里':'landscape','林逋':'landscape','张志和':'landscape','皎然':'landscape','贾岛':'landscape',
+  // 婉约
+  '柳永':'wanyue','李清照':'wanyue','晏殊':'wanyue','晏几道':'wanyue','秦观':'wanyue','周邦彦':'wanyue','欧阳修':'wanyue','张先':'wanyue','姜夔':'wanyue','吴文英':'wanyue','蒋捷':'wanyue','纳兰性德':'wanyue',
+  // 怀古咏史
+  '杜牧':'huaigu','刘禹锡':'huaigu','张养浩':'huaigu','谭嗣同':'huaigu','龚自珍':'huaigu','黄庭坚':'huaigu',
+  // 花间词派
+  '温庭筠':'huajian','韦庄':'huajian','冯延巳':'huajian','李煜':'huajian','李璟':'huajian',
+  // 理学哲思
+  '朱熹':'lixue','邵雍':'lixue','周敦颐':'lixue','张栻':'lixue','陈与义':'lixue',
+  // 初唐
+  '王勃':'chutang','杨炯':'chutang','卢照邻':'chutang','骆宾王':'chutang','宋之问':'chutang','陈子昂':'chutang',
+  // 唐其他大家
+  '贺知章':'landscape','张九龄':'landscape','刘长卿':'landscape','韩愈':'realist','贾岛':'landscape',
+  // 现代
+  '毛泽东':'haofang','谢道韫':'misc','曹操':'haofang',
+};
+const styleOf = (author) => STYLE_BY_KEY[AUTHOR_STYLE[author]] || STYLE_BY_KEY['misc'];
 // 名字 hash → Z 散开
 const hashToZ = (s) => {
   let h = 0;
@@ -58,6 +105,14 @@ let _moveRaf = 0, _lastMoveEv = null;
 let _cameraDistCache = 0;
 
 // ── 公开 API ──
+
+// 给 App.vue 渲染图例用. 返回 [{key, name, color: '#hex'}]
+export function getStyleLegend() {
+  return STYLE_LAYERS.map(s => ({
+    key: s.key, name: s.name,
+    color: '#' + s.color.toString(16).padStart(6, '0'),
+  }));
+}
 
 export function _testRayAt(cssX, cssY) {
   if (!_raycaster || !_renderer) return { err: 'no raycaster' };
@@ -120,9 +175,10 @@ export function mount(container, callbacks = {}) {
   _scene.background = new THREE.Color(0xf0e0c0);
   // Fog 关掉 — 之前 (80, 220) 把节点 (距离 ~75) 几乎淡化没
 
-  _camera = new THREE.PerspectiveCamera(55, w / h, 0.5, 1000);
-  _camera.position.set(0, 18, 38);
-  _camera.lookAt(0, 4, 0);
+  _camera = new THREE.PerspectiveCamera(50, w / h, 0.5, 1000);
+  // 默认略斜俯视, 一眼看出流派分层 + 时间分布
+  _camera.position.set(-15, 35, 75);
+  _camera.lookAt(0, 0, 0);
 
   _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   _renderer.setSize(w, h);
@@ -137,7 +193,7 @@ export function mount(container, callbacks = {}) {
   _controls.maxDistance = 150;
   _controls.minPolarAngle = Math.PI / 8;
   _controls.maxPolarAngle = Math.PI * 5 / 8;
-  _controls.target.set(0, 4, 0);
+  _controls.target.set(0, 0, 0);
 
   // 灯光: ambient + 1 directional 给球体高光阴影暗示
   const amb = new THREE.AmbientLight(0xfff4dc, 0.85);
@@ -155,7 +211,8 @@ export function mount(container, callbacks = {}) {
   _eraGroup = new THREE.Group(); _scene.add(_eraGroup);
   _timeGroup = new THREE.Group(); _scene.add(_timeGroup);
 
-  _buildEraBands();
+  _buildStyleLayers();      // 流派水平地板 + 流派名 (主视觉骨架)
+  _buildEraStripsAtBottom(); // 朝代色带画在底部参考
   _buildTimeAxis();
 
   // 事件
@@ -174,10 +231,11 @@ export function setData({ nodes, edges }) {
   _clearMeshes();
   _nodes = (nodes || []).map(n => {
     const era = eraOf(n.year);
+    const style = styleOf(n.a);
     const x = yearToX(n.year);
-    const y = era.y;
+    const y = style.y;                  // Y = 流派分层 (替代之前的朝代分层)
     const z = hashToZ(n.a);
-    return { ...n, _x: x, _y: y, _z: z, _era: era };
+    return { ...n, _x: x, _y: y, _z: z, _era: era, _style: style };
   });
   _edges = edges || [];
 
@@ -307,20 +365,26 @@ function _buildNodes() {
   const geo = new THREE.SphereGeometry(1, 16, 12);   // 共享 geometry, 缩放每节点
   for (let i = 0; i < _nodes.length; i++) {
     const n = _nodes[i];
-    const r = 2.2 + Math.min(Math.log2(n.poemCount + 1) * 0.85, 3.8);
+    // 球大小减半: poemCount 1-100 映射到 r=0.9-2.4 (原来 2.2-6.0)
+    const r = 0.9 + Math.min(Math.log2(n.poemCount + 1) * 0.32, 1.6);
+    const baseColor = n._style.color;
+    // 暗色 emissive = baseColor 的 1/4 强度, 让球体在背光面也有微光不全黑
+    const emissive = (((baseColor >> 16) & 0xff) >> 2) << 16
+                   | (((baseColor >> 8)  & 0xff) >> 2) << 8
+                   |  ((baseColor        & 0xff) >> 2);
     const mat = new THREE.MeshPhongMaterial({
-      color: 0xa8281a,
-      specular: 0x442010,
-      shininess: 30,
-      emissive: 0x4a1208,
+      color: baseColor,
+      specular: 0x553322,
+      shininess: 45,
+      emissive,
       transparent: true,
       opacity: 1,
     });
     const m = new THREE.Mesh(geo, mat);
     m.scale.setScalar(r);
     m.position.set(n._x, n._y, n._z);
-    m.renderOrder = 5;            // 节点画在边之上 (透明排序时不被边盖)
-    m.userData = { idx: i, baseColor: 0xa8281a, r };
+    m.renderOrder = 5;
+    m.userData = { idx: i, baseColor, baseEmissive: emissive, r };
     _nodeGroup.add(m);
     _nodeMeshes.push(m);
   }
@@ -393,28 +457,66 @@ function _makeTextSprite(text, fg, shadow) {
   return sp;
 }
 
-function _buildEraBands() {
+// 流派水平地板 — 每个流派一个长长的半透明色板, 节点像"立"在板上
+function _buildStyleLayers() {
+  const Z_HALF = 14;    // Z 方向地板半宽
+  for (const s of STYLE_LAYERS) {
+    // 流派地板 (X 方向跨整个时间轴, Z 方向 ±Z_HALF)
+    const geo = new THREE.PlaneGeometry(X_RANGE * 2 + 8, Z_HALF * 2);
+    const mat = new THREE.MeshBasicMaterial({
+      color: s.color,
+      transparent: true,
+      opacity: 0.16,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const plane = new THREE.Mesh(geo, mat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(0, s.y - 0.4, 0);
+    plane.renderOrder = 0;
+    _eraGroup.add(plane);
+    // 地板边框 (薄线框) 强化分层视觉
+    const edges = new THREE.EdgesGeometry(geo);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+      color: s.color, transparent: true, opacity: 0.45,
+    }));
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(0, s.y - 0.4, 0);
+    _eraGroup.add(line);
+    // 流派名 sprite (左端, 大字)
+    const styleSprite = _makeTextSprite(s.name, '#3a1808', 'rgba(255,245,210,1)');
+    styleSprite.scale.multiplyScalar(1.15);
+    styleSprite.position.set(-X_RANGE - 2, s.y + 0.3, Z_HALF + 1);
+    _eraGroup.add(styleSprite);
+  }
+}
+
+// 朝代色带 (画在最低流派板下面 1 单位作时间参考)
+function _buildEraStripsAtBottom() {
+  const yBottom = STYLE_LAYERS.reduce((m, s) => Math.min(m, s.y), 0) - 4;
   for (const era of ERA_LAYERS) {
     const fx = yearToX(Math.max(era.from, YEAR_MIN));
     const tx = yearToX(Math.min(era.to, YEAR_MAX));
     const w = tx - fx;
     if (w < 0.5) continue;
-    const geo = new THREE.PlaneGeometry(w, 26);
+    const geo = new THREE.PlaneGeometry(w, 4);
     const mat = new THREE.MeshBasicMaterial({
       color: era.color,
       transparent: true,
-      opacity: 0.10,
+      opacity: 0.45,
       side: THREE.DoubleSide,
       depthWrite: false,
     });
     const plane = new THREE.Mesh(geo, mat);
-    plane.rotation.x = -Math.PI / 2;     // 平铺在 Y=era.y - 1 的水平面
-    plane.position.set(fx + w / 2, era.y - 1, 0);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(fx + w / 2, yBottom, 0);
     _eraGroup.add(plane);
-    // 朝代名 Sprite (放在色带左前)
-    const sp = _makeTextSprite(era.name, '#5c2810', 'rgba(252,238,205,1)');
-    sp.position.set(fx + 1.5, era.y - 0.5, 11);
-    _eraGroup.add(sp);
+    if (w > 4) {
+      const sp = _makeTextSprite(era.name, '#3a1808', 'rgba(255,245,210,1)');
+      sp.scale.multiplyScalar(0.7);
+      sp.position.set(fx + w / 2, yBottom + 1.2, 0);
+      _eraGroup.add(sp);
+    }
   }
 }
 
@@ -472,8 +574,8 @@ function _applyHighlight() {
     const isHover = i === hi;
     const isActive = !active || active.has(i);
     m.material.opacity = isActive ? 1 : 0.18;
-    m.material.emissive.setHex(isHover ? 0xff7838 : 0x000000);
-    m.scale.setScalar(m.userData.r * (isHover ? 1.18 : 1));
+    m.material.emissive.setHex(isHover ? 0xffaa44 : m.userData.baseEmissive);
+    m.scale.setScalar(m.userData.r * (isHover ? 1.30 : 1));
   }
   // 边
   for (let i = 0; i < _edgeMeshes.length; i++) {

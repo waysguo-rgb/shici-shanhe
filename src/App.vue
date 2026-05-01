@@ -106,7 +106,7 @@
   </div>
 
   <!-- Scroll Panel -->
-  <div id="po" :class="{vis: (panelOpen || panelClosing) && scrollMode, 'journey-on': !!activePoet, closing: panelClosing}">
+  <div id="po" :class="{vis: (panelOpen || panelClosing), 'journey-on': !!activePoet, closing: panelClosing}">
     <div id="po-bg" @click="closePanel"></div>
     <!-- 排序切换 (卷轴上方的浮条) -->
     <div class="po-sort">
@@ -197,10 +197,17 @@
   <div id="graph-pane" v-if="graphOpen" @click.self="graphOpen = false">
     <div class="graph-box">
       <div class="graph-hdr">
-        <span>诗人图谱 · 横轴 = 年代, 节点 = 诗人, 金线 = 互有关联</span>
+        <span>诗人图谱 · 横 = 年代 · 纵 = 流派 · 金线 = 互有关联</span>
         <button class="close-x" @click="graphOpen = false">✕</button>
       </div>
       <div ref="graphMount" class="graph-3d-mount"></div>
+      <!-- 流派色对照图例 (右上浮动) -->
+      <div class="graph-legend">
+        <div class="gl-hdr">流派</div>
+        <div v-for="s in graphStyleLegend" :key="s.key" class="gl-item">
+          <span class="gl-dot" :style="{background: s.color}"></span>{{ s.name }}
+        </div>
+      </div>
       <div class="graph-tip" ref="graphTip" v-show="graphHoverNode || graphHoverEdge">
         <!-- 边 hover: 显示具体关联诗对 -->
         <div v-if="graphHoverEdge" class="gt-edge">
@@ -424,6 +431,7 @@ function toggleRain() {
 }
 
 // ═══ 诗词知识图谱 state (3D 化, 用 PoetGraph3D 模块) ═══
+const graphStyleLegend = PoetGraph3D.getStyleLegend()
 const graphOpen = ref(false)
 const graphMount = ref(null)
 const graphTip = ref(null)
@@ -590,8 +598,13 @@ function setSortMode(m) {
 const DYNASTY_BTNS = ['唐', '宋', '元', '明', '清']
 const DYNASTY_BTNS_FULL = ['先秦', '秦汉', '魏晋', '隋唐', '宋', '元', '明', '清']
 const activeDynasty = ref('')   // 默认不激活 (避免淡化大量非唐地点)
-// 卷轴模式开关 (装饰 toggle, 不绑功能)
+// 卷轴模式开关. 关闭时若卷轴正打开 → 走 closePanel 收卷动画 (而非瞬隐)
 const scrollMode = ref(true)
+watch(scrollMode, (val, old) => {
+  if (old && !val && panelOpen.value && !panelClosing.value) {
+    closePanel()
+  }
+})
 // 朝代显示名 → 实际诗集 dynasty 字段映射 (mockup 8 朝代 → 数据 5 朝代)
 const DYNASTY_MAP = { '先秦':'', '秦汉':'', '魏晋':'', '隋唐':'唐', '宋':'宋', '元':'元', '明':'明', '清':'清' }
 function setDyn(d) {
@@ -1023,6 +1036,8 @@ function onLabelLeave(i) { if (activeIdx.value !== i) setBeam(i, false) }
 
 // ═══ Select location → open scroll panel ═══
 function selectLoc(i) {
+  // 卷轴模式关时不弹卷轴 (装饰开关明确意图)
+  if (!scrollMode.value) return
   const L = getLocations()
   const pos3D = getPos3D()
   const lbls = getLbls()
@@ -1227,21 +1242,23 @@ function _renderSinglePoem() {
   h += '<div class="pm-row"><span class="pm-k">◈ 意境</span><span class="pm-v">' + (moodTxt !== '—' ? moodTxt : '清远') + '</span></div>'
   h += '<div class="pm-row"><span class="pm-k">◈ 关联诗人</span><span class="pm-v">' + (relateds !== '—' ? relateds : '—') + '</span></div>'
   h += '<div class="pm-row pm-pageinfo">' + titleStr + ' · 共 ' + _currentList.length + ' 首 · 第 ' + (_currentIdx + 1) + ' 首</div>'
-  h += '<div class="pm-actions">'
-  h += '<button class="po-play' + (speakable ? '' : ' disabled') + '" data-pi="' + pi + '" title="' + (speakable ? '朗读此诗' : '暂无朗读') + '">▶</button>'
-  if (showFav) {
-    h += '<button class="po-fav' + (faved ? ' on' : '') + '" data-pi="' + pi + '" title="收藏">' + (faved ? '♥' : '♡') + '</button>'
-  }
-  h += '</div></div>'
+  h += '</div>'
 
   // ── 右印章标题块 (HTML 顺序最后, 显示在右侧) ──
   // 印章字内显示作者名 (单字: 取作者首字; 双字以上完整显示)
   const sealName = poem.a || ''
-  // 印章卡片: 整块可点 = 朗读开关 (data-action 给委托用)
-  h += '<div class="po-stamp" data-action="speak"' + (speakable ? '' : ' data-disabled="1"') + ' title="' + (speakable ? '点击朗读 / 再次点击停止' : '此诗暂无朗读') + '">'
+  // 印章卡片: 仅展示题/作者, 不再触发朗读 (朗读由 ▶ 按钮触发)
+  h += '<div class="po-stamp"' + (speakable ? '' : ' data-disabled="1"') + '>'
   h += '<div class="po-stamp-title"' + lenAttr + '>' + poem.t + '</div>'
   h += '<div class="po-stamp-meta">' + (poem.d || '') + '</div>'    // 朝代 (作者已在下方印章里, 不再重复)
   h += '<div class="po-stamp-seal">' + sealName + '</div>'
+  // 印章右上角浮动 ▶/♥ 竖排
+  h += '<div class="po-side-actions">'
+  h += '<button class="po-play' + (speakable ? '' : ' disabled') + '" data-pi="' + pi + '" title="' + (speakable ? '朗读此诗' : '暂无朗读') + '">▶</button>'
+  if (showFav) {
+    h += '<button class="po-fav' + (faved ? ' on' : '') + '" data-pi="' + pi + '" title="收藏">' + (faved ? '♥' : '♡') + '</button>'
+  }
+  h += '</div>'
   h += '</div>'
 
   poContent.value.innerHTML = h
@@ -1255,22 +1272,22 @@ function _renderSinglePoem() {
       const locNow = _currentLoc
       if (!item) return
       const poemNow = item.p
-      // 印章卡片 / ▶ 按钮 → 朗读开关 (再次点击停止)
-      if (t.closest('.po-stamp') || t.closest('.po-play')) {
-        ev.stopPropagation()
-        if (!poemNow.l) return
-        const versesEl2 = poContent.value.querySelector('.po-verses')
-        speakPoem(poemNow, versesEl2)
-        if (activeIdx.value >= 0) pulseBeam(activeIdx.value)
-        return
-      }
-      // 收藏
+      // 收藏 — 必须先判断, 因 ♥ 浮在印章侧外可能 closest 到 .po-stamp
       if (t.closest('.po-fav')) {
         ev.stopPropagation()
         if (locNow && !poemNow._metaOnly) {
           toggleFav(locNow.n, poemNow)
           _renderSinglePoem()
         }
+        return
+      }
+      // ▶ 按钮 → 朗读 (再次点击停止). 印章/标题不再触发朗读
+      if (t.closest('.po-play')) {
+        ev.stopPropagation()
+        if (!poemNow.l) return
+        const versesEl2 = poContent.value.querySelector('.po-verses')
+        speakPoem(poemNow, versesEl2)
+        if (activeIdx.value >= 0) pulseBeam(activeIdx.value)
         return
       }
       // 正文区点击 → 切换字体 (毛笔字 ↔ 易辨字体). 只切, 不朗读.
@@ -1349,20 +1366,12 @@ function scrollPanel(dir) {
 }
 
 function updateArrows() {
-  const box = poBox.value
-  if (!box) return
-  const maxScroll = box.scrollWidth - box.clientWidth
+  // 单首三段式 + _gotoPoem 循环 wrap: 只要列表 > 1 首就显示左右箭头
   const arrL = document.getElementById('po-arr-l')
   const arrR = document.getElementById('po-arr-r')
-  if (maxScroll < 5) {
-    arrL && arrL.classList.remove('show')
-    arrR && arrR.classList.remove('show')
-    return
-  }
-  const canRight = box.scrollLeft < maxScroll - 5
-  const canLeft = box.scrollLeft > 5
-  arrR && arrR.classList.toggle('show', canRight)
-  arrL && arrL.classList.toggle('show', canLeft)
+  const showBoth = _currentList && _currentList.length > 1
+  arrR && arrR.classList.toggle('show', showBoth)
+  arrL && arrL.classList.toggle('show', showBoth)
 }
 
 // ═══ Scroll drag (mousemove/touchmove 用 rAF 节流, 拖动只在每帧最多更新一次 scrollLeft) ═══
