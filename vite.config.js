@@ -11,7 +11,7 @@ export default defineConfig({
     compression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 })
   ],
   server: {
-    host: '127.0.0.1',  // 强制 IPv4: 避开 Windows IPv6 loopback 防火墙拦截
+    host: '0.0.0.0',  // 同时监听 IPv4 + IPv6, 浏览器用 localhost 访问以复用 IndexedDB 地形缓存
     port: 5173,
     open: true
   },
