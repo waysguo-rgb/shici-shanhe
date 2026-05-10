@@ -11,6 +11,7 @@ export default defineConfig({
     compression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 })
   ],
   server: {
+    host: '127.0.0.1',  // 强制 IPv4: 避开 Windows IPv6 loopback 防火墙拦截
     port: 5173,
     open: true
   },
