@@ -900,6 +900,15 @@ onMounted(async () => {
     if (e.key === 'Escape') {
       if (drawerOpen.value) drawerOpen.value = false
       else closePanel()
+      return
+    }
+    // 卷轴翻页: 仅在卷轴打开 + 不在搜索/输入框中 + 卷轴模式开 时
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') &&
+        panelOpen.value && !panelClosing.value && scrollMode.value &&
+        !searchOpen.value && !graphOpen.value &&
+        !(document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))) {
+      e.preventDefault()
+      _gotoPoem(e.key === 'ArrowLeft' ? -1 : 1)
     }
   })
 
