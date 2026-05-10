@@ -403,8 +403,9 @@ function _buildEdges() {
     const archHeight = 4 + Math.log2(e.w + 1) * 3;
     const ctrl = mid.clone().add(outward.multiplyScalar(archHeight * 0.4)).setY(mid.y + archHeight);
     const curve = new THREE.QuadraticBezierCurve3(sv, ctrl, tv);
-    const tubeR = 0.10 + Math.min(Math.log2(e.w + 1) * 0.10, 0.45);
-    const geo = new THREE.TubeGeometry(curve, 24, tubeR, 8, false);
+    // 视觉 tube 半径 (粗到 raycaster 容易命中, 但不至于挤占节点空间)
+    const tubeR = 0.22 + Math.min(Math.log2(e.w + 1) * 0.14, 0.65);
+    const geo = new THREE.TubeGeometry(curve, 28, tubeR, 8, false);
     const mat = new THREE.MeshLambertMaterial({
       color: 0xd4a050,
       emissive: 0x664020,
