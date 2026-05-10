@@ -12,6 +12,17 @@
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
+// 1×1 灰度占位贴图: 真贴图加载完成前 sampler 不为 null, 且对画面零影响.
+//   level=0.50 → grain offset = (0.5 - 0.5) = 0
+//   level=0.60 → brush mix(1, 0.7+0.6*0.5=1.0, strength) = 1 不变
+//   level=0.00 → ink_bleed mask = 0, 不施加扩散
+function _placeholderTex(level) {
+  const v = Math.round(level * 255);
+  const t = new THREE.DataTexture(new Uint8Array([v, v, v, 255]), 1, 1, THREE.RGBAFormat);
+  t.needsUpdate = true;
+  return t;
+}
+
 const InkWashShader = {
   uniforms: {
     tDiffuse:       { value: null },
@@ -25,7 +36,16 @@ const InkWashShader = {
     // noise), but strength is the middle-ground 0.40: visible brushwork on
     // rivers/coastlines/ridges without descending into "dirty" density.
     uEdgeStrength:  { value: 0.40 },
-    uEdgeThreshold: { value: 0.20 }
+    uEdgeThreshold: { value: 0.20 },
+    // === 真水墨贴图 (按 docs/textures-pipeline.md 第 4 节接入) ===
+    uPaperTex:        { value: _placeholderTex(0.50) },
+    uBrushTex:        { value: _placeholderTex(0.60) },
+    uInkBleedTex:     { value: _placeholderTex(0.00) },
+    uPaperScale:      { value: 2.5 },
+    uBrushScale:      { value: 6.0 },
+    uInkBleedScale:   { value: 3.0 },
+    uBrushStrength:   { value: 0.45 },
+    uInkBleedStrength:{ value: 0.18 }
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -43,6 +63,14 @@ const InkWashShader = {
     uniform float uVignette;
     uniform float uEdgeStrength;
     uniform float uEdgeThreshold;
+    uniform sampler2D uPaperTex;
+    uniform sampler2D uBrushTex;
+    uniform sampler2D uInkBleedTex;
+    uniform float uPaperScale;
+    uniform float uBrushScale;
+    uniform float uInkBleedScale;
+    uniform float uBrushStrength;
+    uniform float uInkBleedStrength;
     varying vec2 vUv;
 
     // Luminance helper
@@ -86,13 +114,20 @@ const InkWashShader = {
       col.rgb *= (1.0 - ink * 0.70);
       col.rgb = mix(col.rgb, vec3(0.20, 0.14, 0.09), ink * 0.15);
 
-      // 1. Xuan paper fiber (coarse undulation + fine speckle)
-      vec2 p   = vUv * uRes;
-      float coarse = vnoise(p * 0.0016) - 0.5;        // slow, long fibers
-      float medium = vnoise(p * 0.012)  - 0.5;         // mid-scale paper pulp
-      float fine   = hash(p) - 0.5;                    // fiber speckle
-      float grain  = coarse * 0.55 + medium * 0.30 + fine * 0.15;
+      // 1. Xuan paper fiber — 真贴图主纹 + 高频细斑补偿 (按 docs T1)
+      vec3  paperRgb  = texture2D(uPaperTex, vUv * uPaperScale).rgb;
+      float paperBase = paperRgb.r - 0.5;                          // 主纹 (-0.5..+0.5)
+      float fineSpec  = hash(vUv * uRes) - 0.5;                    // 高频细斑
+      float grain     = paperBase * 0.85 + fineSpec * 0.15;
       col.rgb += grain * uPaperStrength;
+
+      // 1.5 Pi-ma-cun brush — 全屏笔触亮度调制 (按 docs T2)
+      float brushSample = texture2D(uBrushTex, vUv * uBrushScale).r;
+      col.rgb *= mix(1.0, 0.7 + brushSample * 0.5, uBrushStrength);
+
+      // 1.7 Ink bleed — 扩散区域拉向陈旧墨色 (按 docs T3)
+      float inkBleed = texture2D(uInkBleedTex, vUv * uInkBleedScale).r;
+      col.rgb = mix(col.rgb, vec3(0.10, 0.08, 0.07), inkBleed * uInkBleedStrength);
 
       // 2. Warm bias (gentle sepia wash)
       col.r += uWarmth * 0.06;

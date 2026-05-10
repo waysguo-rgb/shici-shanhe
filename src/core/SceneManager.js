@@ -317,6 +317,21 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // SMAA (so SMAA smooths any micro-grain contrast edges).
   const inkWash = makeInkWashPass();
   inkWash.uniforms.uRes.value.set(W, H);
+
+  // 加载水墨贴图 (paper / brush_pima / ink_bleed) — 按 docs/textures-pipeline.md 第 4 节
+  // 异步, 加载完成前 InkWashPass 用 1×1 占位贴图 (零影响), 加载到立即生效.
+  const _inkTexLoader = new THREE.TextureLoader();
+  const _setupInkTex = (tex) => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    tex.needsUpdate = true;
+    return tex;
+  };
+  _inkTexLoader.load('assets/textures/paper.png',      (t) => { inkWash.uniforms.uPaperTex.value    = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/brush_pima.png', (t) => { inkWash.uniforms.uBrushTex.value    = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/ink_bleed.png',  (t) => { inkWash.uniforms.uInkBleedTex.value = _setupInkTex(t); });
+
   composer.addPass(inkWash);
 
   if (!MOB) {
