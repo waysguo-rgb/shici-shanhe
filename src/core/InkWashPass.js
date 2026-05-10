@@ -39,12 +39,14 @@ const InkWashShader = {
     uEdgeThreshold: { value: 0.20 },
     // === 真水墨贴图 (按 docs/textures-pipeline.md 第 4 节接入) ===
     uPaperTex:        { value: _placeholderTex(0.50) },
-    uBrushTex:        { value: _placeholderTex(0.60) },
+    uBrushTex:        { value: _placeholderTex(0.60) },   // pima (披麻皴, 缓坡)
+    uBrushFupiTex:    { value: _placeholderTex(0.60) },   // fupi (斧劈皴, 陡坡)
     uInkBleedTex:     { value: _placeholderTex(0.00) },
     uPaperScale:      { value: 2.5 },
     uBrushScale:      { value: 6.0 },
+    uBrushFupiScale:  { value: 6.0 },
     uInkBleedScale:   { value: 3.0 },
-    uBrushStrength:   { value: 0.45 },
+    uBrushStrength:   { value: 0.15 },                    // 0.45 → 0.25 → 0.15 (再轻)
     uInkBleedStrength:{ value: 0.18 }
   },
   vertexShader: /* glsl */`
@@ -65,9 +67,11 @@ const InkWashShader = {
     uniform float uEdgeThreshold;
     uniform sampler2D uPaperTex;
     uniform sampler2D uBrushTex;
+    uniform sampler2D uBrushFupiTex;
     uniform sampler2D uInkBleedTex;
     uniform float uPaperScale;
     uniform float uBrushScale;
+    uniform float uBrushFupiScale;
     uniform float uInkBleedScale;
     uniform float uBrushStrength;
     uniform float uInkBleedStrength;
@@ -121,8 +125,14 @@ const InkWashShader = {
       float grain     = paperBase * 0.85 + fineSpec * 0.15;
       col.rgb += grain * uPaperStrength;
 
-      // 1.5 Pi-ma-cun brush — 全屏笔触亮度调制 (按 docs T2)
-      float brushSample = texture2D(uBrushTex, vUv * uBrushScale).r;
+      // 1.5 Brush stroke — pima (缓坡) / fupi (陡坡) 按 luma 近似坡度做 mix
+      // 后处理 pass 拿不到 3D 坡度, luma 最低成本的代理: 暗区(阴影=背光面=陡)用 fupi,
+      // 亮区(受光=平/远)用 pima. smoothstep 平滑过渡, 避免硬切.
+      float pimaSample  = texture2D(uBrushTex,     vUv * uBrushScale).r;
+      float fupiSample  = texture2D(uBrushFupiTex, vUv * uBrushFupiScale).r;
+      float brushLuma   = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+      float slopeMask   = smoothstep(0.40, 0.18, brushLuma);   // 0=亮(平) → 1=暗(陡)
+      float brushSample = mix(pimaSample, fupiSample, slopeMask);
       col.rgb *= mix(1.0, 0.7 + brushSample * 0.5, uBrushStrength);
 
       // 1.7 Ink bleed — 扩散区域拉向陈旧墨色 (按 docs T3)

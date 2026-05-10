@@ -328,9 +328,10 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     tex.needsUpdate = true;
     return tex;
   };
-  _inkTexLoader.load('assets/textures/paper.png',      (t) => { inkWash.uniforms.uPaperTex.value    = _setupInkTex(t); });
-  _inkTexLoader.load('assets/textures/brush_pima.png', (t) => { inkWash.uniforms.uBrushTex.value    = _setupInkTex(t); });
-  _inkTexLoader.load('assets/textures/ink_bleed.png',  (t) => { inkWash.uniforms.uInkBleedTex.value = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/paper.png',      (t) => { inkWash.uniforms.uPaperTex.value     = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/brush_pima.png', (t) => { inkWash.uniforms.uBrushTex.value     = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/brush_fupi.png', (t) => { inkWash.uniforms.uBrushFupiTex.value = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/ink_bleed.png',  (t) => { inkWash.uniforms.uInkBleedTex.value  = _setupInkTex(t); });
 
   composer.addPass(inkWash);
 
