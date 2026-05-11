@@ -332,6 +332,7 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   _inkTexLoader.load('assets/textures/brush_pima.png', (t) => { inkWash.uniforms.uBrushTex.value     = _setupInkTex(t); });
   _inkTexLoader.load('assets/textures/brush_fupi.png', (t) => { inkWash.uniforms.uBrushFupiTex.value = _setupInkTex(t); });
   _inkTexLoader.load('assets/textures/ink_bleed.png',  (t) => { inkWash.uniforms.uInkBleedTex.value  = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/mist.png',       (t) => { inkWash.uniforms.uMistTex.value      = _setupInkTex(t); });
 
   composer.addPass(inkWash);
 

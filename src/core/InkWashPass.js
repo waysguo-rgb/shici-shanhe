@@ -42,12 +42,15 @@ const InkWashShader = {
     uBrushTex:        { value: _placeholderTex(0.60) },   // pima (披麻皴, 缓坡)
     uBrushFupiTex:    { value: _placeholderTex(0.60) },   // fupi (斧劈皴, 陡坡)
     uInkBleedTex:     { value: _placeholderTex(0.00) },
+    uMistTex:         { value: _placeholderTex(0.00) },   // 雾(屏幕空间叠加, 占位 0=不施加)
     uPaperScale:      { value: 2.5 },
     uBrushScale:      { value: 6.0 },
     uBrushFupiScale:  { value: 6.0 },
     uInkBleedScale:   { value: 3.0 },
+    uMistScale:       { value: 1.2 },                     // 偏大尺度, 避免可见 tiling
     uBrushStrength:   { value: 0.15 },                    // 0.45 → 0.25 → 0.15 (再轻)
-    uInkBleedStrength:{ value: 0.18 }
+    uInkBleedStrength:{ value: 0.18 },
+    uMistStrength:    { value: 0.10 }                     // 雾很轻; 太重就调 0.05
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -69,12 +72,15 @@ const InkWashShader = {
     uniform sampler2D uBrushTex;
     uniform sampler2D uBrushFupiTex;
     uniform sampler2D uInkBleedTex;
+    uniform sampler2D uMistTex;
     uniform float uPaperScale;
     uniform float uBrushScale;
     uniform float uBrushFupiScale;
     uniform float uInkBleedScale;
+    uniform float uMistScale;
     uniform float uBrushStrength;
     uniform float uInkBleedStrength;
+    uniform float uMistStrength;
     varying vec2 vUv;
 
     // Luminance helper
@@ -138,6 +144,11 @@ const InkWashShader = {
       // 1.7 Ink bleed — 扩散区域拉向陈旧墨色 (按 docs T3)
       float inkBleed = texture2D(uInkBleedTex, vUv * uInkBleedScale).r;
       col.rgb = mix(col.rgb, vec3(0.10, 0.08, 0.07), inkBleed * uInkBleedStrength);
+
+      // 1.8 Mist overlay — 屏幕空间雾叠加, 上半屏更显, 模拟"天边溶进宣纸"
+      float mistSample = texture2D(uMistTex, vUv * uMistScale).r;
+      float mistVGrad  = smoothstep(0.0, 0.55, vUv.y);   // 0=底=清晰, 1=顶=雾浓
+      col.rgb = mix(col.rgb, vec3(0.92, 0.90, 0.84), mistSample * uMistStrength * mistVGrad);
 
       // 2. Warm bias (gentle sepia wash)
       col.r += uWarmth * 0.06;
