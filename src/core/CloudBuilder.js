@@ -90,6 +90,7 @@ export function mkMistBand(x, y, z, baseW, baseH, scene) {
   }
   group.position.set(x, y, z);
   group.userData = {
+    isMistBand: true,          // 标记: animate loop 用此 flag 加全局相机距离 fade
     baseY: y,
     // Slower than clouds, mostly westerly drift
     driftX: 0.04 + Math.random() * 0.04,

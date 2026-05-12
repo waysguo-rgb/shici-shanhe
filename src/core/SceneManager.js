@@ -955,6 +955,10 @@ function animate() {
   if (frameCount % 3 === 0) animateSea(t);
 
   // Cloud drift + proximity fade — opacity 量化到 0.01 后 cache, 命中率 ~70%+
+  // Mist band 额外按"相机到场景中心距离"全局淡入淡出: 拉近无雾, 远眺有雾
+  const _mistGlobalFade = THREE.MathUtils.smoothstep(
+    camera.position.distanceTo(controls.target), 15, 80
+  );
   for (let cgi = 0; cgi < cloudGroups.length; cgi++) {
     const cg = cloudGroups[cgi];
     const d = cg.userData;
@@ -963,7 +967,7 @@ function animate() {
     const dist = camera.position.distanceTo(cg.position);
     const breath = .85 + Math.sin(t * .2 + d.phase) * .12;
     const fade = dist < 6 ? 0 : dist < 18 ? (dist - 6) / 12 : 1;
-    const factor = breath * fade;
+    const factor = breath * fade * (d.isMistBand ? _mistGlobalFade : 1);
     const childs = cg.children;
     for (let i = 0; i < childs.length; i++) {
       const s = childs[i];
