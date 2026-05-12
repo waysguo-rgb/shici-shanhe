@@ -856,6 +856,10 @@ function animate() {
       _renderRefs.inkWashPass.uniforms.uTime.value = t;
     }
     updateTone(_renderRefs.inkWashPass);
+    // 雾随相机距离淡入淡出: 近 (≤15) 无雾, 远 (≥80) 满雾, 中间 smoothstep 过渡
+    const _camDist = camera.position.distanceTo(controls.target);
+    _renderRefs.inkWashPass.uniforms.uMistStrength.value =
+      0.10 * THREE.MathUtils.smoothstep(_camDist, 15, 80);
   }
   // 月亮漂移
   updateMoon(t);
