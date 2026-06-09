@@ -44,8 +44,8 @@ const InkWashShader = {
     uInkBleedTex:     { value: _placeholderTex(0.00) },
     uMistTex:         { value: _placeholderTex(0.00) },   // 雾(屏幕空间叠加, 占位 0=不施加)
     uPaperScale:      { value: 2.5 },
-    uBrushScale:      { value: 6.0 },
-    uBrushFupiScale:  { value: 6.0 },
+    uBrushScale:      { value: 9.0 },   // 6→9 缩小 pima tile 周期, 减"复印感"
+    uBrushFupiScale:  { value: 13.0 },  // fupi 单独更细 (陡坡笔触更密), 与 pima 区分
     uInkBleedScale:   { value: 3.0 },
     uMistScale:       { value: 1.2 },                     // 偏大尺度, 避免可见 tiling
     uBrushStrength:   { value: 0.15 },                    // 0.45 → 0.25 → 0.15 (再轻)
@@ -132,7 +132,10 @@ const InkWashShader = {
       float brushLuma   = dot(col.rgb, vec3(0.299, 0.587, 0.114));
       float slopeMask   = smoothstep(0.40, 0.18, brushLuma);   // 0=亮(平) → 1=暗(陡)
       float brushSample = mix(pimaSample, fupiSample, slopeMask);
-      col.rgb *= mix(1.0, 0.7 + brushSample * 0.5, uBrushStrength);
+      // brushApply: 只在中暗地形上墨, 亮区(水面/文字/雪峰 luma>0.80)不上墨,
+      // 解决"披麻皴网格飘在水和字上"的问题. 笔触咬住山体而非整屏铺.
+      float brushApply  = smoothstep(0.80, 0.55, brushLuma);
+      col.rgb *= mix(1.0, 0.7 + brushSample * 0.5, uBrushStrength * brushApply);
 
       // 1.7 Ink bleed — 扩散区域拉向陈旧墨色 (按 docs T3)
       float inkBleed = texture2D(uInkBleedTex, vUv * uInkBleedScale).r;
