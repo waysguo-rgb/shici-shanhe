@@ -946,6 +946,9 @@ function animate() {
   // 单独的 CityLantern 地面光晕实现, 视觉上不与 vertical beam 混淆)
   beamMeshes.forEach(s => {
     const u = s.userData;
+    // 早退: 既已熄灭又无点亮目标的 beam 跳过 sin+lerp+属性写 (60 城 ×2=120 个 beam/halo,
+    // 同一时刻通常只 0-1 个 active, 其余纯空转).
+    if (u.current < 0.01 && u.target === 0) { if (s.visible) s.visible = false; return; }
     u.current += (u.target - u.current) * 0.15;
     const breath = u.isHalo
       ? (0.85 + Math.sin(t * 0.9 + u.phase) * 0.20)
@@ -954,8 +957,9 @@ function animate() {
     s.visible = u.current > 0.01;
   });
 
-  // Coast waves (every 3 frames)
-  if (frameCount % 3 === 0) animateSea(t);
+  // Coast waves — 每帧更新. animateSea 只是 coastWaveData.length 次 sin, 成本可忽略;
+  // 原 %3 节流为省一点 CPU 反而造成肉眼可见的 20fps 抖动, 移除后顺滑 60fps.
+  animateSea(t);
 
   // Cloud drift + proximity fade — opacity 量化到 0.01 后 cache, 命中率 ~70%+
   // Mist band 额外按"相机到场景中心距离"全局淡入淡出: 拉近无雾, 远眺有雾

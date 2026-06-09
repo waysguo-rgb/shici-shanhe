@@ -154,7 +154,7 @@ export function initPetals(scene, { count = 100, xRange = [-70, 85], zRange = [-
       lit: 0.85 + Math.random() * 0.08,
     };
     _petals[i] = p;
-    _writeInstance(i, p, 1);
+    _writeInstance(i, p, 1, true);   // init 写一次颜色
   }
   _instanced.instanceMatrix.needsUpdate = true;
   _scaleAttr.needsUpdate = true;
@@ -164,15 +164,18 @@ export function initPetals(scene, { count = 100, xRange = [-70, 85], zRange = [-
   scene.add(_instanced);
 }
 
-function _writeInstance(i, p, opMul) {
+function _writeInstance(i, p, opMul, writeColor) {
   _pos.set(p.x, p.y, p.z);
   _mat.compose(_pos, _quat, _scl);
   _instanced.setMatrixAt(i, _mat);
   _scaleAttr.setX(i, p.scale);
   _rotAttr.setX(i, p.rot || 0);
   _opacityAttr.setX(i, p.baseOp * opMul);
-  _col.setHSL(p.hue, p.sat, p.lit);
-  _colorAttr.setXYZ(i, _col.r, _col.g, _col.b);
+  // 颜色恒定: 只在 init / recolorPetals 写, 每帧 update 跳过 (省 110 次 setHSL + 颜色 buffer 重传)
+  if (writeColor) {
+    _col.setHSL(p.hue, p.sat, p.lit);
+    _colorAttr.setXYZ(i, _col.r, _col.g, _col.b);
+  }
 }
 
 // Hook from SceneManager to keep clip-space offset math in sync with the canvas size.
@@ -234,11 +237,11 @@ export function updatePetals(t, dt) {
       p.y = yMax - Math.random() * 2;
       p.z = zMin + Math.random() * (zMax - zMin);
     }
-    _writeInstance(i, p, opMul);
+    _writeInstance(i, p, opMul);   // 每帧不写颜色 (颜色恒定)
   }
   _instanced.instanceMatrix.needsUpdate = true;
   _scaleAttr.needsUpdate = true;
   _rotAttr.needsUpdate = true;
   _opacityAttr.needsUpdate = true;
-  _colorAttr.needsUpdate = true;
+  // 注: 不再每帧 _colorAttr.needsUpdate — 颜色只在 init/recolorPetals 变
 }

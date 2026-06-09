@@ -25,6 +25,7 @@ const _pos  = new THREE.Vector3();
 const _quat = new THREE.Quaternion();
 const _scl  = new THREE.Vector3();
 const _mat  = new THREE.Matrix4();
+const _eu   = new THREE.Euler();   // 复用, 避免 _writeInstance 每帧 ×800 new Euler 的 GC
 const _col  = new THREE.Color();
 
 export function buildRain(scene) {
@@ -65,8 +66,9 @@ export function buildRain(scene) {
 
 function _writeInstance(i, d) {
   _pos.set(d.x, d.y, d.z);
-  // 绕 Z 前倾 tilt, 给下落动感
-  _quat.setFromEuler(new THREE.Euler(0, 0, d.tilt));
+  // 绕 Z 前倾 tilt, 给下落动感 (复用 _eu, 不每次 new Euler)
+  _eu.set(0, 0, d.tilt);
+  _quat.setFromEuler(_eu);
   _scl.set(1, d.len, 1);
   _mat.compose(_pos, _quat, _scl);
   _rainInstanced.setMatrixAt(i, _mat);
