@@ -940,10 +940,11 @@ function animate() {
       sp.position.y = d.baseY + Math.sin(ph) * d.bobAmp;
       sp.position.x = d.baseX + Math.cos(ph * 0.7) * d.swayAmp;
       sp.position.z = d.baseZ + Math.sin(ph * 0.5) * d.swayAmp * 0.6;
-      const scaleK = 1 + Math.sin(ph * 0.8) * 0.08;
-      sp.scale.set(d.baseW * scaleK, d.baseH * (1 + Math.sin(ph * 0.8 + 1) * 0.12), 1);
-      sp.material.rotation = Math.sin(ph * 0.5) * 0.12 * d.rollSpeed;
-      sp.material.opacity = d.baseOp * (0.75 + Math.sin(ph * 0.6) * 0.22);
+      // 摆动幅度压缩 (scale ±8%/±12%→±3%/±4%, opacity ±0.22→±0.06): 去搏动闪烁
+      const scaleK = 1 + Math.sin(ph * 0.8) * 0.03;
+      sp.scale.set(d.baseW * scaleK, d.baseH * (1 + Math.sin(ph * 0.8 + 1) * 0.04), 1);
+      sp.material.rotation = Math.sin(ph * 0.5) * 0.06 * d.rollSpeed;
+      sp.material.opacity = d.baseOp * (0.9 + Math.sin(ph * 0.6) * 0.06);
     });
   });
 

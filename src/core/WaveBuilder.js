@@ -35,17 +35,18 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
   const [ccx, ccz] = ll2s(loCen, laCen);
   const areaW = loSpan * 1.6;
   const areaH = laSpan * 1.8;
-  const cols = Math.max(2, Math.floor(areaW / (baseW * 0.70)));
-  const rows = Math.max(1, Math.floor(areaH / (baseH * 1.4)));
+  // 网格除数调大 (0.70→1.4, 1.4→2.4): 浪沫更稀, 走向水墨"计白当黑"的留白, 顺带减 draw call
+  const cols = Math.max(2, Math.floor(areaW / (baseW * 1.4)));
+  const rows = Math.max(1, Math.floor(areaH / (baseH * 2.4)));
 
   const sprites = [];
   for (let r = 0; r < rows; r++) {
     for (let co = 0; co < cols; co++) {
       const px = -areaW / 2 + (co + 0.5) * areaW / cols + (r % 2 ? baseW * 0.3 : 0);
       const pz = -areaH / 2 + (r + 0.5) * areaH / rows;
+      // 只留主层, 删掉第二层 depth sprite (减半 sprite 数, 画面更克制)
       const layers = [
-        { dy: 0.08, scale: 1.00, op: 1.0, zOff: 0, depth: 0 },
-        { dy: 0.03, scale: 0.78, op: 0.85, zOff: -0.15, depth: 1 }
+        { dy: 0.08, scale: 1.00, op: 1.0, zOff: 0, depth: 0 }
       ];
       layers.forEach((L, idx) => {
         const mat = new THREE.SpriteMaterial({
@@ -94,8 +95,8 @@ export function mkWavePatch(loCen, laCen, loSpan, laSpan, loOff, laOff, name) {
 // ═══════════════════════════════════════
 export function buildCoastWaves() {
   const grp = new THREE.Group();
-  // 再降密度 (7 → 10), 视觉清爽, 海岸顺便少一堆 sprite draw call
-  const spacing = MOB ? 14 : 10;
+  // 再降密度 (10 → 18), 海岸浪更稀疏留白, 顺带少一堆 sprite draw call
+  const spacing = MOB ? 22 : 18;
   const nLayers = 1;
   const LC = [
     [0.3, 3.0, .30, .50, .12, .02],
@@ -161,14 +162,18 @@ export function buildCoastWaves() {
 // ═══════════════════════════════════════
 export function animateSea(t) {
   for (let i = 0; i < coastWaveData.length; i++) {
-    const d = coastWaveData[i], ph = t * d.spd + d.ph;
+    // ×0.55 整体降速 — 水墨"静中微动", 不要快频抖动
+    const d = coastWaveData[i], ph = t * d.spd * 0.55 + d.ph;
     const sv = Math.sin(ph);
-    d.sp.position.x = d.bx - d.nx * sv * d.surge;
-    d.sp.position.z = d.bz - d.nz * sv * d.surge;
-    d.sp.position.y = d.by + Math.max(0, sv) * d.bob * 2.5 + Math.sin(ph * .9) * d.bob * .4;
+    d.sp.position.x = d.bx - d.nx * sv * d.surge * 0.6;
+    d.sp.position.z = d.bz - d.nz * sv * d.surge * 0.6;
+    // 抬升幅度 2.5→0.8: 浪沫贴着水面低频起伏, 不再大起大落
+    d.sp.position.y = d.by + Math.max(0, sv) * d.bob * 0.8;
     const crest = Math.max(0, sv);
-    d.sp.scale.set(d.bW * (1 + crest * .12), d.bH * (1 + crest * .25), 1);
-    d.sp.material.opacity = d.bOp * (.35 + (sv + 1) * .325);
-    d.sp.material.rotation = Math.sin(ph * .4) * .06;
+    // scale 摆动 ±12%/±25% → ±5%/±6%: 几乎不缩放, 去掉"搏动"感
+    d.sp.scale.set(d.bW * (1 + crest * 0.05), d.bH * (1 + crest * 0.06), 1);
+    // opacity 近 3 倍跳变 → 0.82±0.06: 透明度突变是肉眼最敏感的廉价信号, 压成微呼吸
+    d.sp.material.opacity = d.bOp * (0.82 + sv * 0.06);
+    d.sp.material.rotation = Math.sin(ph * 0.4) * 0.03;
   }
 }
