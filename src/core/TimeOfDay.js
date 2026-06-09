@@ -36,8 +36,8 @@ export const TIME_PRESETS = {
   },
   noon: {
     // 当前项目已有状态的数值化快照
-    fogColor:       0xa8824f,
-    bgColor:        0xa8824f,
+    fogColor:       0xc8a878,   // 暖 tan, 与 init fog 一致 (远山如黛, 不死黑)
+    bgColor:        0xe8dcc0,   // 浅暖宣纸色 (留白); 旧值 0xa8824f 深棕已弃
     sunPos:         [-45, 72, 35],
     sunColor:       0xffeac0,
     sunIntensity:   0.88,

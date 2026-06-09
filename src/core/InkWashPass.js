@@ -143,7 +143,7 @@ const InkWashShader = {
 
       // 1.8 Mist overlay — 屏幕空间雾叠加, 上半屏更显, 模拟"天边溶进宣纸"
       float mistSample = texture2D(uMistTex, vUv * uMistScale).r;
-      float mistVGrad  = smoothstep(0.0, 0.55, vUv.y);   // 0=底=清晰, 1=顶=雾浓
+      float mistVGrad  = smoothstep(0.15, 0.78, vUv.y);   // 底部 15% 全清晰, 顶部 78% 起雾浓
       col.rgb = mix(col.rgb, vec3(0.92, 0.90, 0.84), mistSample * uMistStrength * mistVGrad);
 
       // 2. Warm bias (gentle sepia wash)

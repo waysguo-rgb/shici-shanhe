@@ -435,11 +435,10 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   cubeCam.update(renderer, skyScene);
   renderer.toneMapping = prevTM;
   renderer.toneMappingExposure = prevExp;
-  // Scene background = warm scroll-paper color (ancient Chinese painting feel),
-  // NOT the Sky cube — we want an even sepia wash behind the terrain, not a
-  // gradient atmosphere. The sky cube is kept alive below purely so the water
-  // shader still has something pleasant to reflect.
-  scene.background = new THREE.Color(0xa8824f);
+  // Scene background = 浅暖宣纸色 (留白 + 远山如黛): 比 fog tan (0xc8a878) 更亮,
+  // 远处地形 fog 淡入后比"天"略深, 形成纸上留白 + 远山渐隐的水墨三远结构.
+  // (旧值 0xa8824f 深棕铺满上半屏, 压抑且失去留白). Sky cube 仍留给水面反射用.
+  scene.background = new THREE.Color(0xe8dcc0);
   skyCube = cubeRT.texture;
 
   // ═══ DEM ═══
@@ -863,7 +862,7 @@ function animate() {
     // 雾随相机距离淡入淡出: 近 (≤15) 无雾, 远 (≥80) 满雾, 中间 smoothstep 过渡
     const _camDist = camera.position.distanceTo(controls.target);
     _renderRefs.inkWashPass.uniforms.uMistStrength.value =
-      0.10 * THREE.MathUtils.smoothstep(_camDist, 15, 80);
+      0.12 * THREE.MathUtils.smoothstep(_camDist, 15, 80);
   }
   // 月亮漂移
   updateMoon(t);
