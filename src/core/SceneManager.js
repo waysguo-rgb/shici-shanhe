@@ -6,7 +6,6 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass }    from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { SMAAPass }      from 'three/examples/jsm/postprocessing/SMAAPass.js';
-import { SSAOPass }      from 'three/examples/jsm/postprocessing/SSAOPass.js';
 import { makeInkWashPass, setTone, updateTone } from './InkWashPass.js';
 export { setTone };
 import { initPetals, updatePetals, resizePetals, setPetalLakes, setPetalLandCallback, setPetalsEnabled } from './PetalParticles.js';
@@ -323,7 +322,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   const _inkTexLoader = new THREE.TextureLoader();
   const _setupInkTex = (tex) => {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    // r0.128 没有 colorSpace API, 用旧 encoding 字段; sRGB 解码后再喂 shader 计算
+    tex.encoding = THREE.sRGBEncoding;
     tex.anisotropy = 4;
     tex.needsUpdate = true;
     return tex;

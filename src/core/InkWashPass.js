@@ -92,13 +92,6 @@ const InkWashShader = {
       p += dot(p, p + 19.19);
       return fract(p.x * p.y);
     }
-    float vnoise(vec2 p) {
-      vec2 i = floor(p), f = fract(p);
-      vec2 u = f * f * (3.0 - 2.0 * f);
-      return mix( mix(hash(i),                 hash(i + vec2(1.0, 0.0)), u.x),
-                  mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
-    }
-
     void main() {
       vec4 col = texture2D(tDiffuse, vUv);
 
