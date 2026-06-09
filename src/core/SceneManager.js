@@ -328,11 +328,11 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
     tex.needsUpdate = true;
     return tex;
   };
-  _inkTexLoader.load('assets/textures/paper.png',      (t) => { inkWash.uniforms.uPaperTex.value     = _setupInkTex(t); });
-  _inkTexLoader.load('assets/textures/brush_pima.png', (t) => { inkWash.uniforms.uBrushTex.value     = _setupInkTex(t); });
-  _inkTexLoader.load('assets/textures/brush_fupi.png', (t) => { inkWash.uniforms.uBrushFupiTex.value = _setupInkTex(t); });
-  _inkTexLoader.load('assets/textures/ink_bleed.png',  (t) => { inkWash.uniforms.uInkBleedTex.value  = _setupInkTex(t); });
-  _inkTexLoader.load('assets/textures/mist.png',       (t) => { inkWash.uniforms.uMistTex.value      = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/paper.webp',      (t) => { inkWash.uniforms.uPaperTex.value     = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/brush_pima.webp', (t) => { inkWash.uniforms.uBrushTex.value     = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/brush_fupi.webp', (t) => { inkWash.uniforms.uBrushFupiTex.value = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/ink_bleed.webp',  (t) => { inkWash.uniforms.uInkBleedTex.value  = _setupInkTex(t); });
+  _inkTexLoader.load('assets/textures/mist.webp',       (t) => { inkWash.uniforms.uMistTex.value      = _setupInkTex(t); });
 
   // SMAA 放在 ink-wash 之前: ink-wash 注入纸纹 hash noise + Sobel/笔触, 若 SMAA
   // 在其后, SMAA 的 luma 边缘检测会把每颗 grain 当成边缘去抹平, 既糊掉纸纹又钝化
