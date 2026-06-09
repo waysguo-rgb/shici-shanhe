@@ -312,8 +312,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   composer.addPass(bloomPass);
 
   // Ink-wash pass: rice-paper grain + warm wash + scroll vignette.
-  // Placed AFTER bloom (so bloom highlights are part of the painting), BEFORE
-  // SMAA (so SMAA smooths any micro-grain contrast edges).
+  // Placed AFTER bloom (so bloom highlights are part of the painting) and AFTER
+  // SMAA (见下方 SMAA 注释): ink-wash 必须是最后一道, 纸纹/笔触不被 AA 抹平.
   const inkWash = makeInkWashPass();
   inkWash.uniforms.uRes.value.set(W, H);
 
@@ -334,12 +334,16 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   _inkTexLoader.load('assets/textures/ink_bleed.png',  (t) => { inkWash.uniforms.uInkBleedTex.value  = _setupInkTex(t); });
   _inkTexLoader.load('assets/textures/mist.png',       (t) => { inkWash.uniforms.uMistTex.value      = _setupInkTex(t); });
 
-  composer.addPass(inkWash);
-
+  // SMAA 放在 ink-wash 之前: ink-wash 注入纸纹 hash noise + Sobel/笔触, 若 SMAA
+  // 在其后, SMAA 的 luma 边缘检测会把每颗 grain 当成边缘去抹平, 既糊掉纸纹又钝化
+  // 笔锋 (旧注释"SMAA smooths micro-grain"恰好是反效果). 放之前则 SMAA 只平滑 3D
+  // 几何边缘, 笔触/纸纹在最后一道 ink-wash 保持锐利.
   if (!MOB) {
     const smaa = new SMAAPass(W * renderer.getPixelRatio(), H * renderer.getPixelRatio());
     composer.addPass(smaa);
   }
+
+  composer.addPass(inkWash);
 
   // Controls
   controls = new OrbitControls(camera, renderer.domElement);
