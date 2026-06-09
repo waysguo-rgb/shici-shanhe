@@ -941,9 +941,10 @@ function animate() {
       sp.position.x = d.baseX + Math.cos(ph * 0.7) * d.swayAmp;
       sp.position.z = d.baseZ + Math.sin(ph * 0.5) * d.swayAmp * 0.6;
       // 摆动幅度压缩 (scale ±8%/±12%→±3%/±4%, opacity ±0.22→±0.06): 去搏动闪烁
+      // 平躺 mesh: 深度放 Z (scale.y→z), 绕水面法线转 (material.rotation→rotation.y)
       const scaleK = 1 + Math.sin(ph * 0.8) * 0.03;
-      sp.scale.set(d.baseW * scaleK, d.baseH * (1 + Math.sin(ph * 0.8 + 1) * 0.04), 1);
-      sp.material.rotation = Math.sin(ph * 0.5) * 0.06 * d.rollSpeed;
+      sp.scale.set(d.baseW * scaleK, 1, d.baseH * (1 + Math.sin(ph * 0.8 + 1) * 0.04));
+      sp.rotation.y = Math.sin(ph * 0.5) * 0.06 * d.rollSpeed;
       sp.material.opacity = d.baseOp * (0.9 + Math.sin(ph * 0.6) * 0.06);
     });
   });
