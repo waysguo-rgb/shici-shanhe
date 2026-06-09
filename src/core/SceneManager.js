@@ -292,7 +292,11 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // RenderPass → Bloom (selectively lifts light beams + water highlights)
   //            → SMAA (subpixel morphological AA, desktop only — mobile uses MSAA from WebGL)
   composer = new EffectComposer(renderer);
-  composer.setPixelRatio(renderer.getPixelRatio());
+  // 后期管线像素比 cap 1.5 (桌面 renderer 是 2x): 4 道全屏 pass (Bloom+SMAA+InkWash)
+  // 的 fillrate ∝ 像素数, 2x→1.5x 降 ~44% 物理像素, 是"卡顿严重"的最大单项主因.
+  // 几何渲进 composer target 也变 1.5x, 最终 blit 到 2x canvas 微升采样, 水墨柔调下肉眼基本无损.
+  const _postRatio = Math.min(renderer.getPixelRatio(), 1.5);
+  composer.setPixelRatio(_postRatio);
   composer.setSize(W, H);
   composer.addPass(new RenderPass(scene, camera));
 
@@ -307,7 +311,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // terrain color. Threshold 1.5 means only emissive-style pixels bloom —
   // light beams, water sparkle (driven by additive sparkle in water shader),
   // and specular highlights. Snow/cloud no longer glow.
-  const bloomPass = new UnrealBloomPass(new THREE.Vector2(W, H), 0.55, 0.55, 1.5);
+  // Bloom 用半分辨率: bloom 本质是高斯模糊, 半分辨率肉眼无损但 fillrate 再省一半.
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.55, 0.55, 1.5);
   // strength, radius, threshold — only pixels above threshold bloom; sky stays clean
   composer.addPass(bloomPass);
 
@@ -339,7 +344,7 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // 笔锋 (旧注释"SMAA smooths micro-grain"恰好是反效果). 放之前则 SMAA 只平滑 3D
   // 几何边缘, 笔触/纸纹在最后一道 ink-wash 保持锐利.
   if (!MOB) {
-    const smaa = new SMAAPass(W * renderer.getPixelRatio(), H * renderer.getPixelRatio());
+    const smaa = new SMAAPass(W * _postRatio, H * _postRatio);   // 跟随 cap 后的后期像素比
     composer.addPass(smaa);
   }
 
