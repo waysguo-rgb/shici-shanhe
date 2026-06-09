@@ -579,8 +579,8 @@ export async function init(container, prog, L_data, onLabelClick, onLabelEnter, 
   // Shares geometry with each painted lake mesh, sits a hair above so that
   // fresnel sparkle + sky reflection adds on top additively. No darkening.
   lakeMeshes.forEach(lakeMesh => {
-    // mockup 风格: 海面/河面用浅天空蓝白 (#dde8f2 ~ rgb(221,232,242))
-    const waterMat = makeWaterMaterial(skyCube, { tint: new THREE.Color(0xdde8f2), intensity: 0.65 });
+    // 水墨整体调: 湖面 tint 推暖到米灰 (#e2dcca), 与暖纸基 + 暖浪沫统一, 不再冷蓝
+    const waterMat = makeWaterMaterial(skyCube, { tint: new THREE.Color(0xe2dcca), intensity: 0.65 });
     const overlay = new THREE.Mesh(lakeMesh.geometry, waterMat);
     overlay.position.copy(lakeMesh.position);
     overlay.position.y += 0.008;

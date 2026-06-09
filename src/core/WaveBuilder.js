@@ -13,12 +13,13 @@ export const coastWaveData = [];
 // Per-sprite color variation (淡蓝 → 青 → 浅灰蓝, 个别偏暖白)
 // 给每个浪沫 sprite 一点点不同的颜色, 避免完全一致显得呆板
 // ═══════════════════════════════════════
+// 水墨整体调: 浪沫推暖到米白/暖灰, 不再冷蓝, 避免"蓝白浪花 + 暖棕地图"撕裂
 const _waveTints = [
-  new THREE.Color('#dfeff5'),  // 浅蓝白 (主调)
-  new THREE.Color('#cfe4ee'),  // 偏冷
-  new THREE.Color('#e6eef0'),  // 偏暖白
-  new THREE.Color('#bfdce7'),  // 中蓝
-  new THREE.Color('#d8e8ec'),  // 灰青
+  new THREE.Color('#ece5d6'),  // 暖米白 (主调)
+  new THREE.Color('#e2dac6'),  // 偏暖灰
+  new THREE.Color('#f0ebe0'),  // 暖白 (高光)
+  new THREE.Color('#d6ccb4'),  // 中暖灰
+  new THREE.Color('#e6dece'),  // 浅暖灰
 ];
 function _pickTint() {
   return _waveTints[Math.floor(Math.random() * _waveTints.length)];
