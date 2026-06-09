@@ -95,20 +95,19 @@ const InkWashShader = {
     void main() {
       vec4 col = texture2D(tDiffuse, vUv);
 
-      // 0. Sobel ink stroke — edge detect on luminance, darken strong edges.
-      // Sampling 8 neighbors with 1-pixel offsets gives us a 3x3 Sobel kernel.
+      // 0. Ink stroke — 4 采样十字差分梯度 (替代 9 采样 3x3 Sobel).
+      // 在当前弱墨强度 (multiply 1-ink*0.70) 下视觉与全 Sobel 几乎一致, 省 5 次
+      // tDiffuse fetch/像素. L1 距离 (abs+abs) 比 length 更便宜.
       vec2 px = 1.0 / uRes;
-      float l00 = lum(texture2D(tDiffuse, vUv + px * vec2(-1.0, -1.0)).rgb);
-      float l10 = lum(texture2D(tDiffuse, vUv + px * vec2( 0.0, -1.0)).rgb);
-      float l20 = lum(texture2D(tDiffuse, vUv + px * vec2( 1.0, -1.0)).rgb);
-      float l01 = lum(texture2D(tDiffuse, vUv + px * vec2(-1.0,  0.0)).rgb);
-      float l21 = lum(texture2D(tDiffuse, vUv + px * vec2( 1.0,  0.0)).rgb);
-      float l02 = lum(texture2D(tDiffuse, vUv + px * vec2(-1.0,  1.0)).rgb);
-      float l12 = lum(texture2D(tDiffuse, vUv + px * vec2( 0.0,  1.0)).rgb);
-      float l22 = lum(texture2D(tDiffuse, vUv + px * vec2( 1.0,  1.0)).rgb);
-      float gx = (l20 + 2.0*l21 + l22) - (l00 + 2.0*l01 + l02);
-      float gy = (l02 + 2.0*l12 + l22) - (l00 + 2.0*l10 + l20);
-      float edge = sqrt(gx*gx + gy*gy);
+      float lL = lum(texture2D(tDiffuse, vUv + px * vec2(-1.0,  0.0)).rgb);
+      float lR = lum(texture2D(tDiffuse, vUv + px * vec2( 1.0,  0.0)).rgb);
+      float lD = lum(texture2D(tDiffuse, vUv + px * vec2( 0.0, -1.0)).rgb);
+      float lU = lum(texture2D(tDiffuse, vUv + px * vec2( 0.0,  1.0)).rgb);
+      float gx = lR - lL;
+      float gy = lU - lD;
+      // ×4 把单像素差分拉回旧 3x3 Sobel 的量纲 (旧 gx≈4Δ), 保持 uEdgeThreshold
+      // 语义不变, 墨线粗细与改前一致.
+      float edge = (abs(gx) + abs(gy)) * 4.0;
       // Ramp of 0.25 — soft enough to avoid hard edges, narrow enough so
       // inking reaches full effect on genuine ridges/rivers.
       float ink  = smoothstep(uEdgeThreshold, uEdgeThreshold + 0.25, edge) * uEdgeStrength;
